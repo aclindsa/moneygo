@@ -19,7 +19,6 @@ func initDB() *gorp.DbMap {
 	dbmap.AddTableWithName(User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(Account{}, "accounts").SetKeys(true, "AccountId")
-	dbmap.AddTableWithName(Security{}, "security").SetKeys(true, "SecurityId")
 	dbmap.AddTableWithName(Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(Split{}, "splits").SetKeys(true, "SplitId")
 

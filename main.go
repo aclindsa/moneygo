@@ -62,6 +62,7 @@ func main() {
 	servemux.HandleFunc("/static/", staticHandler)
 	servemux.HandleFunc("/session/", SessionHandler)
 	servemux.HandleFunc("/user/", UserHandler)
+	servemux.HandleFunc("/security/", SecurityHandler)
 
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
