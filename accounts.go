@@ -164,9 +164,6 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				log.Print(err)
 			}
 			return
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
 		}
 
 		WriteSuccess(w)
