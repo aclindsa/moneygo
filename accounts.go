@@ -127,6 +127,45 @@ func UpdateAccount(a *Account) error {
 	return insertUpdateAccount(a, false)
 }
 
+func DeleteAccount(a *Account) error {
+	transaction, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	// Re-parent splits to this account's parent account
+	_, err = transaction.Exec("UPDATE splits SET AccountId=? WHERE AccountId=?", a.ParentAccountId, a.AccountId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	// Re-parent child accounts to this account's parent account
+	_, err = transaction.Exec("UPDATE accounts SET ParentAccountId=? WHERE ParentAccountId=?", a.ParentAccountId, a.AccountId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	count, err := transaction.Delete(a)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+	if count != 1 {
+		transaction.Rollback()
+		return errors.New("Was going to delete more than one account")
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func AccountHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil {
@@ -186,7 +225,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			//Return Account with this Id
+			// Return Account with this Id
 			account, err := GetAccount(accountid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
@@ -246,8 +285,8 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			count, err := DB.Delete(&account)
-			if count != 1 || err != nil {
+			err = DeleteAccount(account)
+			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
 				return
