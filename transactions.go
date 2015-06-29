@@ -276,6 +276,37 @@ func UpdateTransaction(t *Transaction) error {
 	return nil
 }
 
+func DeleteTransaction(t *Transaction) error {
+	transaction, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE from splits where TransactionId=?", t.TransactionId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	count, err := transaction.Delete(t)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+	if count != 1 {
+		transaction.Rollback()
+		return errors.New("Deleted more than one transaction")
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	return nil
+}
+
 func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil {
@@ -413,8 +444,8 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			count, err := DB.Delete(&transaction)
-			if count != 1 || err != nil {
+			err = DeleteTransaction(transaction)
+			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
 				return
