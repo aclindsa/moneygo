@@ -1,5 +1,7 @@
 // Import all the objects we want to use from ReactBootstrap
 var Jumbotron = ReactBootstrap.Jumbotron;
+var TabbedArea = ReactBootstrap.TabbedArea;
+var TabPane = ReactBootstrap.TabPane;
 var Panel = ReactBootstrap.Panel;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 
@@ -299,6 +301,8 @@ var MoneyGoApp = React.createClass({
 			user: new User(),
 			accounts: [],
 			account_map: {},
+			securities: [],
+			security_map: {},
 			error: new Error()
 		};
 	},
@@ -345,6 +349,7 @@ var MoneyGoApp = React.createClass({
 				this.setState({session: s});
 				this.getUser();
 				this.getAccounts();
+				this.getSecurities();
 			}.bind(this),
 			error: this.ajaxError
 		});
@@ -366,6 +371,35 @@ var MoneyGoApp = React.createClass({
 					u.fromJSON(data);
 				}
 				this.setState({user: u});
+			}.bind(this),
+			error: this.ajaxError
+		});
+	},
+	getSecurities: function() {
+		if (!this.state.session.isSession()) {
+			this.setState({securities: [], security_map: {}});
+			return;
+		}
+		$.ajax({
+			type: "GET",
+			dataType: "json",
+			url: "security/",
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				var securities = [];
+				var security_map = {};
+				e.fromJSON(data);
+				if (e.isError()) {
+					this.setState({error: e});
+				} else {
+					for (var i = 0; i < data.securities.length; i++) {
+						var s = new Security();
+						s.fromJSON(data.securities[i]);
+						securities.push(s);
+						security_map[s.SecurityId] = s;
+					}
+				}
+				this.setState({securities: securities, security_map: security_map});
 			}.bind(this),
 			error: this.ajaxError
 		});
@@ -518,17 +552,29 @@ var MoneyGoApp = React.createClass({
 			mainContent = <AccountSettings user={this.state.user} onSettingsSubmitted={this.handleSettingsSubmitted} onCancel={this.handleGoHome}/>
 		} else {
 			if (this.state.user.isUser())
-				mainContent = <AccountList
-						accounts={this.state.accounts}
-						account_map={this.state.account_map}
-						onCreateAccount={this.handleCreateAccount}
-						onUpdateAccount={this.handleUpdateAccount}
-						onDeleteAccount={this.handleDeleteAccount} />
+				mainContent =
+					<TabbedArea defaultActiveKey='1'>
+						<TabPane tab="Accounts" eventKey='1'>
+						<AccountsTab
+							accounts={this.state.accounts}
+							account_map={this.state.account_map}
+							securities={this.state.securities}
+							security_map={this.state.security_map}
+							onCreateAccount={this.handleCreateAccount}
+							onUpdateAccount={this.handleUpdateAccount}
+							onDeleteAccount={this.handleDeleteAccount} />
+						</TabPane>
+						<TabPane tab="Scheduled Transactions" eventKey='2'>Scheduled transactions go here...</TabPane>
+						<TabPane tab="Budgets" eventKey='3'>Budgets go here...</TabPane>
+						<TabPane tab="Reports" eventKey='4'>Reports go here...</TabPane>
+					</TabbedArea>
 			else
 				mainContent =
 					<Jumbotron>
-						<h1>Money<i>Go</i></h1>
-						<p><i>Go</i> manage your money.</p>
+						<center>
+							<h1>Money<i>Go</i></h1>
+							<p><i>Go</i> manage your money.</p>
+						</center>
 					</Jumbotron>
 		}
 

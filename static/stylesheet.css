@@ -1,5 +1,6 @@
 div#content {
 	width: 95%;
+	height: 100%;
 	min-width: 75em;
 	max-width: 100em;
     display: block;

@@ -16,7 +16,7 @@ function User() {
 	this.Email = "";
 }
 
-var BogusPassword = "password";
+const BogusPassword = "password";
 
 User.prototype.toJSON = function() {
 	var json_obj = {};
@@ -76,7 +76,55 @@ Session.prototype.isSession = function() {
 		this.UserId != empty_session.UserId;
 }
 
-var AccountType = {
+const SecurityType = {
+	Banknote: 1,
+	Bond: 2,
+	Stock: 3,
+	MutualFund: 4
+}
+var SecurityTypeList = [];
+for (var type in SecurityType) {
+	if (SecurityType.hasOwnProperty(type)) {
+		SecurityTypeList.push({'TypeId': SecurityType[type], 'Name': type});
+   }
+}
+
+function Security() {
+	this.SecurityId = -1;
+	this.Name = "";
+	this.Precision = -1;
+	this.Type = -1;
+}
+
+Security.prototype.toJSON = function() {
+	var json_obj = {};
+	json_obj.SecurityId = this.SecurityId;
+	json_obj.Name = this.Name;
+	json_obj.Precision = this.Precision;
+	json_obj.Type = this.Type;
+	return JSON.stringify(json_obj);
+}
+
+Security.prototype.fromJSON = function(json_input) {
+	var json_obj = getJSONObj(json_input);
+
+	if (json_obj.hasOwnProperty("SecurityId"))
+		this.SecurityId = json_obj.SecurityId;
+	if (json_obj.hasOwnProperty("Name"))
+		this.Name = json_obj.Name;
+	if (json_obj.hasOwnProperty("Precision"))
+		this.Precision = json_obj.Precision;
+	if (json_obj.hasOwnProperty("Type"))
+		this.Type = json_obj.Type;
+}
+
+Security.prototype.isSecurity = function() {
+	var empty_account = new Security();
+	return this.SecurityId != empty_account.SecurityId ||
+		this.Type != empty_account.Type;
+}
+
+const AccountType = {
 	Bank: 1,
 	Cash: 2,
 	Asset: 3,
@@ -84,6 +132,12 @@ var AccountType = {
 	Investment: 5,
 	Income: 6,
 	Expense: 7
+}
+var AccountTypeList = [];
+for (var type in AccountType) {
+	if (AccountType.hasOwnProperty(type)) {
+		AccountTypeList.push({'TypeId': AccountType[type], 'Name': type});
+   }
 }
 
 function Account() {
@@ -183,7 +237,7 @@ Split.prototype.isSplit = function() {
 		this.AccountId != empty_split.AccountId;
 }
 
-var TransactionStatus = {
+const TransactionStatus = {
 	Entered: 1,
 	Cleared: 2,
 	Reconciled: 3,
