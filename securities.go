@@ -6,13 +6,11 @@ import (
 	"net/http"
 )
 
-type SecurityType int64
-
 const (
-	Banknote   SecurityType = 1
-	Bond                    = 2
-	Stock                   = 3
-	MutualFund              = 4
+	Banknote   int64 = 1
+	Bond             = 2
+	Stock            = 3
+	MutualFund       = 4
 )
 
 type Security struct {
@@ -21,7 +19,7 @@ type Security struct {
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
 	Precision int64
-	Type      SecurityType
+	Type      int64
 }
 
 type SecurityList struct {

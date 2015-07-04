@@ -8,16 +8,14 @@ import (
 	"strings"
 )
 
-type AccountType int64
-
 const (
-	Bank       AccountType = 1
-	Cash                   = 2
-	Asset                  = 3
-	Liability              = 4
-	Investment             = 5
-	Income                 = 6
-	Expense                = 7
+	Bank       int64 = 1
+	Cash             = 2
+	Asset            = 3
+	Liability        = 4
+	Investment       = 5
+	Income           = 6
+	Expense          = 7
 )
 
 type Account struct {
@@ -25,7 +23,7 @@ type Account struct {
 	UserId          int64
 	SecurityId      int64
 	ParentAccountId int64 // -1 if this account is at the root
-	Type            AccountType
+	Type            int64
 	Name            string
 }
 
