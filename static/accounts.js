@@ -66,6 +66,7 @@ const NewAccountModal = React.createClass({
 	handleCancel: function() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
+		this.setState(this.getInitialState());
 	},
 	handleChange: function() {
 		this.setState({
@@ -96,6 +97,7 @@ const NewAccountModal = React.createClass({
 		a.Type = this.state.type;
 
 		this.handleSaveSettings(a);
+		this.setState(this.getInitialState());
 	},
 	handleSaveSettings: function(account) {
 		if (this.props.onSubmit != null)
