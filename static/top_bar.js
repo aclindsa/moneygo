@@ -9,7 +9,7 @@ var MenuItem = ReactBootstrap.MenuItem;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
 
-var LoginBar = React.createClass({
+const LoginBar = React.createClass({
 	getInitialState: function() {
 		return {username: '', password: ''};
 	},
@@ -61,7 +61,7 @@ var LoginBar = React.createClass({
 	}
 });
 
-var LogoutBar = React.createClass({
+const LogoutBar = React.createClass({
 	handleOnSelect: function(key) {
 		if (key == 1) {
 			if (this.props.onAccountSettings != null)
@@ -91,7 +91,7 @@ var LogoutBar = React.createClass({
 	}
 });
 
-var TopBar = React.createClass({
+const TopBar = React.createClass({
 	render: function() {
 		var barContents;
 		var errorAlert;

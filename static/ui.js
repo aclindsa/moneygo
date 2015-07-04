@@ -5,7 +5,7 @@ var TabPane = ReactBootstrap.TabPane;
 var Panel = ReactBootstrap.Panel;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 
-var NewUserForm = React.createClass({
+const NewUserForm = React.createClass({
 	getInitialState: function() {
 		return {error: "",
 			name: "",
@@ -146,7 +146,7 @@ var NewUserForm = React.createClass({
 	}
 });
 
-var AccountSettings = React.createClass({
+const AccountSettings = React.createClass({
 	getInitialState: function() {
 		return {error: "",
 			name: this.props.user.Name,
@@ -293,7 +293,7 @@ var AccountSettings = React.createClass({
 	}
 });
 
-var MoneyGoApp = React.createClass({
+const MoneyGoApp = React.createClass({
 	getInitialState: function() {
 		return {
 			hash: "home",
