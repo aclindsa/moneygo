@@ -12,6 +12,8 @@ var Glyphicon = ReactBootstrap.Glyphicon;
 
 var Modal = ReactBootstrap.Modal;
 
+var CollapsibleMixin = ReactBootstrap.CollapsibleMixin;
+
 var Combobox = ReactWidgets.Combobox;
 
 const recursiveAccountDisplayInfo = function(account, prefix) {
@@ -26,7 +28,7 @@ const getAccountDisplayList = function(account_list, includeRoot, rootName) {
 	if (includeRoot)
 		accounts.push({AccountId: -1, Name: rootName});
 	for (var i = 0; i < account_list.length; i++) {
-		if (account_list[i].ParentAccountId == -1)
+		if (account_list[i].isRootAccount())
 			accounts = accounts.concat(recursiveAccountDisplayInfo(account_list[i], ""));
 	}
 	return accounts;
@@ -167,9 +169,105 @@ const NewAccountModal = React.createClass({
 	}
 });
 
+const AccountTreeNode = React.createClass({
+	mixins: [CollapsibleMixin],
+	getCollapsibleDOMNode: function() {
+		return React.findDOMNode(this.refs.children);
+	},
+	getCollapsibleDimensionValue: function() {
+		return React.findDOMNode(this.refs.children).scrollHeight;
+	},
+	handleToggle: function(e) {
+		e.preventDefault();
+		this.setState({expanded:!this.state.expanded});
+	},
+	handleChildSelect: function(account) {
+		if (this.props.onSelect != null)
+			this.props.onSelect(account);
+	},
+	handleSelect: function() {
+		if (this.props.onSelect != null)
+			this.props.onSelect(this.props.account);
+	},
+	render: function() {
+		var styles = this.getCollapsibleClassSet();
+		var glyph = this.isExpanded() ? 'minus' : 'plus';
+		var active = (this.props.selectedAccount != null &&
+			this.props.account.AccountId == this.props.selectedAccount.AccountId);
+		var buttonStyle = active ? "info" : "link";
+
+		var self = this;
+		var children = this.props.account.Children.map(function(account) {
+			return (
+				<AccountTreeNode
+					account={account}
+					selectedAccount={self.props.selectedAccount}
+					onSelect={self.handleChildSelect}/>
+		   );
+		});
+		var accounttreeClasses = "accounttree"
+		var expandButton = [];
+		if (children.length > 0)
+			expandButton.push((
+				<Button onClick={this.handleToggle}
+						bsSize="xsmall"
+						bsStyle="link"
+						className="accounttree-expandbutton">
+					<Glyphicon glyph={glyph} bsSize="xsmall"/>
+				</Button>
+			));
+		else
+			accounttreeClasses += "-nochildren";
+		return (
+			<div className={accounttreeClasses}>
+				{expandButton}
+				<Button onClick={this.handleSelect}
+						bsStyle={buttonStyle}
+						className="accounttree-name">
+					{this.props.account.Name}
+				</Button>
+				<div ref='children' className={classNames(styles)}>
+					{children}
+				</div>
+			</div>
+		);
+	}
+});
+
+const AccountTree = React.createClass({
+	getInitialState: function() {
+		return {selectedAccount: null};
+	},
+	handleSelect: function(account) {
+		this.setState({selectedAccount: account});
+		if (this.props.onSelect != null) {
+			this.props.onSelect(account);
+		}
+	},
+	render: function() {
+		var accounts = this.props.accounts;
+
+		var children = [];
+		for (var i = 0; i < accounts.length; i++) {
+			if (accounts[i].isRootAccount())
+				children.push((<AccountTreeNode
+					account={accounts[i]}
+					selectedAccount={this.state.selectedAccount}
+					onSelect={this.handleSelect}/>));
+		}
+
+		return (
+			<div className="accounttree-root">
+				{children}
+			</div>
+		);
+	}
+});
+
 const AccountsTab = React.createClass({
 	getInitialState: function() {
 		return {
+			selectedAccount: null,
 			creatingNewAccount: false
 		};
 	},
@@ -190,15 +288,12 @@ const AccountsTab = React.createClass({
 			this.props.onCreateAccount(account);
 		this.setState({creatingNewAccount: false});
 	},
+	handleAccountSelected: function(account) {
+		this.setState({selectedAccount: account});
+	},
 	render: function() {
 		var accounts = this.props.accounts;
 		var account_map = this.props.account_map;
-
-		var listGroupItems = accounts.map(function(account) {
-			return (
-				<ListGroupItem>{account.Name}</ListGroupItem>
-		   );
-		});
 
 		return (
 			<Grid fluid><Row>
@@ -210,9 +305,9 @@ const AccountsTab = React.createClass({
 						onCancel={this.handleCreationCancel}
 						onSubmit={this.handleCreateAccount}
 						securities={this.props.securities}/>
-					<ListGroup>
-						{listGroupItems}
-					</ListGroup>
+					<AccountTree
+						accounts={accounts}
+						onSelect={this.handleAccountSelected}/>
 					<ButtonGroup className="pull-right">
 						<Button onClick={this.handleNewAccount} bsStyle="success">
 							<Glyphicon glyph='plus-sign' /></Button>
