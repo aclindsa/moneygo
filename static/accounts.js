@@ -38,14 +38,15 @@ const AccountCombobox = React.createClass({
 	getDefaultProps: function() {
 		return {
 			includeRoot: true,
-			rootName: "New Root Account"
+			rootName: "New Top-level Account"
 		};
 	},
 	handleAccountChange: function(account) {
 		if (this.props.onSelect != null &&
 				account.hasOwnProperty('AccountId') &&
-				this.props.account_map.hasOwnProperty([account.AccountId])) {
-			this.props.onSelect(this.props.account_map[account.AccountId])
+				(this.props.account_map.hasOwnProperty([account.AccountId]) ||
+				 account.AccountId == -1)) {
+			this.props.onSelect(account)
 		}
 	},
 	render: function() {
@@ -62,27 +63,31 @@ const AccountCombobox = React.createClass({
 	}
 });
 
-const NewAccountModal = React.createClass({
+const AddEditAccountModal = React.createClass({
 	getInitialState: function() {
-		var security = 1;
-		var parentaccountid = -1;
-		var type = 1;
-		if (this.props.initialParentAccount != null) {
-			security = this.props.initialParentAccount.SecurityId;
-			parentaccountid = this.props.initialParentAccount.AccountId;
-			type = this.props.initialParentAccount.Type;
-		}
-		return {
-			security: security,
-			parentaccountid: parentaccountid,
-			type: type,
+		var s = {
+			accountid: -1,
+			security: 1,
+			parentaccountid: -1,
+			type: 1,
 			name: ""
 		};
+		if (this.props.editAccount != null) {
+			s.accountid = this.props.editAccount.AccountId;
+			s.name = this.props.editAccount.Name;
+			s.security = this.props.editAccount.SecurityId;
+			s.parentaccountid = this.props.editAccount.ParentAccountId;
+			s.type = this.props.editAccount.Type;
+		} else if (this.props.initialParentAccount != null) {
+			s.security = this.props.initialParentAccount.SecurityId;
+			s.parentaccountid = this.props.initialParentAccount.AccountId;
+			s.type = this.props.initialParentAccount.Type;
+		}
+		return s;
 	},
 	handleCancel: function() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-		this.setState(this.getInitialState());
 	},
 	handleChange: function() {
 		this.setState({
@@ -107,17 +112,15 @@ const NewAccountModal = React.createClass({
 	handleSubmit: function() {
 		var a = new Account();
 
+		if (this.props.editAccount != null)
+			a.AccountId = this.state.accountid;
 		a.Name = this.state.name;
 		a.ParentAccountId = this.state.parentaccountid;
 		a.SecurityId = this.state.security;
 		a.Type = this.state.type;
 
-		this.handleSaveSettings(a);
-		this.setState(this.getInitialState());
-	},
-	handleSaveSettings: function(account) {
 		if (this.props.onSubmit != null)
-			this.props.onSubmit(account);
+			this.props.onSubmit(a);
 	},
 	componentWillReceiveProps: function(nextProps) {
 		if (nextProps.show && !this.props.show) {
@@ -125,10 +128,12 @@ const NewAccountModal = React.createClass({
 		}
 	},
 	render: function() {
+		var headerText = (this.props.editAccount != null) ? "Edit" : "Create New";
+		var rootName = (this.props.editAccount != null) ? "Top-level Account" : "New Top-level Account";
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
 				<Modal.Header closeButton>
-					<Modal.Title>Create New Account</Modal.Title>
+					<Modal.Title>{headerText} Account</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				<form onSubmit={this.handleSubmit}
@@ -148,6 +153,7 @@ const NewAccountModal = React.createClass({
 						accounts={this.props.accounts}
 						account_map={this.props.account_map}
 						value={this.state.parentaccountid}
+						rootName={rootName}
 						onSelect={this.handleParentChange}
 						ref="parent" />
 					</Input>
@@ -388,6 +394,7 @@ const AccountsTab = React.createClass({
 		return {
 			selectedAccount: null,
 			creatingNewAccount: false,
+			editingAccount: false,
 			deletingAccount: false
 		};
 	},
@@ -395,13 +402,16 @@ const AccountsTab = React.createClass({
 		this.setState({creatingNewAccount: true});
 	},
 	handleEditAccount: function() {
-		console.log("handleEditAccount");
+		this.setState({editingAccount: true});
 	},
 	handleDeleteAccount: function() {
 		this.setState({deletingAccount: true});
 	},
 	handleCreationCancel: function() {
 		this.setState({creatingNewAccount: false});
+	},
+	handleEditingCancel: function() {
+		this.setState({editingAccount: false});
 	},
 	handleDeletionCancel: function() {
 		this.setState({deletingAccount: false});
@@ -411,10 +421,16 @@ const AccountsTab = React.createClass({
 			this.props.onCreateAccount(account);
 		this.setState({creatingNewAccount: false});
 	},
+	handleUpdateAccount: function(account) {
+		if (this.props.onUpdateAccount != null)
+			this.props.onUpdateAccount(account);
+		this.setState({editingAccount: false});
+	},
 	handleRemoveAccount: function(account) {
 		if (this.props.onDeleteAccount != null)
 			this.props.onDeleteAccount(account);
-		this.setState({deletingAccount: false});
+		this.setState({deletingAccount: false,
+			selectedAccount: null});
 	},
 	handleAccountSelected: function(account) {
 		this.setState({selectedAccount: account});
@@ -423,16 +439,26 @@ const AccountsTab = React.createClass({
 		var accounts = this.props.accounts;
 		var account_map = this.props.account_map;
 
+		var disabled = (this.state.selectedAccount == null) ? "disabled" : "";
+
 		return (
 			<Grid fluid><Row>
 				<Col xs={2}>
-					<NewAccountModal
+					<AddEditAccountModal
 						show={this.state.creatingNewAccount}
 						initialParentAccount={this.state.selectedAccount}
 						accounts={this.props.accounts}
 						account_map={this.props.account_map}
 						onCancel={this.handleCreationCancel}
 						onSubmit={this.handleCreateAccount}
+						securities={this.props.securities}/>
+					<AddEditAccountModal
+						show={this.state.editingAccount}
+						editAccount={this.state.selectedAccount}
+						accounts={this.props.accounts}
+						account_map={this.props.account_map}
+						onCancel={this.handleEditingCancel}
+						onSubmit={this.handleUpdateAccount}
 						securities={this.props.securities}/>
 					<DeleteAccountModal
 						show={this.state.deletingAccount}
@@ -447,9 +473,11 @@ const AccountsTab = React.createClass({
 					<ButtonGroup className="pull-right">
 						<Button onClick={this.handleNewAccount} bsStyle="success">
 							<Glyphicon glyph='plus-sign' /></Button>
-						<Button onClick={this.handleEditAccount} bsStyle="primary">
+						<Button onClick={this.handleEditAccount}
+								bsStyle="primary" disabled={disabled}>
 							<Glyphicon glyph='cog' /></Button>
-						<Button onClick={this.handleDeleteAccount} bsStyle="danger">
+						<Button onClick={this.handleDeleteAccount}
+								bsStyle="danger" disabled={disabled}>
 							<Glyphicon glyph='trash' /></Button>
 					</ButtonGroup>
 				</Col><Col xs={10}>
