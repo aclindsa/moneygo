@@ -131,11 +131,20 @@ func DeleteAccount(a *Account) error {
 		return err
 	}
 
-	// Re-parent splits to this account's parent account
-	_, err = transaction.Exec("UPDATE splits SET AccountId=? WHERE AccountId=?", a.ParentAccountId, a.AccountId)
-	if err != nil {
-		transaction.Rollback()
-		return err
+	if a.ParentAccountId != -1 {
+		// Re-parent splits to this account's parent account if this account isn't a root account
+		_, err = transaction.Exec("UPDATE splits SET AccountId=? WHERE AccountId=?", a.ParentAccountId, a.AccountId)
+		if err != nil {
+			transaction.Rollback()
+			return err
+		}
+	} else {
+		// Delete splits if this account is a root account
+		_, err = transaction.Exec("DELETE FROM splits WHERE AccountId=?", a.AccountId)
+		if err != nil {
+			transaction.Rollback()
+			return err
+		}
 	}
 
 	// Re-parent child accounts to this account's parent account

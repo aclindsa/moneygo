@@ -35,6 +35,12 @@ const getAccountDisplayList = function(account_list, includeRoot, rootName) {
 };
 
 const AccountCombobox = React.createClass({
+	getDefaultProps: function() {
+		return {
+			includeRoot: true,
+			rootName: "New Root Account"
+		};
+	},
 	handleAccountChange: function(account) {
 		if (this.props.onSelect != null &&
 				account.hasOwnProperty('AccountId') &&
@@ -43,7 +49,7 @@ const AccountCombobox = React.createClass({
 		}
 	},
 	render: function() {
-		var accounts = getAccountDisplayList(this.props.accounts, true, "New Root Account");
+		var accounts = getAccountDisplayList(this.props.accounts, this.props.includeRoot, this.props.rootName);
 		return (
 			<Combobox
 				data={accounts}
@@ -58,10 +64,18 @@ const AccountCombobox = React.createClass({
 
 const NewAccountModal = React.createClass({
 	getInitialState: function() {
+		var security = 1;
+		var parentaccountid = -1;
+		var type = 1;
+		if (this.props.initialParentAccount != null) {
+			security = this.props.initialParentAccount.SecurityId;
+			parentaccountid = this.props.initialParentAccount.AccountId;
+			type = this.props.initialParentAccount.Type;
+		}
 		return {
-			security: 1,
-			parentaccountid: -1,
-			type: 1,
+			security: security,
+			parentaccountid: parentaccountid,
+			type: type,
 			name: ""
 		};
 	},
@@ -105,6 +119,11 @@ const NewAccountModal = React.createClass({
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(account);
 	},
+	componentWillReceiveProps: function(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState());
+		}
+	},
 	render: function() {
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
@@ -115,46 +134,46 @@ const NewAccountModal = React.createClass({
 				<form onSubmit={this.handleSubmit}
 						className="form-horizontal">
 					<Input type="text"
-							label="Name"
-							value={this.state.name}
-							onChange={this.handleChange}
-							ref="name"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"/>
+						label="Name"
+						value={this.state.name}
+						onChange={this.handleChange}
+						ref="name"
+						labelClassName="col-xs-2"
+						wrapperClassName="col-xs-10"/>
 					<Input wrapperClassName="wrapper"
-							label="Parent Account"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10">
+						label="Parent Account"
+						labelClassName="col-xs-2"
+						wrapperClassName="col-xs-10">
 					<AccountCombobox
-							accounts={this.props.accounts}
-							account_map={this.props.account_map}
-							value={this.state.parentaccountid}
-							onSelect={this.handleParentChange}
-							ref="parent" />
+						accounts={this.props.accounts}
+						account_map={this.props.account_map}
+						value={this.state.parentaccountid}
+						onSelect={this.handleParentChange}
+						ref="parent" />
 					</Input>
 					<Input wrapperClassName="wrapper"
-							label="Security"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10">
+						label="Security"
+						labelClassName="col-xs-2"
+						wrapperClassName="col-xs-10">
 					<Combobox
-							data={this.props.securities}
-							valueField='SecurityId'
-							textField='Name'
-							value={this.state.security}
-							onSelect={this.handleSecurityChange}
-							ref="security" />
+						data={this.props.securities}
+						valueField='SecurityId'
+						textField='Name'
+						value={this.state.security}
+						onSelect={this.handleSecurityChange}
+						ref="security" />
 					</Input>
 					<Input wrapperClassName="wrapper"
-							label="Account Type"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10">
+						label="Account Type"
+						labelClassName="col-xs-2"
+						wrapperClassName="col-xs-10">
 					<Combobox
-							data={AccountTypeList}
-							valueField='TypeId'
-							textField='Name'
-							value={this.state.type}
-							onSelect={this.handleTypeChange}
-							ref="type" />
+						data={AccountTypeList}
+						valueField='TypeId'
+						textField='Name'
+						value={this.state.type}
+						onSelect={this.handleTypeChange}
+						ref="type" />
 					</Input>
 				</form>
 				</Modal.Body>
@@ -162,6 +181,106 @@ const NewAccountModal = React.createClass({
 					<ButtonGroup className="pull-right">
 						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
 						<Button onClick={this.handleSubmit} bsStyle="success">Create Account</Button>
+					</ButtonGroup>
+				</Modal.Footer>
+			</Modal>
+		);
+	}
+});
+
+const DeleteAccountModal = React.createClass({
+	getInitialState: function() {
+		if (this.props.initialAccount != null)
+			var accountid = this.props.initialAccount.AccountId;
+		else if (this.props.accounts.length > 0)
+			var accountid = this.props.accounts[0].AccountId;
+		else
+			var accountid = -1;
+		return {error: "",
+			accountid: accountid,
+			checked: false,
+			show: false};
+	},
+	handleCancel: function() {
+		if (this.props.onCancel != null)
+			this.props.onCancel();
+	},
+	handleChange: function(account) {
+		this.setState({accountid: account.AccountId});
+	},
+	handleCheckboxClick: function() {
+		this.setState({checked: !this.state.checked});
+	},
+	handleSubmit: function() {
+		if (this.props.account_map.hasOwnProperty(this.state.accountid)) {
+			if (this.state.checked) {
+				if (this.props.onSubmit != null)
+					this.props.onSubmit(this.props.account_map[this.state.accountid]);
+			} else {
+				this.setState({error: "You must confirm you wish to delete this account."});
+			}
+		} else {
+			this.setState({error: "You must select an account."});
+		}
+	},
+	componentWillReceiveProps: function(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState());
+		}
+	},
+	render: function() {
+		var checkbox = [];
+		if (this.props.account_map.hasOwnProperty(this.state.accountid)) {
+			var parentAccountId = this.props.account_map[this.state.accountid].ParentAccountId;
+			var parentAccount = "will be deleted and any child accounts will become top-level accounts.";
+			if (parentAccountId != -1)
+				parentAccount = "and any child accounts will be re-parented to: " + this.props.account_map[parentAccountId].Name;
+
+			var warningString = "I understand that deleting this account cannot be undone and that all transactions " + parentAccount;
+			checkbox = (<Input
+				type='checkbox'
+				checked={this.state.checked ? "checked" : ""}
+				onClick={this.handleCheckboxClick}
+				label={warningString}
+				wrapperClassName="col-xs-offset-2 col-xs-10"/>);
+		}
+		var warning = [];
+		if (this.state.error.length != "") {
+			warning = (
+				<Alert bsStyle="danger"><strong>Error: </strong>{this.state.error}</Alert>
+			);
+		}
+
+		return (
+			<Modal
+					show={this.props.show}
+					onHide={this.handleCancel}
+					ref="modal">
+				<Modal.Header closeButton>
+					<Modal.Title>Delete Account</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+				{warning}
+				<form onSubmit={this.handleSubmit}
+						className="form-horizontal">
+					<Input wrapperClassName="wrapper"
+						label="Delete Account"
+						labelClassName="col-xs-2"
+						wrapperClassName="col-xs-10">
+					<AccountCombobox
+						includeRoot={false}
+						accounts={this.props.accounts}
+						account_map={this.props.account_map}
+						value={this.state.accountid}
+						onSelect={this.handleChange}/>
+					</Input>
+					{checkbox}
+				</form>
+				</Modal.Body>
+				<Modal.Footer>
+					<ButtonGroup className="pull-right">
+						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.handleSubmit} bsStyle="success">Delete Account</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
@@ -268,7 +387,8 @@ const AccountsTab = React.createClass({
 	getInitialState: function() {
 		return {
 			selectedAccount: null,
-			creatingNewAccount: false
+			creatingNewAccount: false,
+			deletingAccount: false
 		};
 	},
 	handleNewAccount: function() {
@@ -278,15 +398,23 @@ const AccountsTab = React.createClass({
 		console.log("handleEditAccount");
 	},
 	handleDeleteAccount: function() {
-		console.log("handleDeleteAccount");
+		this.setState({deletingAccount: true});
 	},
 	handleCreationCancel: function() {
 		this.setState({creatingNewAccount: false});
+	},
+	handleDeletionCancel: function() {
+		this.setState({deletingAccount: false});
 	},
 	handleCreateAccount: function(account) {
 		if (this.props.onCreateAccount != null)
 			this.props.onCreateAccount(account);
 		this.setState({creatingNewAccount: false});
+	},
+	handleRemoveAccount: function(account) {
+		if (this.props.onDeleteAccount != null)
+			this.props.onDeleteAccount(account);
+		this.setState({deletingAccount: false});
 	},
 	handleAccountSelected: function(account) {
 		this.setState({selectedAccount: account});
@@ -300,11 +428,19 @@ const AccountsTab = React.createClass({
 				<Col xs={2}>
 					<NewAccountModal
 						show={this.state.creatingNewAccount}
+						initialParentAccount={this.state.selectedAccount}
 						accounts={this.props.accounts}
 						account_map={this.props.account_map}
 						onCancel={this.handleCreationCancel}
 						onSubmit={this.handleCreateAccount}
 						securities={this.props.securities}/>
+					<DeleteAccountModal
+						show={this.state.deletingAccount}
+						initialAccount={this.state.selectedAccount}
+						accounts={this.props.accounts}
+						account_map={this.props.account_map}
+						onCancel={this.handleDeletionCancel}
+						onSubmit={this.handleRemoveAccount}/>
 					<AccountTree
 						accounts={accounts}
 						onSelect={this.handleAccountSelected}/>
