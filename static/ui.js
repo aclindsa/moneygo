@@ -553,9 +553,10 @@ const MoneyGoApp = React.createClass({
 		} else {
 			if (this.state.user.isUser())
 				mainContent =
-					<TabbedArea defaultActiveKey='1'>
-						<TabPane tab="Accounts" eventKey='1'>
+					<TabbedArea defaultActiveKey='1' className="flex-container">
+						<TabPane tab="Accounts" eventKey='1' className="fullheight">
 						<AccountsTab
+							className="fullheight"
 							accounts={this.state.accounts}
 							account_map={this.state.account_map}
 							securities={this.state.securities}
@@ -564,9 +565,9 @@ const MoneyGoApp = React.createClass({
 							onUpdateAccount={this.handleUpdateAccount}
 							onDeleteAccount={this.handleDeleteAccount} />
 						</TabPane>
-						<TabPane tab="Scheduled Transactions" eventKey='2'>Scheduled transactions go here...</TabPane>
-						<TabPane tab="Budgets" eventKey='3'>Budgets go here...</TabPane>
-						<TabPane tab="Reports" eventKey='4'>Reports go here...</TabPane>
+						<TabPane tab="Scheduled Transactions" eventKey='2' className="fullheight">Scheduled transactions go here...</TabPane>
+						<TabPane tab="Budgets" eventKey='3' className="fullheight">Budgets go here...</TabPane>
+						<TabPane tab="Reports" eventKey='4' className="fullheight">Reports go here...</TabPane>
 					</TabbedArea>
 			else
 				mainContent =
@@ -579,15 +580,15 @@ const MoneyGoApp = React.createClass({
 		}
 
 		return (
-			<div>
+			<div className="fullheight ui">
 				<TopBar
-						error={this.state.error}
-						onErrorClear={this.handleErrorClear}
-						onLoginSubmit={this.handleLoginSubmit}
-						onCreateNewUser={this.handleCreateNewUser}
-						user={this.state.user}
-						onAccountSettings={this.handleAccountSettings}
-						onLogoutSubmit={this.handleLogoutSubmit} />
+					error={this.state.error}
+					onErrorClear={this.handleErrorClear}
+					onLoginSubmit={this.handleLoginSubmit}
+					onCreateNewUser={this.handleCreateNewUser}
+					user={this.state.user}
+					onAccountSettings={this.handleAccountSettings}
+					onLogoutSubmit={this.handleLogoutSubmit} />
 				{mainContent}
 			</div>
 		);

@@ -1,13 +1,37 @@
+html, body {
+	height: 100%;
+}
 div#content {
+	display: block;
 	width: 95%;
 	height: 100%;
 	min-width: 75em;
 	max-width: 100em;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
+	margin: auto;
 }
 
+/* Keep the main windows sized to the full viewable height */
+.fullheight {
+	height: 100%;
+}
+
+.ui {
+	display: flex;
+	flex-flow: column;
+}
+.ui > div:nth-child(1), .ui > div:nth-child(2) > nav {
+	flex: none;
+}
+.ui > div:nth-child(2) {
+	display: flex;
+	flex: auto;
+	flex-flow: column;
+}
+.ui > div:nth-child(2) > div {
+	flex: auto;
+}
+
+/* Style the account tree */
 div.accounttree-root-nochildren {
 	position: relative;
 	left: 24px;
