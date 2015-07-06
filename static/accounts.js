@@ -129,6 +129,7 @@ const AddEditAccountModal = React.createClass({
 	},
 	render: function() {
 		var headerText = (this.props.editAccount != null) ? "Edit" : "Create New";
+		var buttonText = (this.props.editAccount != null) ? "Save Changes" : "Create Account";
 		var rootName = (this.props.editAccount != null) ? "Top-level Account" : "New Top-level Account";
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
@@ -186,7 +187,7 @@ const AddEditAccountModal = React.createClass({
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
 						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit} bsStyle="success">Create Account</Button>
+						<Button onClick={this.handleSubmit} bsStyle="success">{buttonText}</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
