@@ -553,7 +553,7 @@ const MoneyGoApp = React.createClass({
 		} else {
 			if (this.state.user.isUser())
 				mainContent =
-					<TabbedArea defaultActiveKey='1' className="flex-container">
+					<TabbedArea defaultActiveKey='1' className="">
 						<TabPane tab="Accounts" eventKey='1' className="fullheight">
 						<AccountsTab
 							className="fullheight"

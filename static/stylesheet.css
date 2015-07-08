@@ -54,3 +54,24 @@ div.accounttree-root div {
 .accounttree-name {
 	padding: 3px;
 }
+
+.accounttree-root {
+	display: block;
+	width: 100%;
+	height: 100%-100px;
+	overflow: auto;
+}
+.account-column {
+	padding: 15px 15px 43px 15px;
+	border-right: 1px solid #DDD;
+	border-left: 1px solid #DDD;
+}
+.account-buttongroup {
+	position: absolute;
+	right: 15px;
+	bottom: 15px;
+}
+.transactions-column {
+	padding: 15px;
+	border-right: 1px solid #DDD;
+}

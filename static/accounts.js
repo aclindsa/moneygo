@@ -362,13 +362,23 @@ const AccountTreeNode = React.createClass({
 
 const AccountTree = React.createClass({
 	getInitialState: function() {
-		return {selectedAccount: null};
+		return {selectedAccount: null,
+			height: 0};
 	},
 	handleSelect: function(account) {
 		this.setState({selectedAccount: account});
 		if (this.props.onSelect != null) {
 			this.props.onSelect(account);
 		}
+	},
+	resize: function() {
+		var div = React.findDOMNode(this);
+		this.setState({height: div.parentElement.clientHeight - 73});
+	},
+	componentDidMount: function() {
+		this.resize();
+		var self = this;
+		$(window).resize(function() {self.resize();});
 	},
 	render: function() {
 		var accounts = this.props.accounts;
@@ -382,8 +392,10 @@ const AccountTree = React.createClass({
 					onSelect={this.handleSelect}/>));
 		}
 
+		var style = {height: this.state.height + "px"};
+
 		return (
-			<div className="accounttree-root">
+			<div className="accounttree-root" style={style} >
 				{children}
 			</div>
 		);
@@ -443,8 +455,8 @@ const AccountsTab = React.createClass({
 		var disabled = (this.state.selectedAccount == null) ? "disabled" : "";
 
 		return (
-			<Grid fluid><Row>
-				<Col xs={2}>
+			<Grid fluid className="fullheight"><Row className="fullheight">
+				<Col xs={2} className="fullheight account-column">
 					<AddEditAccountModal
 						show={this.state.creatingNewAccount}
 						initialParentAccount={this.state.selectedAccount}
@@ -471,7 +483,7 @@ const AccountsTab = React.createClass({
 					<AccountTree
 						accounts={accounts}
 						onSelect={this.handleAccountSelected}/>
-					<ButtonGroup className="pull-right">
+					<ButtonGroup className="account-buttongroup">
 						<Button onClick={this.handleNewAccount} bsStyle="success">
 							<Glyphicon glyph='plus-sign' /></Button>
 						<Button onClick={this.handleEditAccount}
@@ -481,7 +493,7 @@ const AccountsTab = React.createClass({
 								bsStyle="danger" disabled={disabled}>
 							<Glyphicon glyph='trash' /></Button>
 					</ButtonGroup>
-				</Col><Col xs={10}>
+				</Col><Col xs={10} className="fullheight transactions-column">
 					blah
 				</Col>
 			</Row></Grid>
