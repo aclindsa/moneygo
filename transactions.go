@@ -3,9 +3,13 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"gopkg.in/gorp.v1"
 	"log"
 	"math/big"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -56,6 +60,11 @@ type TransactionList struct {
 	Transactions *[]Transaction `json:"transactions"`
 }
 
+type AccountTransactionsList struct {
+	Account      *Account       `json:"account"`
+	Transactions *[]Transaction `json:"transactions"`
+}
+
 func (t *Transaction) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(t)
@@ -69,6 +78,11 @@ func (t *Transaction) Read(json_str string) error {
 func (tl *TransactionList) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(tl)
+}
+
+func (atl *AccountTransactionsList) Write(w http.ResponseWriter) error {
+	enc := json.NewEncoder(w)
+	return enc.Encode(atl)
 }
 
 func (t *Transaction) Valid() bool {
@@ -152,18 +166,38 @@ func GetTransactions(userid int64) (*[]Transaction, error) {
 	return &transactions, nil
 }
 
+func incrementAccountVersions(transaction *gorp.Transaction, user *User, accountids []int64) error {
+	for i := range accountids {
+		account, err := GetAccountTx(transaction, accountids[i], user.UserId)
+		if err != nil {
+			return err
+		}
+		account.Version++
+		count, err := transaction.Update(account)
+		if err != nil {
+			return err
+		}
+		if count != 1 {
+			return errors.New("Updated more than one account")
+		}
+	}
+	return nil
+}
+
 type AccountMissingError struct{}
 
 func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransaction(t *Transaction) error {
+func InsertTransaction(t *Transaction, user *User) error {
 	transaction, err := DB.Begin()
 	if err != nil {
 		return err
 	}
 
+	// Map of any accounts with transaction splits being added
+	a_map := make(map[int64]bool)
 	for i := range t.Splits {
 		existing, err := transaction.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
 		if err != nil {
@@ -174,6 +208,18 @@ func InsertTransaction(t *Transaction) error {
 			transaction.Rollback()
 			return AccountMissingError{}
 		}
+		a_map[t.Splits[i].AccountId] = true
+	}
+
+	//increment versions for all accounts
+	var a_ids []int64
+	for id := range a_map {
+		a_ids = append(a_ids, id)
+	}
+	err = incrementAccountVersions(transaction, user, a_ids)
+	if err != nil {
+		transaction.Rollback()
+		return err
 	}
 
 	err = transaction.Insert(t)
@@ -201,7 +247,7 @@ func InsertTransaction(t *Transaction) error {
 	return nil
 }
 
-func UpdateTransaction(t *Transaction) error {
+func UpdateTransaction(t *Transaction, user *User) error {
 	transaction, err := DB.Begin()
 	if err != nil {
 		return err
@@ -215,16 +261,19 @@ func UpdateTransaction(t *Transaction) error {
 		return err
 	}
 
+	// Map of any accounts with transaction splits being added
+	a_map := make(map[int64]bool)
+
 	// Make a map with any existing splits for this transaction
-	m := make(map[int64]int64)
+	s_map := make(map[int64]bool)
 	for i := range existing_splits {
-		m[existing_splits[i].SplitId] = existing_splits[i].SplitId
+		s_map[existing_splits[i].SplitId] = true
 	}
 
 	// Insert splits, updating any pre-existing ones
 	for i := range t.Splits {
 		t.Splits[i].TransactionId = t.TransactionId
-		_, ok := m[t.Splits[i].SplitId]
+		_, ok := s_map[t.Splits[i].SplitId]
 		if ok {
 			count, err := transaction.Update(t.Splits[i])
 			if err != nil {
@@ -243,18 +292,31 @@ func UpdateTransaction(t *Transaction) error {
 				return err
 			}
 		}
+		a_map[t.Splits[i].AccountId] = true
 	}
 
 	// Delete any remaining pre-existing splits
 	for i := range existing_splits {
-		s, ok := m[existing_splits[i].SplitId]
+		_, ok := s_map[existing_splits[i].SplitId]
+		a_map[existing_splits[i].AccountId] = true
 		if ok {
-			_, err := transaction.Delete(s)
+			_, err := transaction.Delete(existing_splits[i])
 			if err != nil {
 				transaction.Rollback()
 				return err
 			}
 		}
+	}
+
+	// Increment versions for all accounts with modified splits
+	var a_ids []int64
+	for id := range a_map {
+		a_ids = append(a_ids, id)
+	}
+	err = incrementAccountVersions(transaction, user, a_ids)
+	if err != nil {
+		transaction.Rollback()
+		return err
 	}
 
 	count, err := transaction.Update(t)
@@ -276,13 +338,20 @@ func UpdateTransaction(t *Transaction) error {
 	return nil
 }
 
-func DeleteTransaction(t *Transaction) error {
+func DeleteTransaction(t *Transaction, user *User) error {
 	transaction, err := DB.Begin()
 	if err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec("DELETE from splits where TransactionId=?", t.TransactionId)
+	var accountids []int64
+	_, err = transaction.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=?", t.TransactionId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE FROM splits WHERE TransactionId=?", t.TransactionId)
 	if err != nil {
 		transaction.Rollback()
 		return err
@@ -296,6 +365,12 @@ func DeleteTransaction(t *Transaction) error {
 	if count != 1 {
 		transaction.Rollback()
 		return errors.New("Deleted more than one transaction")
+	}
+
+	err = incrementAccountVersions(transaction, user, accountids)
+	if err != nil {
+		transaction.Rollback()
+		return err
 	}
 
 	err = transaction.Commit()
@@ -344,7 +419,7 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		err = InsertTransaction(&transaction)
+		err = InsertTransaction(&transaction, user)
 		if err != nil {
 			if _, ok := err.(AccountMissingError); ok {
 				WriteError(w, 3 /*Invalid Request*/)
@@ -358,6 +433,7 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 		WriteSuccess(w)
 	} else if r.Method == "GET" {
 		transactionid, err := GetURLID(r.URL.Path)
+
 		if err != nil {
 			//Return all Transactions
 			var al TransactionList
@@ -423,7 +499,7 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			err = UpdateTransaction(&transaction)
+			err = UpdateTransaction(&transaction, user)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -444,7 +520,7 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			err = DeleteTransaction(transaction)
+			err = DeleteTransaction(transaction, user)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -453,5 +529,113 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 
 			WriteSuccess(w)
 		}
+	}
+}
+
+func GetAccountTransactions(user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
+	var transactions []Transaction
+	var atl AccountTransactionsList
+
+	var sqlsort string
+	if sort == "date-asc" {
+		sqlsort = " ORDER BY transactions.Date ASC"
+	} else if sort == "date-desc" {
+		sqlsort = " ORDER BY transactions.Date DESC"
+	}
+
+	var sqloffset string
+	if page > 0 {
+		sqloffset = fmt.Sprintf(" OFFSET %d", page*limit)
+	}
+
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	account, err := GetAccountTx(transaction, accountid, user.UserId)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	atl.Account = account
+
+	sql := "SELECT transactions.* from transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?" + sqloffset
+	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, limit)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	atl.Transactions = &transactions
+
+	for i := range transactions {
+		_, err = transaction.Select(&transactions[i].Splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return &atl, nil
+}
+
+// Return only those transactions which have at least one split pertaining to
+// an account
+func AccountTransactionsHandler(w http.ResponseWriter, r *http.Request,
+	user *User, accountid int64) {
+
+	var page uint64 = 0
+	var limit uint64 = 50
+	var sort string = "date-desc"
+
+	query, _ := url.ParseQuery(r.URL.RawQuery)
+
+	pagestring := query.Get("page")
+	if pagestring != "" {
+		p, err := strconv.ParseUint(pagestring, 10, 0)
+		if err != nil {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+		page = p
+	}
+
+	limitstring := query.Get("limit")
+	if limitstring != "" {
+		l, err := strconv.ParseUint(limitstring, 10, 0)
+		if err != nil || l > 100 {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+		limit = l
+	}
+
+	sortstring := query.Get("sort")
+	if sortstring != "" {
+		if sortstring != "date-asc" && sortstring != "date-desc" {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+		sort = sortstring
+	}
+
+	accountTransactions, err := GetAccountTransactions(user, accountid, sort, page, limit)
+	if err != nil {
+		WriteError(w, 999 /*Internal Error*/)
+		log.Print(err)
+		return
+	}
+
+	err = accountTransactions.Write(w)
+	if err != nil {
+		WriteError(w, 999 /*Internal Error*/)
+		log.Print(err)
+		return
 	}
 }

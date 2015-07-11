@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -25,10 +27,21 @@ type Account struct {
 	ParentAccountId int64 // -1 if this account is at the root
 	Type            int64
 	Name            string
+
+	// monotonically-increasing account transaction version number. Used for
+	// allowing a client to ensure they have a consistent version when paging
+	// through transactions.
+	Version int64
 }
 
 type AccountList struct {
 	Accounts *[]Account `json:"accounts"`
+}
+
+var accountTransactionsRE *regexp.Regexp
+
+func init() {
+	accountTransactionsRE = regexp.MustCompile(`^/account/[0-9]+/transactions/?$`)
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {
@@ -53,6 +66,17 @@ func GetAccount(accountid int64, userid int64) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
+	return &a, nil
+}
+
+func GetAccountTx(transaction *gorp.Transaction, accountid int64, userid int64) (*Account, error) {
+	var a Account
+
+	err := transaction.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
+	if err != nil {
+		return nil, err
+	}
+
 	return &a, nil
 }
 
@@ -97,6 +121,14 @@ func insertUpdateAccount(a *Account, insert bool) error {
 			return err
 		}
 	} else {
+		oldacct, err := GetAccountTx(transaction, a.AccountId, a.UserId)
+		if err != nil {
+			transaction.Rollback()
+			return err
+		}
+
+		a.Version = oldacct.Version + 1
+
 		count, err := transaction.Update(a)
 		if err != nil {
 			transaction.Rollback()
@@ -195,6 +227,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		account.AccountId = -1
 		account.UserId = user.UserId
+		account.Version = 0
 
 		if GetSecurity(account.SecurityId) == nil {
 			WriteError(w, 3 /*Invalid Request*/)
@@ -214,8 +247,10 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 
 		WriteSuccess(w)
 	} else if r.Method == "GET" {
-		accountid, err := GetURLID(r.URL.Path)
-		if err != nil {
+		var accountid int64
+		n, err := GetURLPieces(r.URL.Path, "/account/%d", &accountid)
+
+		if err != nil || n != 1 {
 			//Return all Accounts
 			var al AccountList
 			accounts, err := GetAccounts(user.UserId)
@@ -232,12 +267,20 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
+			// if URL looks like /account/[0-9]+/transactions, use the account
+			// transaction handler
+			if accountTransactionsRE.MatchString(r.URL.Path) {
+				AccountTransactionsHandler(w, r, user, accountid)
+				return
+			}
+
 			// Return Account with this Id
 			account, err := GetAccount(accountid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
+
 			err = account.Write(w)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
