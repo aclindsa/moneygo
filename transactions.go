@@ -18,7 +18,7 @@ type Split struct {
 	SplitId       int64
 	TransactionId int64
 	AccountId     int64
-	Number        int64 // Check or reference number
+	Number        string // Check or reference number
 	Memo          string
 	Amount        string // String representation of decimal, suitable for passing to big.Rat.SetString()
 	Debit         bool
@@ -38,10 +38,8 @@ func (s *Split) Valid() bool {
 	return err == nil
 }
 
-type TransactionStatus int64
-
 const (
-	Entered    TransactionStatus = 1
+	Entered    int64 = 1
 	Cleared                      = 2
 	Reconciled                   = 3
 	Voided                       = 4
@@ -51,7 +49,7 @@ type Transaction struct {
 	TransactionId int64
 	UserId        int64
 	Description   string
-	Status        TransactionStatus
+	Status        int64
 	Date          time.Time
 	Splits        []*Split `db:"-"`
 }
@@ -118,7 +116,7 @@ func GetTransaction(transactionid int64, userid int64) (*Transaction, error) {
 		return nil, err
 	}
 
-	err = transaction.SelectOne(&t, "SELECT * from transaction where UserId=? AND TransactionId=?", userid, transactionid)
+	err = transaction.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +170,7 @@ func incrementAccountVersions(transaction *gorp.Transaction, user *User, account
 		if err != nil {
 			return err
 		}
-		account.Version++
+		account.AccountVersion++
 		count, err := transaction.Update(account)
 		if err != nil {
 			return err

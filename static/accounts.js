@@ -10,29 +10,9 @@ var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 var Glyphicon = ReactBootstrap.Glyphicon;
 
-var Modal = ReactBootstrap.Modal;
-
 var CollapsibleMixin = ReactBootstrap.CollapsibleMixin;
 
 var Combobox = ReactWidgets.Combobox;
-
-const recursiveAccountDisplayInfo = function(account, prefix) {
-	var name = prefix + account.Name;
-	var accounts = [{AccountId: account.AccountId, Name: name}];
-	for (var i = 0; i < account.Children.length; i++)
-		accounts = accounts.concat(recursiveAccountDisplayInfo(account.Children[i], name + "/"));
-	return accounts
-};
-const getAccountDisplayList = function(account_list, includeRoot, rootName) {
-	var accounts = []
-	if (includeRoot)
-		accounts.push({AccountId: -1, Name: rootName});
-	for (var i = 0; i < account_list.length; i++) {
-		if (account_list[i].isRootAccount())
-			accounts = accounts.concat(recursiveAccountDisplayInfo(account_list[i], ""));
-	}
-	return accounts;
-};
 
 const AccountCombobox = React.createClass({
 	getDefaultProps: function() {
@@ -494,7 +474,12 @@ const AccountsTab = React.createClass({
 							<Glyphicon glyph='trash' /></Button>
 					</ButtonGroup>
 				</Col><Col xs={10} className="fullheight transactions-column">
-					blah
+					<AccountRegister
+						selectedAccount={this.state.selectedAccount}
+						accounts={this.props.accounts}
+						account_map={this.props.account_map}
+						securities={this.props.securities}
+						security_map={this.props.security_map} />
 				</Col>
 			</Row></Grid>
 		);

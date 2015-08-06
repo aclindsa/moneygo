@@ -75,3 +75,24 @@ div.accounttree-root div {
 	padding: 15px;
 	border-right: 1px solid #DDD;
 }
+
+.register-row-editing {
+	background-color: #FFFFE0 !important;
+}
+.register-row-editing:hover {
+	background-color: #e8e8e8 !important;
+}
+.register-row-editing .form-group {
+	margin: 0;
+}
+
+.row > div > .form-group,
+.row > div > .rw-combobox {
+	margin-right: -7px;
+	margin-left: -7px;
+}
+
+.split-header {
+	font-weight: 700;
+	text-align: center;
+}

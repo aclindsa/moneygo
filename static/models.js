@@ -212,8 +212,6 @@ Split.prototype.toJSONobj = function() {
 }
 
 Split.prototype.fromJSONobj = function(json_obj) {
-	var json_obj = getJSONObj(json_input);
-
 	if (json_obj.hasOwnProperty("SplitId"))
 		this.SplitId = json_obj.SplitId;
 	if (json_obj.hasOwnProperty("TransactionId"))
@@ -243,6 +241,18 @@ const TransactionStatus = {
 	Reconciled: 3,
 	Voided: 4
 }
+var TransactionStatusList = [];
+for (var type in TransactionStatus) {
+	if (TransactionStatus.hasOwnProperty(type)) {
+		TransactionStatusList.push({'StatusId': TransactionStatus[type], 'Name': type});
+   }
+}
+var TransactionStatusMap = {};
+for (var status in TransactionStatus) {
+	if (TransactionStatus.hasOwnProperty(status)) {
+		TransactionStatusMap[TransactionStatus[status]] = status;
+   }
+}
 
 function Transaction() {
 	this.TransactionId = -1;
@@ -262,8 +272,8 @@ Transaction.prototype.toJSON = function() {
 	json_obj.Date = this.Date.toJSON();
 	json_obj.Splits = [];
 	for (var i = 0; i < this.Splits.length; i++)
-		json_obj.push(this.Splits[i].toJSONobj());
-	return json_obj;
+		json_obj.Splits.push(this.Splits[i].toJSONobj());
+	return JSON.stringify(json_obj);
 }
 
 Transaction.prototype.fromJSON = function(json_input) {
@@ -289,8 +299,11 @@ Transaction.prototype.fromJSON = function(json_input) {
 			this.Date = new Date(0);
 	}
 	if (json_obj.hasOwnProperty("Splits")) {
-		for (var i = 0; i < json_obj.Splits.length; i++)
-			this.Splits.push(this.Splits[i].fromJSON());
+		for (var i = 0; i < json_obj.Splits.length; i++) {
+			var s = new Split();
+			s.fromJSONobj(json_obj.Splits[i]);
+			this.Splits.push(s);
+		}
 	}
 }
 
@@ -298,6 +311,12 @@ Transaction.prototype.isTransaction = function() {
 	var empty_transaction = new Transaction();
 	return this.TransactionId != empty_transaction.TransactionId ||
 		this.UserId != empty_transaction.UserId;
+}
+
+Transaction.prototype.deepCopy = function() {
+	var t = new Transaction();
+	t.fromJSON(this.toJSON());
+	return t;
 }
 
 function Error() {

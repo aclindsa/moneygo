@@ -31,7 +31,7 @@ type Account struct {
 	// monotonically-increasing account transaction version number. Used for
 	// allowing a client to ensure they have a consistent version when paging
 	// through transactions.
-	Version int64
+	AccountVersion int64 `json:"Version"`
 }
 
 type AccountList struct {
@@ -127,7 +127,7 @@ func insertUpdateAccount(a *Account, insert bool) error {
 			return err
 		}
 
-		a.Version = oldacct.Version + 1
+		a.AccountVersion = oldacct.AccountVersion + 1
 
 		count, err := transaction.Update(a)
 		if err != nil {
@@ -227,7 +227,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		account.AccountId = -1
 		account.UserId = user.UserId
-		account.Version = 0
+		account.AccountVersion = 0
 
 		if GetSecurity(account.SecurityId) == nil {
 			WriteError(w, 3 /*Invalid Request*/)
