@@ -417,17 +417,21 @@ const AccountRegister = React.createClass({
 	},
 	componentWillReceiveProps: function(nextProps) {
 		if (nextProps.selectedAccount != this.props.selectedAccount) {
+			this.setState({
+				selectedTransaction: new Transaction(),
+				transactions: []
+			});
 			this.getTransactionPage(nextProps.selectedAccount, 0);
 			console.log("TODO begin fetching transactions for new account");
 		}
 	},
 	render: function() {
 		var name = "Please select an account";
-		if (this.props.selectedAccount != null)
+		register = [];
+
+		if (this.props.selectedAccount != null) {
 			name = this.props.selectedAccount.Name;
 
-		register = [];
-		if (this.props.selectedAccount != null) {
 			var newTransaction = new Transaction();
 			newTransaction.Description = "Create New Transaction...";
 			newTransaction.Status = TransactionStatus.Entered;
