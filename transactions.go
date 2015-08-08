@@ -40,9 +40,9 @@ func (s *Split) Valid() bool {
 
 const (
 	Entered    int64 = 1
-	Cleared                      = 2
-	Reconciled                   = 3
-	Voided                       = 4
+	Cleared          = 2
+	Reconciled       = 3
+	Voided           = 4
 )
 
 type Transaction struct {
@@ -59,8 +59,9 @@ type TransactionList struct {
 }
 
 type AccountTransactionsList struct {
-	Account      *Account       `json:"account"`
-	Transactions *[]Transaction `json:"transactions"`
+	Account           *Account       `json:"account"`
+	Transactions      *[]Transaction `json:"transactions"`
+	TotalTransactions int64          `json:"totaltransactions"`
 }
 
 func (t *Transaction) Write(w http.ResponseWriter) error {
@@ -573,6 +574,13 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 			return nil, err
 		}
 	}
+
+	count, err := transaction.SelectInt("SELECT count(DISTINCT transactions.TransactionId) FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?", user.UserId, accountid)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	atl.TotalTransactions = count
 
 	err = transaction.Commit()
 	if err != nil {
