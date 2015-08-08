@@ -558,7 +558,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	}
 	atl.Account = account
 
-	sql := "SELECT transactions.* from transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?" + sqloffset
+	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?" + sqloffset
 	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, limit)
 	if err != nil {
 		transaction.Rollback()
@@ -567,7 +567,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	atl.Transactions = &transactions
 
 	for i := range transactions {
-		_, err = transaction.Select(&transactions[i].Splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
+		_, err = transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			transaction.Rollback()
 			return nil, err
