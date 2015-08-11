@@ -1,12 +1,16 @@
 // Import all the objects we want to use from ReactBootstrap
 
 var Modal = ReactBootstrap.Modal;
+var Pagination = ReactBootstrap.Pagination;
 
 var Label = ReactBootstrap.Label;
 var Table = ReactBootstrap.Table;
 var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
+
+var Button = ReactBootstrap.Button;
+var ButtonToolbar = ReactBootstrap.ButtonToolbar;
 
 var DateTimePicker = ReactWidgets.DateTimePicker;
 
@@ -273,7 +277,7 @@ const AddEditTransactionModal = React.createClass({
 				</form>
 				</Modal.Body>
 				<Modal.Footer>
-					<ButtonGroup className="pull-right">
+					<ButtonGroup>
 						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
 						{deleteButton}
 						<Button onClick={this.handleSubmit} bsStyle="success">{buttonText}</Button>
@@ -289,11 +293,23 @@ const AccountRegister = React.createClass({
 		return {
 			editingTransaction: false,
 			selectedTransaction: new Transaction(),
-			transactions: []
+			transactions: [],
+			pageSize: 20,
+			numPages: 0,
+			currentPage: 0,
+			height: 0
 		};
 	},
-	handleEditTransaction: function(transaction, fieldName) {
-		//TODO select fieldName first when editing
+	resize: function() {
+		var div = React.findDOMNode(this);
+		this.setState({height: div.parentElement.clientHeight - 30});
+	},
+	componentDidMount: function() {
+		this.resize();
+		var self = this;
+		$(window).resize(function() {self.resize();});
+	},
+	handleEditTransaction: function(transaction) {
 		this.setState({
 			selectedTransaction: transaction,
 			editingTransaction: true
@@ -302,6 +318,19 @@ const AccountRegister = React.createClass({
 	handleEditingCancel: function() {
 		this.setState({
 			editingTransaction: false
+		});
+	},
+	handleNewTransactionClicked: function() {
+		var newTransaction = new Transaction();
+		newTransaction.Status = TransactionStatus.Entered;
+		newTransaction.Date = new Date();
+		newTransaction.Splits.push(new Split());
+		newTransaction.Splits.push(new Split());
+		newTransaction.Splits[0].AccountId = this.props.selectedAccount.AccountId;
+
+		this.setState({
+			editingTransaction: true,
+			selectedTransaction: newTransaction
 		});
 	},
 	ajaxError: function(jqXHR, status, error) {
@@ -314,7 +343,7 @@ const AccountRegister = React.createClass({
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "account/"+account.AccountId+"/transactions?sort=date-desc&limit=50&page="+page,
+			url: "account/"+account.AccountId+"/transactions?sort=date-desc&limit="+this.state.pageSize+"&page="+page,
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				var transactions = [];
@@ -331,19 +360,38 @@ const AccountRegister = React.createClass({
 				var a = new Account();
 				a.fromJSON(data.account);
 
-				this.setState({transactions: transactions});
+				var pages = Math.ceil(data.totaltransactions / this.state.pageSize);
+
+				this.setState({
+					transactions: transactions,
+					numPages: pages
+				});
 			}.bind(this),
 			error: this.ajaxError
 		});
 	},
+	handleSelectPage: function(event, selectedEvent) {
+		var newpage = selectedEvent.eventKey - 1;
+		// Don't do pages that don't make sense
+		if (newpage < 0)
+			newpage = 0;
+		if (newpage >= this.state.numPages)
+			newpage = this.state.numPages-1;
+		if (newpage != this.state.currentPage) {
+			if (this.props.selectedAccount != null) {
+				this.getTransactionPage(this.props.selectedAccount, newpage);
+			}
+			this.setState({currentPage: newpage});
+		}
+	},
 	onNewTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, 0);
+		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
 	},
 	onUpdatedTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, 0);
+		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
 	},
 	onDeletedTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, 0);
+		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
 	},
 	createNewTransaction: function(transaction) {
 		$.ajax({
@@ -419,10 +467,10 @@ const AccountRegister = React.createClass({
 		if (nextProps.selectedAccount != this.props.selectedAccount) {
 			this.setState({
 				selectedTransaction: new Transaction(),
-				transactions: []
+				transactions: [],
+				currentPage: 0
 			});
 			this.getTransactionPage(nextProps.selectedAccount, 0);
-			console.log("TODO begin fetching transactions for new account");
 		}
 	},
 	render: function() {
@@ -432,18 +480,9 @@ const AccountRegister = React.createClass({
 		if (this.props.selectedAccount != null) {
 			name = this.props.selectedAccount.Name;
 
-			var newTransaction = new Transaction();
-			newTransaction.Description = "Create New Transaction...";
-			newTransaction.Status = TransactionStatus.Entered;
-			newTransaction.Date = new Date();
-			newTransaction.Splits.push(new Split());
-			newTransaction.Splits.push(new Split());
-			newTransaction.Splits[0].AccountId = this.props.selectedAccount.AccountId;
-
 			var transactionRows = [];
-			var allTransactions = [newTransaction].concat(this.state.transactions);
-			for (var i = 0; i < allTransactions.length; i++) {
-				var t = allTransactions[i];
+			for (var i = 0; i < this.state.transactions.length; i++) {
+				var t = this.state.transactions[i];
 				transactionRows.push((
 					<TransactionRow
 						transaction={t}
@@ -470,12 +509,15 @@ const AccountRegister = React.createClass({
 					<tbody>
 						{transactionRows}
 					</tbody>
-					</Table>
+				</Table>
 			);
 		}
 
+		var style = {height: this.state.height + "px"};
+		var disabled = (this.props.selectedAccount == null) ? "disabled" : "";
+
 		return (
-			<div>
+			<div className="transactions-container" style={style}>
 				<AddEditTransactionModal
 					show={this.state.editingTransaction}
 					transaction={this.state.selectedTransaction}
@@ -485,7 +527,26 @@ const AccountRegister = React.createClass({
 					onSubmit={this.handleUpdateTransaction}
 					onDelete={this.handleDeleteTransaction}
 					securities={this.props.securities}/>
-				{name}
+				Transactions for '{name}'
+				<ButtonToolbar className="pull-right">
+					<ButtonGroup>
+					<Pagination
+						className="skinny-pagination"
+						prev next first last ellipses
+						items={this.state.numPages}
+						maxButtons={Math.min(5, this.state.numPages)}
+						activePage={this.state.currentPage+1}
+						onSelect={this.handleSelectPage} />
+					</ButtonGroup>
+					<ButtonGroup>
+					<Button
+							onClick={this.handleNewTransactionClicked}
+							bsStyle="success"
+							disabled={disabled}>
+						<Glyphicon glyph='plus-sign' /> New Transaction
+					</Button>
+					</ButtonGroup>
+				</ButtonToolbar>
 				{register}
 			</div>
 		);

@@ -71,6 +71,12 @@ div.accounttree-root div {
 	right: 15px;
 	bottom: 15px;
 }
+.transactions-container {
+	display: block;
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+}
 .transactions-column {
 	padding: 15px;
 	border-right: 1px solid #DDD;
@@ -95,4 +101,8 @@ div.accounttree-root div {
 .split-header {
 	font-weight: 700;
 	text-align: center;
+}
+
+.skinny-pagination {
+	margin: 0px;
 }
