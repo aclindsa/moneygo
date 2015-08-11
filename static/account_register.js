@@ -302,7 +302,7 @@ const AccountRegister = React.createClass({
 	},
 	resize: function() {
 		var div = React.findDOMNode(this);
-		this.setState({height: div.parentElement.clientHeight - 30});
+		this.setState({height: div.parentElement.clientHeight - 64});
 	},
 	componentDidMount: function() {
 		this.resize();
@@ -495,7 +495,9 @@ const AccountRegister = React.createClass({
 				));
 			}
 
+			var style = {height: this.state.height + "px"};
 			register = (
+				<div style={style} className="transactions-register">
 				<Table bordered striped condensed hover>
 					<thead><tr>
 						<th>Date</th>
@@ -510,14 +512,14 @@ const AccountRegister = React.createClass({
 						{transactionRows}
 					</tbody>
 				</Table>
+				</div>
 			);
 		}
 
-		var style = {height: this.state.height + "px"};
 		var disabled = (this.props.selectedAccount == null) ? "disabled" : "";
 
 		return (
-			<div className="transactions-container" style={style}>
+			<div className="transactions-container">
 				<AddEditTransactionModal
 					show={this.state.editingTransaction}
 					transaction={this.state.selectedTransaction}

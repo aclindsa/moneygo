@@ -75,6 +75,11 @@ div.accounttree-root div {
 	display: block;
 	width: 100%;
 	height: 100%;
+}
+.transactions-register {
+	display: block;
+	width: 100%;
+	height: 100%;
 	overflow: auto;
 }
 .transactions-column {
