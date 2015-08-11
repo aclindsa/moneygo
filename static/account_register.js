@@ -529,6 +529,7 @@ const AccountRegister = React.createClass({
 					onSubmit={this.handleUpdateTransaction}
 					onDelete={this.handleDeleteTransaction}
 					securities={this.props.securities}/>
+				<div className="transactions-register-toolbar">
 				Transactions for '{name}'
 				<ButtonToolbar className="pull-right">
 					<ButtonGroup>
@@ -549,6 +550,7 @@ const AccountRegister = React.createClass({
 					</Button>
 					</ButtonGroup>
 				</ButtonToolbar>
+				</div>
 				{register}
 			</div>
 		);

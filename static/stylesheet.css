@@ -86,6 +86,10 @@ div.accounttree-root div {
 	padding: 15px;
 	border-right: 1px solid #DDD;
 }
+.transactions-register-toolbar {
+	width: 100%;
+	height: 50px;
+}
 
 .register-row-editing {
 	background-color: #FFFFE0 !important;
