@@ -24,13 +24,17 @@ type Split struct {
 	Debit         bool
 }
 
-func (s *Split) GetAmount() (*big.Rat, error) {
+func GetBigAmount(amt string) (*big.Rat, error) {
 	var r big.Rat
-	_, success := r.SetString(s.Amount)
+	_, success := r.SetString(amt)
 	if !success {
-		return nil, errors.New("Couldn't convert Split.Amount to big.Rat via SetString()")
+		return nil, errors.New("Couldn't convert string amount to big.Rat via SetString()")
 	}
 	return &r, nil
+}
+
+func (s *Split) GetAmount() (*big.Rat, error) {
+	return GetBigAmount(s.Amount)
 }
 
 func (s *Split) Valid() bool {
@@ -59,9 +63,11 @@ type TransactionList struct {
 }
 
 type AccountTransactionsList struct {
-	Account           *Account       `json:"account"`
-	Transactions      *[]Transaction `json:"transactions"`
-	TotalTransactions int64          `json:"totaltransactions"`
+	Account           *Account
+	Transactions      *[]Transaction
+	TotalTransactions int64
+	BeginningBalance  string
+	EndingBalance     string
 }
 
 func (t *Transaction) Write(w http.ResponseWriter) error {
@@ -567,11 +573,26 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	}
 	atl.Transactions = &transactions
 
+	var pageDifference, tmp big.Rat
 	for i := range transactions {
 		_, err = transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			transaction.Rollback()
 			return nil, err
+		}
+
+		// Sum up the amounts from the splits we're returning so we can return
+		// an ending balance
+		for j := range transactions[i].Splits {
+			if transactions[i].Splits[j].AccountId == accountid {
+				rat_amount, err := GetBigAmount(transactions[i].Splits[j].Amount)
+				if err != nil {
+					transaction.Rollback()
+					return nil, err
+				}
+				tmp.Add(&pageDifference, rat_amount)
+				pageDifference.Set(&tmp)
+			}
 		}
 	}
 
@@ -581,6 +602,34 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 		return nil, err
 	}
 	atl.TotalTransactions = count
+
+	security := GetSecurity(atl.Account.SecurityId)
+	if security == nil {
+		return nil, errors.New("Security not found")
+	}
+
+	// Sum all the splits for all transaction splits for this account that
+	// occurred before the page we're returning
+	var amounts []string
+	sql = "SELECT splits.Amount FROM splits WHERE splits.AccountId=? AND splits.TransactionId IN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?)"
+	_, err = transaction.Select(&amounts, sql, accountid, user.UserId, accountid, page*limit)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	var balance big.Rat
+	for _, amount := range amounts {
+		rat_amount, err := GetBigAmount(amount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+		tmp.Add(&balance, rat_amount)
+		balance.Set(&tmp)
+	}
+	atl.BeginningBalance = balance.FloatString(security.Precision)
+	atl.EndingBalance = tmp.Add(&balance, &pageDifference).FloatString(security.Precision)
 
 	err = transaction.Commit()
 	if err != nil {

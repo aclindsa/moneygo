@@ -50,10 +50,12 @@ const TransactionRow = React.createClass({
 			}
 
 			var amount = "$" + thisAccountSplit.Amount.toFixed(security.Precision);
+			var balance = "$" + this.props.transaction.Balance.toFixed(security.Precision);
 			status = TransactionStatusMap[this.props.transaction.Status];
 			number = thisAccountSplit.Number;
 		} else {
 			var amount = "$" + (new Big(0.0)).toFixed(security.Precision);
+			var balance = "$" + (new Big(0.0)).toFixed(security.Precision);
 		}
 
 		return (
@@ -64,7 +66,7 @@ const TransactionRow = React.createClass({
 				<td ref="account" onClick={this.handleClick}>{accountName}</td>
 				<td ref="status" onClick={this.handleClick}>{status}</td>
 				<td ref="amount" onClick={this.handleClick}>{amount}</td>
-				<td>$??.??</td>
+				<td>{balance}</td>
 			</tr>);
 	}
 });
@@ -346,21 +348,33 @@ const AccountRegister = React.createClass({
 			url: "account/"+account.AccountId+"/transactions?sort=date-desc&limit="+this.state.pageSize+"&page="+page,
 			success: function(data, status, jqXHR) {
 				var e = new Error();
-				var transactions = [];
 				e.fromJSON(data);
 				if (e.isError()) {
 					this.setState({error: e});
-				} else {
-					for (var i = 0; i < data.transactions.length; i++) {
-						var t = new Transaction();
-						t.fromJSON(data.transactions[i]);
-						transactions.push(t);
+					return;
+				}
+
+				var transactions = [];
+				var balance = new Big(data.BeginningBalance);
+
+				for (var i = 0; i < data.Transactions.length; i++) {
+					var t = new Transaction();
+					t.fromJSON(data.Transactions[i]);
+
+					// Keep a talley of the running balance of these transactions
+					for (var j = 0; j < data.Transactions[i].Splits.length; j++) {
+						var split = data.Transactions[i].Splits[j];
+						if (this.props.selectedAccount.AccountId == split.AccountId) {
+							balance = balance.plus(split.Amount);
+						}
 					}
+					t.Balance = balance.plus(0); // Make a copy
+					transactions.push(t);
 				}
 				var a = new Account();
-				a.fromJSON(data.account);
+				a.fromJSON(data.Account);
 
-				var pages = Math.ceil(data.totaltransactions / this.state.pageSize);
+				var pages = Math.ceil(data.TotalTransactions / this.state.pageSize);
 
 				this.setState({
 					transactions: transactions,

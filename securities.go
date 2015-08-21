@@ -18,7 +18,7 @@ type Security struct {
 	Name       string
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
-	Precision int64
+	Precision int
 	Type      int64
 }
 
