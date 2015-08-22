@@ -541,21 +541,31 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	var transactions []Transaction
 	var atl AccountTransactionsList
 
-	var sqlsort string
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	var sqlsort, balanceLimitOffset string
+	var balanceLimitOffsetArg uint64
 	if sort == "date-asc" {
 		sqlsort = " ORDER BY transactions.Date ASC"
+		balanceLimitOffset = " LIMIT ?"
+		balanceLimitOffsetArg = page*limit
 	} else if sort == "date-desc" {
+		numSplits, err := transaction.SelectInt("SELECT count(*) FROM splits")
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
 		sqlsort = " ORDER BY transactions.Date DESC"
+		balanceLimitOffset = fmt.Sprintf(" LIMIT %d OFFSET ?", numSplits)
+		balanceLimitOffsetArg = (page + 1)*limit
 	}
 
 	var sqloffset string
 	if page > 0 {
 		sqloffset = fmt.Sprintf(" OFFSET %d", page*limit)
-	}
-
-	transaction, err := DB.Begin()
-	if err != nil {
-		return nil, err
 	}
 
 	account, err := GetAccountTx(transaction, accountid, user.UserId)
@@ -611,8 +621,8 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	// Sum all the splits for all transaction splits for this account that
 	// occurred before the page we're returning
 	var amounts []string
-	sql = "SELECT splits.Amount FROM splits WHERE splits.AccountId=? AND splits.TransactionId IN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?)"
-	_, err = transaction.Select(&amounts, sql, accountid, user.UserId, accountid, page*limit)
+	sql = "SELECT splits.Amount FROM splits WHERE splits.AccountId=? AND splits.TransactionId IN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ")"
+	_, err = transaction.Select(&amounts, sql, accountid, user.UserId, accountid, balanceLimitOffsetArg)
 	if err != nil {
 		transaction.Rollback()
 		return nil, err

@@ -355,20 +355,20 @@ const AccountRegister = React.createClass({
 				}
 
 				var transactions = [];
-				var balance = new Big(data.BeginningBalance);
+				var balance = new Big(data.EndingBalance);
 
 				for (var i = 0; i < data.Transactions.length; i++) {
 					var t = new Transaction();
 					t.fromJSON(data.Transactions[i]);
 
+					t.Balance = balance.plus(0); // Make a copy of the current balance
 					// Keep a talley of the running balance of these transactions
 					for (var j = 0; j < data.Transactions[i].Splits.length; j++) {
 						var split = data.Transactions[i].Splits[j];
 						if (this.props.selectedAccount.AccountId == split.AccountId) {
-							balance = balance.plus(split.Amount);
+							balance = balance.minus(split.Amount);
 						}
 					}
-					t.Balance = balance.plus(0); // Make a copy
 					transactions.push(t);
 				}
 				var a = new Account();
