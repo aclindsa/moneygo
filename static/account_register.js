@@ -71,6 +71,56 @@ const TransactionRow = React.createClass({
 	}
 });
 
+const AmountInput = React.createClass({
+	_getInitialState: function(props) {
+		// Ensure we can edit this without screwing up other copies of it
+		var a = props.value.toFixed(this.props.security.Precision);
+		return {
+			LastGoodAmount: a,
+			Amount: a
+		};
+	},
+	getInitialState: function() {
+		 return this._getInitialState(this.props);
+	},
+	componentWillReceiveProps: function(nextProps) {
+		if (!nextProps.value.eq(this.props.value) && !nextProps.value.eq(this.getValue())) {
+			this.setState(this._getInitialState(nextProps));
+		}
+	},
+	componentDidMount: function() {
+		this.refs.amount.getInputDOMNode().onblur = this.onBlur;
+	},
+	onBlur: function() {
+		this.setState({
+			Amount: (new Big(this.getValue())).toFixed(this.props.security.Precision)
+		});
+	},
+	onChange: function() {
+		this.setState({Amount: this.refs.amount.getValue()});
+		if (this.props.onChange)
+			this.props.onChange();
+	},
+	getValue: function() {
+		try {
+			var value = this.refs.amount.getValue();
+			var ret = new Big(value);
+			this.setState({LastGoodAmount: value});
+			return ret;
+		} catch(err) {
+			return new Big(this.state.LastGoodAmount);
+		}
+	},
+	render: function() {
+		return (
+			<Input type="text"
+				value={this.state.Amount}
+				onChange={this.onChange}
+				ref="amount"/>
+		);
+	}
+});
+
 const AddEditTransactionModal = React.createClass({
 	_getInitialState: function(props) {
 		// Ensure we can edit this without screwing up other copies of it
@@ -80,66 +130,79 @@ const AddEditTransactionModal = React.createClass({
 	getInitialState: function() {
 		 return this._getInitialState(this.props);
 	},
+	componentWillReceiveProps: function(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this._getInitialState(nextProps));
+		}
+	},
 	handleCancel: function() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
 	},
 	handleDescriptionChange: function() {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Description = this.refs.description.getValue();
 		this.setState({
-			transaction: transaction
+			transaction: React.addons.update(this.state.transaction, {
+				Description: {$set: this.refs.description.getValue()}
+			})
 		});
 	},
 	handleDateChange: function(date, string) {
 		if (date == null)
 			return;
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Date = date;
 		this.setState({
-			transaction: transaction
+			transaction: React.addons.update(this.state.transaction, {
+				Date: {$set: date}
+			})
 		});
 	},
 	handleStatusChange: function(status) {
 		if (status.hasOwnProperty('StatusId')) {
-			var transaction = this.state.transaction.deepCopy();
-			transaction.Status = status.StatusId;
 			this.setState({
-				transaction: transaction
+				transaction: React.addons.update(this.state.transaction, {
+					Status: {$set: status.StatusId}
+				})
 			});
 		}
 	},
 	handleDeleteSplit: function(split) {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Splits.splice(split, 1);
 		this.setState({
-			transaction: transaction
+			transaction: React.addons.update(this.state.transaction, {
+				Splits: {$splice: [[split, 1]]}
+			})
 		});
 	},
 	handleUpdateNumber: function(split) {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Splits[split].Number = this.refs['number-'+split].getValue();
+		var transaction = this.state.transaction;
+		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+			Number: {$set: this.refs['number-'+split].getValue()}
+		});
 		this.setState({
 			transaction: transaction
 		});
 	},
 	handleUpdateMemo: function(split) {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Splits[split].Memo = this.refs['memo-'+split].getValue();
+		var transaction = this.state.transaction;
+		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+			Memo: {$set: this.refs['memo-'+split].getValue()}
+		});
 		this.setState({
 			transaction: transaction
 		});
 	},
 	handleUpdateAccount: function(account, split) {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Splits[split].AccountId = account.AccountId;
+		var transaction = this.state.transaction;
+		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+			AccountId: {$set: account.AccountId}
+		});
 		this.setState({
 			transaction: transaction
 		});
 	},
 	handleUpdateAmount: function(split) {
-		var transaction = this.state.transaction.deepCopy();
-		transaction.Splits[split].Amount = new Big(this.refs['amount-'+split].getValue());
+		var transaction = this.state.transaction;
+		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+			Amount: {$set: new Big(this.refs['amount-'+split].getValue())}
+		});
 		this.setState({
 			transaction: transaction
 		});
@@ -151,11 +214,6 @@ const AddEditTransactionModal = React.createClass({
 	handleDelete: function() {
 		if (this.props.onDelete != null)
 			this.props.onDelete(this.state.transaction);
-	},
-	componentWillReceiveProps: function(nextProps) {
-		if (nextProps.show && !this.props.show) {
-			this.setState(this._getInitialState(nextProps));
-		}
 	},
 	render: function() {
 		var editing = this.props.transaction != null && this.props.transaction.isTransaction();
@@ -172,6 +230,7 @@ const AddEditTransactionModal = React.createClass({
 		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
 			var self = this;
 			var s = this.state.transaction.Splits[i];
+			var security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
 
 			// Define all closures for calling split-updating functions
 			var deleteSplitFn = (function() {
@@ -223,8 +282,9 @@ const AddEditTransactionModal = React.createClass({
 					includeRoot={false}
 					onSelect={updateAccountFn}
 					ref={"account-"+i} /></Col>
-				<Col xs={2}><Input type="text"
+				<Col xs={2}><AmountInput type="text"
 					value={s.Amount}
+					security={security}
 					onChange={updateAmountFn}
 					ref={"amount-"+i} /></Col>
 				{deleteSplitButton}
@@ -444,7 +504,6 @@ const AccountRegister = React.createClass({
 		});
 	},
 	deleteTransaction: function(transaction) {
-		console.log("handleDeleteTransaction", transaction);
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
@@ -542,7 +601,8 @@ const AccountRegister = React.createClass({
 					onCancel={this.handleEditingCancel}
 					onSubmit={this.handleUpdateTransaction}
 					onDelete={this.handleDeleteTransaction}
-					securities={this.props.securities}/>
+					securities={this.props.securities}
+					security_map={this.props.security_map}/>
 				<div className="transactions-register-toolbar">
 				Transactions for '{name}'
 				<ButtonToolbar className="pull-right">
