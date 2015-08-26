@@ -16,6 +16,7 @@ const (
 type Security struct {
 	SecurityId int64
 	Name       string
+	Symbol     string
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
 	Precision int
@@ -30,11 +31,13 @@ var security_map = map[int64]*Security{
 	1: &Security{
 		SecurityId: 1,
 		Name:       "USD",
+		Symbol:     "$",
 		Precision:  2,
 		Type:       Banknote},
 	2: &Security{
 		SecurityId: 2,
 		Name:       "SPY",
+		Symbol:     "SPY",
 		Precision:  5,
 		Type:       Stock},
 }

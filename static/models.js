@@ -92,6 +92,7 @@ for (var type in SecurityType) {
 function Security() {
 	this.SecurityId = -1;
 	this.Name = "";
+	this.Symbol = "";
 	this.Precision = -1;
 	this.Type = -1;
 }
@@ -100,6 +101,7 @@ Security.prototype.toJSON = function() {
 	var json_obj = {};
 	json_obj.SecurityId = this.SecurityId;
 	json_obj.Name = this.Name;
+	json_obj.Symbol = this.Symbol;
 	json_obj.Precision = this.Precision;
 	json_obj.Type = this.Type;
 	return JSON.stringify(json_obj);
@@ -112,6 +114,8 @@ Security.prototype.fromJSON = function(json_input) {
 		this.SecurityId = json_obj.SecurityId;
 	if (json_obj.hasOwnProperty("Name"))
 		this.Name = json_obj.Name;
+	if (json_obj.hasOwnProperty("Symbol"))
+		this.Symbol = json_obj.Symbol;
 	if (json_obj.hasOwnProperty("Precision"))
 		this.Precision = json_obj.Precision;
 	if (json_obj.hasOwnProperty("Type"))

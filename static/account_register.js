@@ -49,13 +49,13 @@ const TransactionRow = React.createClass({
 				accountName = "--Split Transaction--";
 			}
 
-			var amount = "$" + thisAccountSplit.Amount.toFixed(security.Precision);
-			var balance = "$" + this.props.transaction.Balance.toFixed(security.Precision);
+			var amount = security.Symbol + " " + thisAccountSplit.Amount.toFixed(security.Precision);
+			var balance = security.Symbol + " " + this.props.transaction.Balance.toFixed(security.Precision);
 			status = TransactionStatusMap[this.props.transaction.Status];
 			number = thisAccountSplit.Number;
 		} else {
-			var amount = "$" + (new Big(0.0)).toFixed(security.Precision);
-			var balance = "$" + (new Big(0.0)).toFixed(security.Precision);
+			var amount = security.Symbol + " " + (new Big(0.0)).toFixed(security.Precision);
+			var balance = security.Symbol + " " + (new Big(0.0)).toFixed(security.Precision);
 		}
 
 		return (
@@ -74,7 +74,12 @@ const TransactionRow = React.createClass({
 const AmountInput = React.createClass({
 	_getInitialState: function(props) {
 		// Ensure we can edit this without screwing up other copies of it
-		var a = props.value.toFixed(this.props.security.Precision);
+		var a;
+		if (props.security)
+			a = props.value.toFixed(props.security.Precision);
+		else
+			a = props.value.toString();
+
 		return {
 			LastGoodAmount: a,
 			Amount: a
@@ -84,7 +89,9 @@ const AmountInput = React.createClass({
 		 return this._getInitialState(this.props);
 	},
 	componentWillReceiveProps: function(nextProps) {
-		if (!nextProps.value.eq(this.props.value) && !nextProps.value.eq(this.getValue())) {
+		if ((!nextProps.value.eq(this.props.value) &&
+				!nextProps.value.eq(this.getValue())) ||
+				nextProps.security !== this.props.security) {
 			this.setState(this._getInitialState(nextProps));
 		}
 	},
@@ -92,8 +99,13 @@ const AmountInput = React.createClass({
 		this.refs.amount.getInputDOMNode().onblur = this.onBlur;
 	},
 	onBlur: function() {
+		var a;
+		if (this.props.security)
+			a = (new Big(this.getValue())).toFixed(this.props.security.Precision);
+		else
+			a = (new Big(this.getValue())).toString();
 		this.setState({
-			Amount: (new Big(this.getValue())).toFixed(this.props.security.Precision)
+			Amount: a
 		});
 	},
 	onChange: function() {
@@ -112,10 +124,15 @@ const AmountInput = React.createClass({
 		}
 	},
 	render: function() {
+		var symbol = "?";
+		if (this.props.security)
+			symbol = this.props.security.Symbol;
+
 		return (
 			<Input type="text"
 				value={this.state.Amount}
 				onChange={this.onChange}
+				addonBefore={symbol}
 				ref="amount"/>
 		);
 	}
@@ -230,7 +247,9 @@ const AddEditTransactionModal = React.createClass({
 		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
 			var self = this;
 			var s = this.state.transaction.Splits[i];
-			var security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
+			var security = null;
+			if (this.props.account_map[s.AccountId])
+				security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
 
 			// Define all closures for calling split-updating functions
 			var deleteSplitFn = (function() {
