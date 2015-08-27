@@ -181,6 +181,13 @@ const AddEditTransactionModal = React.createClass({
 			});
 		}
 	},
+	handleAddSplit: function() {
+		this.setState({
+			transaction: React.addons.update(this.state.transaction, {
+				Splits: {$push: [new Split()]}
+			})
+		});
+	},
 	handleDeleteSplit: function(split) {
 		this.setState({
 			transaction: React.addons.update(this.state.transaction, {
@@ -354,6 +361,12 @@ const AddEditTransactionModal = React.createClass({
 					<span className="split-header col-xs-2">Amount</span>
 					</Row>
 					{splits}
+					<Row>
+						<span className="col-xs-11"></span>
+						<Col xs={1}><Button onClick={this.handleAddSplit}
+								bsStyle="success">
+								<Glyphicon glyph='plus-sign' /></Button></Col>
+					</Row>
 					</Grid>
 				</form>
 				</Modal.Body>
