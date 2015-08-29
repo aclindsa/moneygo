@@ -31,6 +31,9 @@ const AccountCombobox = React.createClass({
 	},
 	render: function() {
 		var accounts = getAccountDisplayList(this.props.accounts, this.props.includeRoot, this.props.rootName);
+		var className = "";
+		if (this.props.className)
+			className = this.props.className;
 		return (
 			<Combobox
 				data={accounts}
@@ -38,7 +41,8 @@ const AccountCombobox = React.createClass({
 				textField='Name'
 				value={this.props.value}
 				onSelect={this.handleAccountChange}
-				ref="account" />
+				ref="account"
+				className={className} />
 	   );
 	}
 });

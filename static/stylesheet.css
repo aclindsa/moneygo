@@ -115,3 +115,22 @@ div.accounttree-root div {
 .skinny-pagination {
 	margin: 0px;
 }
+
+/* Make Combobox support .has-error class */
+.has-error.rw-widget {
+	border-color: #843534;
+}
+.has-error.rw-widget.rw-state-focus {
+	border-color: #843534;
+	box-shadow: 0px 1px 1px rgba(0, 0, 0, 0.075) inset, 0px 0px 6px #CE8483;
+}
+.has-error.rw-widget > .rw-select {
+	border-left: 1px solid #843534;
+	color: #A94442;
+	background-color: #F2DEDE;
+}
+
+/* Fix Alert Spacing inside */
+.alert.saving-transaction-alert {
+	margin: 20px 0 0 0;
+}

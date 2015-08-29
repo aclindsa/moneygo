@@ -323,6 +323,33 @@ Transaction.prototype.deepCopy = function() {
 	return t;
 }
 
+Transaction.prototype.imbalancedSplitSecurities = function(account_map) {
+	// Return a list of SecurityIDs for those securities that aren't balanced
+	// in this transaction's splits. If a split's AccountId is invalid, that
+	// split is ignored, so those must be checked elsewhere
+	var splitBalances = {};
+	const emptySplit = new Split();
+	for (var i = 0; i < this.Splits.length; i++) {
+		split = this.Splits[i];
+		if (split.AccountId == emptySplit.AccountId) {
+			continue;
+		}
+		var securityId = account_map[split.AccountId].SecurityId;
+		if (securityId in splitBalances) {
+			splitBalances[securityId] = split.Amount.plus(splitBalances[securityId]);
+		} else {
+			splitBalances[securityId] = split.Amount.plus(0);
+		}
+	}
+	var imbalancedIDs = [];
+	for (var id in splitBalances) {
+		if (!splitBalances[id].eq(0)) {
+			imbalancedIDs.push(id);
+		}
+	}
+	return imbalancedIDs;
+}
+
 function Error() {
 	this.ErrorId = -1;
 	this.ErrorString = "";

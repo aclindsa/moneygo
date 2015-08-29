@@ -1,5 +1,6 @@
 // Import all the objects we want to use from ReactBootstrap
 
+var Alert = ReactBootstrap.Alert;
 var Modal = ReactBootstrap.Modal;
 var Pagination = ReactBootstrap.Pagination;
 
@@ -127,12 +128,16 @@ const AmountInput = React.createClass({
 		var symbol = "?";
 		if (this.props.security)
 			symbol = this.props.security.Symbol;
+		var bsStyle = "";
+		if (this.props.bsStyle)
+			bsStyle = this.props.bsStyle;
 
 		return (
 			<Input type="text"
 				value={this.state.Amount}
 				onChange={this.onChange}
 				addonBefore={symbol}
+				bsStyle={bsStyle}
 				ref="amount"/>
 		);
 	}
@@ -142,7 +147,10 @@ const AddEditTransactionModal = React.createClass({
 	_getInitialState: function(props) {
 		// Ensure we can edit this without screwing up other copies of it
 		var t = props.transaction.deepCopy();
-		return {transaction: t};
+		return {
+			errorAlert: [],
+			transaction: t
+		};
 	},
 	getInitialState: function() {
 		 return this._getInitialState(this.props);
@@ -232,6 +240,24 @@ const AddEditTransactionModal = React.createClass({
 		});
 	},
 	handleSubmit: function() {
+		var errorString = ""
+		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.account_map);
+		if (imbalancedSecurityList.length > 0)
+			errorString = "Transaction must balance"
+		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
+			var s = this.state.transaction.Splits[i];
+			if (!(s.AccountId in this.props.account_map)) {
+				errorString = "All accounts must be valid"
+			}
+		}
+
+		if (errorString.length > 0) {
+			this.setState({
+				errorAlert: (<Alert className='saving-transaction-alert' bsStyle='danger'><strong>Error Saving Transaction:</strong> {errorString}</Alert>)
+			});
+			return;
+		}
+
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(this.state.transaction);
 	},
@@ -250,13 +276,25 @@ const AddEditTransactionModal = React.createClass({
 		   );
 		}
 
+		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.account_map);
+		var imbalancedSecurityMap = {};
+		for (i = 0; i < imbalancedSecurityList.length; i++)
+			imbalancedSecurityMap[imbalancedSecurityList[i]] = i;
+
 		splits = [];
 		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
 			var self = this;
 			var s = this.state.transaction.Splits[i];
 			var security = null;
-			if (this.props.account_map[s.AccountId])
+			var amountValidation = "";
+			var accountValidation = "";
+			if (s.AccountId in this.props.account_map) {
 				security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
+				if (security.SecurityId in imbalancedSecurityMap)
+					amountValidation = "error";
+			} else {
+				accountValidation = "has-error";
+			}
 
 			// Define all closures for calling split-updating functions
 			var deleteSplitFn = (function() {
@@ -307,12 +345,14 @@ const AddEditTransactionModal = React.createClass({
 					value={s.AccountId}
 					includeRoot={false}
 					onSelect={updateAccountFn}
-					ref={"account-"+i} /></Col>
+					ref={"account-"+i}
+					className={accountValidation}/></Col>
 				<Col xs={2}><AmountInput type="text"
 					value={s.Amount}
 					security={security}
 					onChange={updateAmountFn}
-					ref={"amount-"+i} /></Col>
+					ref={"amount-"+i}
+					bsStyle={amountValidation}/></Col>
 				{deleteSplitButton}
 				</Row>
 			));
@@ -367,6 +407,7 @@ const AddEditTransactionModal = React.createClass({
 								bsStyle="success">
 								<Glyphicon glyph='plus-sign' /></Button></Col>
 					</Row>
+					<Row>{this.state.errorAlert}</Row>
 					</Grid>
 				</form>
 				</Modal.Body>
