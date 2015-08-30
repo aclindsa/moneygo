@@ -551,7 +551,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	if sort == "date-asc" {
 		sqlsort = " ORDER BY transactions.Date ASC"
 		balanceLimitOffset = " LIMIT ?"
-		balanceLimitOffsetArg = page*limit
+		balanceLimitOffsetArg = page * limit
 	} else if sort == "date-desc" {
 		numSplits, err := transaction.SelectInt("SELECT count(*) FROM splits")
 		if err != nil {
@@ -560,7 +560,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 		}
 		sqlsort = " ORDER BY transactions.Date DESC"
 		balanceLimitOffset = fmt.Sprintf(" LIMIT %d OFFSET ?", numSplits)
-		balanceLimitOffsetArg = (page + 1)*limit
+		balanceLimitOffsetArg = (page + 1) * limit
 	}
 
 	var sqloffset string
