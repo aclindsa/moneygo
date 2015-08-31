@@ -21,7 +21,6 @@ type Split struct {
 	Number        string // Check or reference number
 	Memo          string
 	Amount        string // String representation of decimal, suitable for passing to big.Rat.SetString()
-	Debit         bool
 }
 
 func GetBigAmount(amt string) (*big.Rat, error) {
