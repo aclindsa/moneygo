@@ -99,19 +99,28 @@ func (t *Transaction) Valid() bool {
 }
 
 func (t *Transaction) Balanced() bool {
-	var zero, sum big.Rat
+	var zero big.Rat
+	sums := make(map[int64]big.Rat)
+
 	if !t.Valid() {
 		return false // TODO Open question: should we report an error here instead?
 	}
 	for i := range t.Splits {
+		account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
+		if err != nil {
+			return false
+		}
 		amount, _ := t.Splits[i].GetAmount()
-		if t.Splits[i].Debit {
-			sum.Add(&sum, amount)
-		} else {
-			sum.Sub(&sum, amount)
+		sum := sums[account.SecurityId]
+		(&sum).Add(&sum, amount)
+		sums[account.SecurityId] = sum
+	}
+	for _, security_sum := range sums {
+		if security_sum.Cmp(&zero) != 0 {
+			return false
 		}
 	}
-	return sum.Cmp(&zero) == 0
+	return true
 }
 
 func GetTransaction(transactionid int64, userid int64) (*Transaction, error) {
