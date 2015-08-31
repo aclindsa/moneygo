@@ -98,17 +98,17 @@ func (t *Transaction) Valid() bool {
 	return true
 }
 
-func (t *Transaction) Balanced() bool {
+func (t *Transaction) Balanced() (bool, error) {
 	var zero big.Rat
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
-		return false // TODO Open question: should we report an error here instead?
+		return false, errors.New("Transaction invalid")
 	}
 	for i := range t.Splits {
 		account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
 		if err != nil {
-			return false
+			return false, err
 		}
 		amount, _ := t.Splits[i].GetAmount()
 		sum := sums[account.SecurityId]
@@ -117,10 +117,10 @@ func (t *Transaction) Balanced() bool {
 	}
 	for _, security_sum := range sums {
 		if security_sum.Cmp(&zero) != 0 {
-			return false
+			return false, nil
 		}
 	}
-	return true
+	return true, nil
 }
 
 func GetTransaction(transactionid int64, userid int64) (*Transaction, error) {
@@ -418,7 +418,13 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 		transaction.TransactionId = -1
 		transaction.UserId = user.UserId
 
-		if !transaction.Valid() || !transaction.Balanced() {
+		balanced, err := transaction.Balanced()
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
+		if !transaction.Valid() || !balanced {
 			WriteError(w, 3 /*Invalid Request*/)
 			return
 		}
@@ -498,7 +504,13 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			transaction.UserId = user.UserId
 
-			if !transaction.Valid() || !transaction.Balanced() {
+			balanced, err := transaction.Balanced()
+			if err != nil {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
+			if !transaction.Valid() || !balanced {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
