@@ -4,6 +4,7 @@ var TabbedArea = ReactBootstrap.TabbedArea;
 var TabPane = ReactBootstrap.TabPane;
 var Panel = ReactBootstrap.Panel;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
+var Modal = ReactBootstrap.Modal;
 
 const NewUserForm = React.createClass({
 	getInitialState: function() {
@@ -146,16 +147,24 @@ const NewUserForm = React.createClass({
 	}
 });
 
-const AccountSettings = React.createClass({
-	getInitialState: function() {
+const AccountSettingsModal = React.createClass({
+	_getInitialState: function(props) {
 		return {error: "",
-			name: this.props.user.Name,
-			username: this.props.user.Username,
-			email: this.props.user.Email,
+			name: props.user.Name,
+			username: props.user.Username,
+			email: props.user.Email,
 			password: BogusPassword,
 			confirm_password: BogusPassword,
 			passwordChanged: false,
 			initial_password: BogusPassword};
+	},
+	getInitialState: function() {
+		 return this._getInitialState(this.props);
+	},
+	componentWillReceiveProps: function(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this._getInitialState(nextProps));
+		}
 	},
 	passwordValidationState: function() {
 		if (this.state.passwordChanged) {
@@ -224,7 +233,7 @@ const AccountSettings = React.createClass({
 					this.setState({error: e});
 				} else {
 					user.Password = "";
-					this.props.onSettingsSubmitted(user);
+					this.props.onSubmit(user);
 				}
 			}.bind(this),
 			error: function(jqXHR, status, error) {
@@ -236,9 +245,12 @@ const AccountSettings = React.createClass({
 		});
 	},
 	render: function() {
-		var title = <h3>Edit Account Settings</h3>;
 		return (
-			<Panel header={title} bsStyle="info">
+			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
+				<Modal.Header closeButton>
+					<Modal.Title>Edit Account Settings</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
 				<span color="red">{this.state.error}</span>
 				<form onSubmit={this.handleSubmit}
 						className="form-horizontal">
@@ -281,14 +293,15 @@ const AccountSettings = React.createClass({
 							wrapperClassName="col-xs-10"
 							bsStyle={this.confirmPasswordValidationState()}
 							hasFeedback/>
-					<ButtonGroup className="pull-right">
-						<Button onClick={this.handleCancel}
-								bsStyle="warning">Cancel</Button>
-						<Button type="submit"
-								bsStyle="success">Save Settings</Button>
-					</ButtonGroup>
 				</form>
-			</Panel>
+				</Modal.Body>
+				<Modal.Footer>
+					<ButtonGroup>
+						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.handleSubmit} bsStyle="success">Save Settings</Button>
+					</ButtonGroup>
+				</Modal.Footer>
+			</Modal>
 		);
 	}
 });
@@ -303,7 +316,8 @@ const MoneyGoApp = React.createClass({
 			account_map: {},
 			securities: [],
 			security_map: {},
-			error: new Error()
+			error: new Error(),
+			showAccountSettingsModal: false
 		};
 	},
 	componentDidMount: function() {
@@ -479,11 +493,16 @@ const MoneyGoApp = React.createClass({
 		});
 	},
 	handleAccountSettings: function() {
-		this.setHash("account");
+		this.setState({showAccountSettingsModal: true});
 	},
 	handleSettingsSubmitted: function(user) {
-		this.setState({user: user});
-		this.setHash("home");
+		this.setState({
+			user: user,
+			showAccountSettingsModal: false
+		});
+	},
+	handleSettingsCanceled: function(user) {
+		this.setState({showAccountSettingsModal: false});
 	},
 	handleCreateNewUser: function() {
 		this.setHash("new_user");
@@ -548,8 +567,6 @@ const MoneyGoApp = React.createClass({
 		var mainContent;
 		if (this.state.hash == "new_user") {
 			mainContent = <NewUserForm onNewUser={this.handleGoHome} onCancel={this.handleGoHome}/>
-		} else if (this.state.hash == "account" && this.state.user.isUser()) {
-			mainContent = <AccountSettings user={this.state.user} onSettingsSubmitted={this.handleSettingsSubmitted} onCancel={this.handleGoHome}/>
 		} else {
 			if (this.state.user.isUser())
 				mainContent =
@@ -590,6 +607,11 @@ const MoneyGoApp = React.createClass({
 					onAccountSettings={this.handleAccountSettings}
 					onLogoutSubmit={this.handleLogoutSubmit} />
 				{mainContent}
+				<AccountSettingsModal
+					show={this.state.showAccountSettingsModal}
+					user={this.state.user}
+					onSubmit={this.handleSettingsSubmitted}
+					onCancel={this.handleSettingsCanceled}/>
 			</div>
 		);
 	}
