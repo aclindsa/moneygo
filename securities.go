@@ -2,15 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
 
 const (
-	Banknote   int64 = 1
-	Bond             = 2
-	Stock            = 3
-	MutualFund       = 4
+	Currency int64 = 1
+	Stock          = 2
 )
 
 type Security struct {
@@ -22,6 +21,8 @@ type Security struct {
 	// security is precise to
 	Precision int
 	Type      int64
+	// AlternateId is CUSIP for Type=Stock
+	AlternateId string
 }
 
 type SecurityList struct {
@@ -1301,6 +1302,15 @@ func GetSecurity(securityid int64) *Security {
 		return s
 	}
 	return nil
+}
+
+func GetSecurityByName(name string) (*Security, error) {
+	for _, value := range security_map {
+		if value.Name == name {
+			return value, nil
+		}
+	}
+	return nil, errors.New("Invalid Security Name")
 }
 
 func GetSecurities() []*Security {

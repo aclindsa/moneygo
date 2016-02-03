@@ -21,12 +21,13 @@ const (
 )
 
 type Account struct {
-	AccountId       int64
-	UserId          int64
-	SecurityId      int64
-	ParentAccountId int64 // -1 if this account is at the root
-	Type            int64
-	Name            string
+	AccountId         int64
+	ExternalAccountId string
+	UserId            int64
+	SecurityId        int64
+	ParentAccountId   int64 // -1 if this account is at the root
+	Type              int64
+	Name              string
 
 	// monotonically-increasing account transaction version number. Used for
 	// allowing a client to ensure they have a consistent version when paging
@@ -39,9 +40,11 @@ type AccountList struct {
 }
 
 var accountTransactionsRE *regexp.Regexp
+var accountImportRE *regexp.Regexp
 
 func init() {
 	accountTransactionsRE = regexp.MustCompile(`^/account/[0-9]+/transactions/?$`)
+	accountImportRE = regexp.MustCompile(`^/account/[0-9]+/import/?$`)
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {
@@ -213,6 +216,21 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "POST" {
+		// if URL looks like /account/[0-9]+/import, use the account
+		// import handler
+		if accountImportRE.MatchString(r.URL.Path) {
+			var accountid int64
+			n, err := GetURLPieces(r.URL.Path, "/account/%d", &accountid)
+
+			if err != nil || n != 1 {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
+			AccountImportHandler(w, r, user, accountid)
+			return
+		}
+
 		account_json := r.PostFormValue("account")
 		if account_json == "" {
 			WriteError(w, 3 /*Invalid Request*/)

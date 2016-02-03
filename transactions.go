@@ -17,10 +17,17 @@ import (
 type Split struct {
 	SplitId       int64
 	TransactionId int64
-	AccountId     int64
-	Number        string // Check or reference number
-	Memo          string
-	Amount        string // String representation of decimal, suitable for passing to big.Rat.SetString()
+
+	// One of AccountId and SecurityId must be -1
+	// In normal splits, AccountId will be valid and SecurityId will be -1. The
+	// only case where this is reversed is for transactions that have been
+	// imported and not yet associated with an account.
+	AccountId  int64
+	SecurityId int64
+
+	Number string // Check or reference number
+	Memo   string
+	Amount string // String representation of decimal, suitable for passing to big.Rat.SetString()
 }
 
 func GetBigAmount(amt string) (*big.Rat, error) {
@@ -37,20 +44,26 @@ func (s *Split) GetAmount() (*big.Rat, error) {
 }
 
 func (s *Split) Valid() bool {
+	if (s.AccountId == -1 && s.SecurityId == -1) ||
+		(s.AccountId != -1 && s.SecurityId != -1) {
+		return false
+	}
 	_, err := s.GetAmount()
 	return err == nil
 }
 
 const (
-	Entered    int64 = 1
-	Cleared          = 2
-	Reconciled       = 3
-	Voided           = 4
+	Imported   int64 = 1
+	Entered          = 2
+	Cleared          = 3
+	Reconciled       = 4
+	Voided           = 5
 )
 
 type Transaction struct {
 	TransactionId int64
 	UserId        int64
+	RemoteId      string // unique ID from server, for detecting duplicates
 	Description   string
 	Status        int64
 	Date          time.Time
@@ -106,14 +119,18 @@ func (t *Transaction) Balanced() (bool, error) {
 		return false, errors.New("Transaction invalid")
 	}
 	for i := range t.Splits {
-		account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
-		if err != nil {
-			return false, err
+		securityid := t.Splits[i].SecurityId
+		if t.Splits[i].AccountId != -1 {
+			account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
+			if err != nil {
+				return false, err
+			}
+			securityid = account.SecurityId
 		}
 		amount, _ := t.Splits[i].GetAmount()
-		sum := sums[account.SecurityId]
+		sum := sums[securityid]
 		(&sum).Add(&sum, amount)
-		sums[account.SecurityId] = sum
+		sums[securityid] = sum
 	}
 	for _, security_sum := range sums {
 		if security_sum.Cmp(&zero) != 0 {
@@ -212,22 +229,30 @@ func InsertTransaction(t *Transaction, user *User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
-		existing, err := transaction.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
-		if err != nil {
-			transaction.Rollback()
-			return err
-		}
-		if existing != 1 {
-			transaction.Rollback()
+		if t.Splits[i].AccountId != -1 {
+			existing, err := transaction.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
+			if err != nil {
+				transaction.Rollback()
+				return err
+			}
+			if existing != 1 {
+				transaction.Rollback()
+				return AccountMissingError{}
+			}
+			a_map[t.Splits[i].AccountId] = true
+		} else if t.Splits[i].SecurityId == -1 {
 			return AccountMissingError{}
 		}
-		a_map[t.Splits[i].AccountId] = true
 	}
 
 	//increment versions for all accounts
 	var a_ids []int64
 	for id := range a_map {
 		a_ids = append(a_ids, id)
+	}
+	// ensure at least one of the splits is associated with an actual account
+	if len(a_ids) < 1 {
+		return AccountMissingError{}
 	}
 	err = incrementAccountVersions(transaction, user, a_ids)
 	if err != nil {
@@ -305,13 +330,17 @@ func UpdateTransaction(t *Transaction, user *User) error {
 				return err
 			}
 		}
-		a_map[t.Splits[i].AccountId] = true
+		if t.Splits[i].AccountId != -1 {
+			a_map[t.Splits[i].AccountId] = true
+		}
 	}
 
 	// Delete any remaining pre-existing splits
 	for i := range existing_splits {
 		_, ok := s_map[existing_splits[i].SplitId]
-		a_map[existing_splits[i].AccountId] = true
+		if existing_splits[i].AccountId != -1 {
+			a_map[existing_splits[i].AccountId] = true
+		}
 		if ok {
 			_, err := transaction.Delete(existing_splits[i])
 			if err != nil {
@@ -358,7 +387,7 @@ func DeleteTransaction(t *Transaction, user *User) error {
 	}
 
 	var accountids []int64
-	_, err = transaction.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=?", t.TransactionId)
+	_, err = transaction.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
 	if err != nil {
 		transaction.Rollback()
 		return err

@@ -77,10 +77,8 @@ Session.prototype.isSession = function() {
 }
 
 const SecurityType = {
-	Banknote: 1,
-	Bond: 2,
-	Stock: 3,
-	MutualFund: 4
+	Currency: 1,
+	Stock: 2
 }
 var SecurityTypeList = [];
 for (var type in SecurityType) {
@@ -197,6 +195,7 @@ function Split() {
 	this.SplitId = -1;
 	this.TransactionId = -1;
 	this.AccountId = -1;
+	this.SecurityId = -1;
 	this.Number = "";
 	this.Memo = "";
 	this.Amount = new Big(0.0);
@@ -208,6 +207,7 @@ Split.prototype.toJSONobj = function() {
 	json_obj.SplitId = this.SplitId;
 	json_obj.TransactionId = this.TransactionId;
 	json_obj.AccountId = this.AccountId;
+	json_obj.SecurityId = this.SecurityId;
 	json_obj.Number = this.Number;
 	json_obj.Memo = this.Memo;
 	json_obj.Amount = this.Amount.toFixed();
@@ -222,6 +222,8 @@ Split.prototype.fromJSONobj = function(json_obj) {
 		this.TransactionId = json_obj.TransactionId;
 	if (json_obj.hasOwnProperty("AccountId"))
 		this.AccountId = json_obj.AccountId;
+	if (json_obj.hasOwnProperty("SecurityId"))
+		this.SecurityId = json_obj.SecurityId;
 	if (json_obj.hasOwnProperty("Number"))
 		this.Number = json_obj.Number;
 	if (json_obj.hasOwnProperty("Memo"))
@@ -236,14 +238,16 @@ Split.prototype.isSplit = function() {
 	var empty_split = new Split();
 	return this.SplitId != empty_split.SplitId ||
 		this.TransactionId != empty_split.TransactionId ||
-		this.AccountId != empty_split.AccountId;
+		this.AccountId != empty_split.AccountId ||
+		this.SecurityId != empty_split.SecurityId;
 }
 
 const TransactionStatus = {
-	Entered: 1,
-	Cleared: 2,
-	Reconciled: 3,
-	Voided: 4
+	Imported: 1,
+	Entered: 2,
+	Cleared: 3,
+	Reconciled: 4,
+	Voided: 5
 }
 var TransactionStatusList = [];
 for (var type in TransactionStatus) {
@@ -331,10 +335,14 @@ Transaction.prototype.imbalancedSplitSecurities = function(account_map) {
 	const emptySplit = new Split();
 	for (var i = 0; i < this.Splits.length; i++) {
 		split = this.Splits[i];
-		if (split.AccountId == emptySplit.AccountId) {
+		var securityId = -1;
+		if (split.AccountId != emptySplit.AccountId) {
+			securityId = account_map[split.AccountId].SecurityId;
+		} else if (split.SecurityId != emptySplit.SecurityId) {
+			securityId = split.SecurityId;
+		} else {
 			continue;
 		}
-		var securityId = account_map[split.AccountId].SecurityId;
 		if (securityId in splitBalances) {
 			splitBalances[securityId] = split.Amount.plus(splitBalances[securityId]);
 		} else {

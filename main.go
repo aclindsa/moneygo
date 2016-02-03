@@ -14,6 +14,7 @@ import (
 
 var serveFcgi bool
 var baseDir string
+var tmpDir string
 var port int
 var smtpServer string
 var smtpPort int
@@ -23,6 +24,7 @@ var reminderEmail string
 
 func init() {
 	flag.StringVar(&baseDir, "base", "./", "Base directory for server")
+	flag.StringVar(&tmpDir, "tmp", "/tmp", "Directory to create temporary files in")
 	flag.IntVar(&port, "port", 80, "Port to serve API/files on")
 	flag.StringVar(&smtpServer, "smtp.server", "smtp.example.com", "SMTP server to send reminder emails from.")
 	flag.IntVar(&smtpPort, "smtp.port", 587, "SMTP server port to connect to")

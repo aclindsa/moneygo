@@ -13,6 +13,8 @@ var Col = ReactBootstrap.Col;
 var Button = ReactBootstrap.Button;
 var ButtonToolbar = ReactBootstrap.ButtonToolbar;
 
+var ProgressBar = ReactBootstrap.ProgressBar;
+
 var DateTimePicker = ReactWidgets.DateTimePicker;
 
 const TransactionRow = React.createClass({
@@ -45,7 +47,11 @@ const TransactionRow = React.createClass({
 				var otherSplit = this.props.transaction.Splits[0];
 				if (otherSplit.AccountId == this.props.account.AccountId)
 					var otherSplit = this.props.transaction.Splits[1];
-				var accountName = getAccountDisplayName(this.props.account_map[otherSplit.AccountId], this.props.account_map);
+
+				if (otherSplit.AccountId == -1)
+					var accountName = "Unbalanced " + this.props.security_map[otherSplit.SecurityId].Symbol + " transaction";
+				else
+					var accountName = getAccountDisplayName(this.props.account_map[otherSplit.AccountId], this.props.account_map);
 			} else {
 				accountName = "--Split Transaction--";
 			}
@@ -224,6 +230,7 @@ const AddEditTransactionModal = React.createClass({
 	handleUpdateAccount: function(account, split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+			SecurityId: {$set: -1},
 			AccountId: {$set: account.AccountId}
 		});
 		this.setState({
@@ -290,11 +297,14 @@ const AddEditTransactionModal = React.createClass({
 			var accountValidation = "";
 			if (s.AccountId in this.props.account_map) {
 				security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
-				if (security.SecurityId in imbalancedSecurityMap)
-					amountValidation = "error";
 			} else {
+				if (s.SecurityId in this.props.security_map) {
+					security = this.props.security_map[s.SecurityId];
+				}
 				accountValidation = "has-error";
 			}
+			if (security != null && security.SecurityId in imbalancedSecurityMap)
+				amountValidation = "error";
 
 			// Define all closures for calling split-updating functions
 			var deleteSplitFn = (function() {
@@ -423,9 +433,108 @@ const AddEditTransactionModal = React.createClass({
 	}
 });
 
+const ImportTransactionsModal = React.createClass({
+	getInitialState: function() {
+		 return {
+			importFile: "",
+			uploadProgress: -1};
+	},
+	handleCancel: function() {
+		this.setState({
+			importFile: "",
+			uploadProgress: -1
+		});
+		if (this.props.onCancel != null)
+			this.props.onCancel();
+	},
+	onImportChanged: function() {
+		this.setState({importFile: this.refs.importfile.getValue()});
+	},
+	handleSubmit: function() {
+		if (this.props.onSubmit != null)
+			this.props.onSubmit(this.props.account);
+	},
+	handleSetProgress: function(e) {
+		if (e.lengthComputable) {
+			var pct = Math.round(e.loaded/e.total*100);
+			this.setState({uploadProgress: pct});
+		} else {
+			this.setState({uploadProgress: 50});
+		}
+	},
+	handleImportTransactions: function() {
+		var file = this.refs.importfile.getInputDOMNode().files[0];
+		var formData = new FormData();
+		formData.append('importfile', file, this.state.importFile);
+		$.ajax({
+			type: "POST",
+			url: "account/"+this.props.account.AccountId+"/import",
+			data: formData,
+			xhr: function() {
+				var xhrObject = $.ajaxSettings.xhr();
+				if (xhrObject.upload) {
+					xhrObject.upload.addEventListener('progress', this.handleSetProgress, false);
+				} else {
+					console.log("File upload failed because !xhr.upload")
+				}
+				return xhrObject;
+			}.bind(this),
+			beforeSend: function() {
+				console.log("before send");
+			},
+			success: function() {
+				this.setState({uploadProgress: 100});
+				console.log("success");
+			}.bind(this),
+			error: function(e) {
+				console.log("error handler", e);
+			},
+			// So jQuery doesn't try to process teh data or content-type
+			cache: false,
+			contentType: false,
+			processData: false
+		});
+	},
+	render: function() {
+		var accountNameLabel = ""
+		if (this.props.account != null )
+			accountNameLabel = "Import File to '" + getAccountDisplayName(this.props.account, this.props.account_map) + "':";
+		var progressBar = [];
+		if (this.state.uploadProgress != -1)
+			progressBar = (<ProgressBar now={this.state.uploadProgress} label="%(percent)s%" />);
+		return (
+			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="medium">
+				<Modal.Header closeButton>
+					<Modal.Title>Import Transactions</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+				<form onSubmit={this.handleImportTransactions}
+						encType="multipart/form-data"
+						ref="importform">
+					<Input type="file"
+							ref="importfile"
+							value={this.state.importFile}
+							label={accountNameLabel}
+							help="Select an OFX/QFX file to upload."
+							onChange={this.onImportChanged} />
+				</form>
+				{progressBar}
+				</Modal.Body>
+				<Modal.Footer>
+					<ButtonGroup>
+						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.handleImportTransactions} bsStyle="success">Import</Button>
+					</ButtonGroup>
+				</Modal.Footer>
+			</Modal>
+		);
+	}
+});
+
 const AccountRegister = React.createClass({
 	getInitialState: function() {
 		return {
+			importingTransactions: false,
 			editingTransaction: false,
 			selectedTransaction: new Transaction(),
 			transactions: [],
@@ -466,6 +575,16 @@ const AccountRegister = React.createClass({
 		this.setState({
 			editingTransaction: true,
 			selectedTransaction: newTransaction
+		});
+	},
+	handleImportClicked: function() {
+		this.setState({
+			importingTransactions: true
+		});
+	},
+	handleImportingCancel: function() {
+		this.setState({
+			importingTransactions: false
 		});
 	},
 	ajaxError: function(jqXHR, status, error) {
@@ -593,6 +712,9 @@ const AccountRegister = React.createClass({
 			error: this.ajaxError
 		});
 	},
+	handleImportComplete: function() {
+		this.setState({importingTransactions: false});
+	},
 	handleDeleteTransaction: function(transaction) {
 		this.setState({
 			editingTransaction: false
@@ -676,6 +798,13 @@ const AccountRegister = React.createClass({
 					onDelete={this.handleDeleteTransaction}
 					securities={this.props.securities}
 					security_map={this.props.security_map}/>
+				<ImportTransactionsModal
+					show={this.state.importingTransactions}
+					account={this.props.selectedAccount}
+					accounts={this.props.accounts}
+					account_map={this.props.account_map}
+					onCancel={this.handleImportingCancel}
+					onSubmit={this.handleImportComplete}/>
 				<div className="transactions-register-toolbar">
 				Transactions for '{name}'
 				<ButtonToolbar className="pull-right">
@@ -694,6 +823,12 @@ const AccountRegister = React.createClass({
 							bsStyle="success"
 							disabled={disabled}>
 						<Glyphicon glyph='plus-sign' /> New Transaction
+					</Button>
+					<Button
+							onClick={this.handleImportClicked}
+							bsStyle="primary"
+							disabled={disabled}>
+						<Glyphicon glyph='import' /> Import
 					</Button>
 					</ButtonGroup>
 				</ButtonToolbar>
