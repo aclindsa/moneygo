@@ -18,6 +18,7 @@ const (
 	Investment       = 5
 	Income           = 6
 	Expense          = 7
+	Trading          = 8
 )
 
 type Account struct {
@@ -91,6 +92,73 @@ func GetAccounts(userid int64) (*[]Account, error) {
 		return nil, err
 	}
 	return &accounts, nil
+}
+
+// Get (and attempt to create if it doesn't exist) the security/currency
+// trading account for the supplied security/currency
+func GetTradingAccount(userid int64, securityid int64) (*Account, error) {
+	var tradingAccounts []Account //top-level 'Trading' account(s)
+	var tradingAccount Account
+	var accounts []Account //second-level security-specific trading account(s)
+	var account Account
+
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to find the top-level trading account
+	_, err = transaction.Select(&tradingAccounts, "SELECT * from accounts where UserId=? AND Name='Trading' AND ParentAccountId=-1 AND Type=? ORDER BY AccountId ASC LIMIT 1", userid, Trading)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	if len(tradingAccounts) == 1 {
+		tradingAccount = tradingAccounts[0]
+	} else {
+		tradingAccount.UserId = userid
+		tradingAccount.Name = "Trading"
+		tradingAccount.ParentAccountId = -1
+		tradingAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level trading account, but maybe we should grab the user's default
+		tradingAccount.Type = Trading
+
+		err = transaction.Insert(&tradingAccount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
+
+	// Now, try to find the security-specific trading account
+	_, err = transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", userid, securityid, tradingAccount.AccountId)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	if len(accounts) == 1 {
+		account = accounts[0]
+	} else {
+		security := GetSecurity(securityid)
+		account.UserId = userid
+		account.Name = security.Name
+		account.ParentAccountId = tradingAccount.AccountId
+		account.SecurityId = securityid
+		account.Type = Trading
+
+		err = transaction.Insert(&account)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return &account, nil
 }
 
 type ParentAccountMissingError struct{}

@@ -133,7 +133,8 @@ const AccountType = {
 	Liability: 4,
 	Investment: 5,
 	Income: 6,
-	Expense: 7
+	Expense: 7,
+	Trading: 8
 }
 var AccountTypeList = [];
 for (var type in AccountType) {
