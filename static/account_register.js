@@ -9,6 +9,7 @@ var Table = ReactBootstrap.Table;
 var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
+var Panel = ReactBootstrap.Panel;
 
 var Button = ReactBootstrap.Button;
 var ButtonToolbar = ReactBootstrap.ButtonToolbar;
@@ -436,13 +437,19 @@ const AddEditTransactionModal = React.createClass({
 const ImportTransactionsModal = React.createClass({
 	getInitialState: function() {
 		 return {
+			importing: false,
+			imported: false,
 			importFile: "",
-			uploadProgress: -1};
+			uploadProgress: -1,
+			error: null};
 	},
 	handleCancel: function() {
 		this.setState({
+			importing: false,
+			imported: false,
 			importFile: "",
-			uploadProgress: -1
+			uploadProgress: -1,
+			error: null
 		});
 		if (this.props.onCancel != null)
 			this.props.onCancel();
@@ -465,6 +472,7 @@ const ImportTransactionsModal = React.createClass({
 	handleImportTransactions: function() {
 		var file = this.refs.importfile.getInputDOMNode().files[0];
 		var formData = new FormData();
+		this.setState({importing: true});
 		formData.append('importfile', file, this.state.importFile);
 		$.ajax({
 			type: "POST",
@@ -479,14 +487,29 @@ const ImportTransactionsModal = React.createClass({
 				}
 				return xhrObject;
 			}.bind(this),
-			beforeSend: function() {
-				console.log("before send");
-			},
-			success: function() {
-				this.setState({uploadProgress: 100});
-				console.log("success");
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					var errString = e.ErrorString;
+					if (e.ErrorId == 3 /* Invalid Request */) {
+						errString = "Please check that the file you uploaded is a valid OFX file for this account and try again.";
+					}
+					this.setState({
+						importing: false,
+						error: errString
+					});
+					return;
+				}
+
+				this.setState({
+					uploadProgress: 100,
+					importing: false,
+					imported: true
+				});
 			}.bind(this),
 			error: function(e) {
+				this.setState({importing: false});
 				console.log("error handler", e);
 			},
 			// So jQuery doesn't try to process teh data or content-type
@@ -498,10 +521,31 @@ const ImportTransactionsModal = React.createClass({
 	render: function() {
 		var accountNameLabel = ""
 		if (this.props.account != null )
-			accountNameLabel = "Import File to '" + getAccountDisplayName(this.props.account, this.props.account_map) + "':";
+			accountNameLabel = "Importing to '" + getAccountDisplayName(this.props.account, this.props.account_map) + "' account:";
 		var progressBar = [];
-		if (this.state.uploadProgress != -1)
-			progressBar = (<ProgressBar now={this.state.uploadProgress} label="%(percent)s%" />);
+		if (this.state.importing && this.state.uploadProgress == 100) {
+			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Importing transactions..." />);
+		} else if (this.state.importing && this.state.uploadProgress != -1) {
+			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Uploading... %(percent)s%" />);
+		}
+
+		var panel = [];
+		if (this.state.error != null) {
+			panel = (<Panel header="Error Importing Transactions" bsStyle="danger">{this.state.error}</Panel>);
+		} else if (this.state.imported) {
+			panel = (<Panel header="Successfully Imported Transactions" bsStyle="success">Your import is now complete.</Panel>);
+		}
+
+		var buttonsDisabled = (this.state.importing) ? "disabled" : "";
+		var button1 = [];
+		var button2 = [];
+		if (!this.state.imported && this.state.error == null) {
+			button1 = (<Button onClick={this.handleCancel} disabled={buttonsDisabled} bsStyle="warning">Cancel</Button>);
+			button2 = (<Button onClick={this.handleImportTransactions} disabled={buttonsDisabled} bsStyle="success">Import</Button>);
+		} else {
+			button1 = (<Button onClick={this.handleCancel} disabled={buttonsDisabled} bsStyle="success">OK</Button>);
+		}
+		var inputDisabled = (this.state.importing || this.state.error != null || this.state.imported) ? "disabled" : "";
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="medium">
 				<Modal.Header closeButton>
@@ -513,17 +557,19 @@ const ImportTransactionsModal = React.createClass({
 						ref="importform">
 					<Input type="file"
 							ref="importfile"
+							disabled={inputDisabled}
 							value={this.state.importFile}
 							label={accountNameLabel}
 							help="Select an OFX/QFX file to upload."
 							onChange={this.onImportChanged} />
 				</form>
 				{progressBar}
+				{panel}
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup>
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleImportTransactions} bsStyle="success">Import</Button>
+						{button1}
+						{button2}
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
