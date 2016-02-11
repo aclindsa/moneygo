@@ -161,6 +161,73 @@ func GetTradingAccount(userid int64, securityid int64) (*Account, error) {
 	return &account, nil
 }
 
+// Get (and attempt to create if it doesn't exist) the security/currency
+// imbalance account for the supplied security/currency
+func GetImbalanceAccount(userid int64, securityid int64) (*Account, error) {
+	var imbalanceAccounts []Account //top-level imbalance account(s)
+	var imbalanceAccount Account
+	var accounts []Account //second-level security-specific imbalance account(s)
+	var account Account
+
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	// Try to find the top-level imbalance account
+	_, err = transaction.Select(&imbalanceAccounts, "SELECT * from accounts where UserId=? AND Name='Imbalances' AND ParentAccountId=-1 AND Type=? ORDER BY AccountId ASC LIMIT 1", userid, Bank)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	if len(imbalanceAccounts) == 1 {
+		imbalanceAccount = imbalanceAccounts[0]
+	} else {
+		imbalanceAccount.UserId = userid
+		imbalanceAccount.Name = "Imbalances"
+		imbalanceAccount.ParentAccountId = -1
+		imbalanceAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level imbalance account, but maybe we should grab the user's default
+		imbalanceAccount.Type = Bank
+
+		err = transaction.Insert(&imbalanceAccount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
+
+	// Now, try to find the security-specific imbalances account
+	_, err = transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", userid, securityid, imbalanceAccount.AccountId)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+	if len(accounts) == 1 {
+		account = accounts[0]
+	} else {
+		security := GetSecurity(securityid)
+		account.UserId = userid
+		account.Name = security.Name
+		account.ParentAccountId = imbalanceAccount.AccountId
+		account.SecurityId = securityid
+		account.Type = Bank
+
+		err = transaction.Insert(&account)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return &account, nil
+}
+
 type ParentAccountMissingError struct{}
 
 func (pame ParentAccountMissingError) Error() string {
