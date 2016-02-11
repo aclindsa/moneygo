@@ -111,19 +111,21 @@ func (t *Transaction) Valid() bool {
 	return true
 }
 
-func (t *Transaction) Balanced() (bool, error) {
-	var zero big.Rat
+// Return a map of security ID's to big.Rat's containing the amount that
+// security is imbalanced by
+func (t *Transaction) GetImbalances() (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
-		return false, errors.New("Transaction invalid")
+		return nil, errors.New("Transaction invalid")
 	}
+
 	for i := range t.Splits {
 		securityid := t.Splits[i].SecurityId
 		if t.Splits[i].AccountId != -1 {
 			account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
 			if err != nil {
-				return false, err
+				return nil, err
 			}
 			securityid = account.SecurityId
 		}
@@ -132,6 +134,19 @@ func (t *Transaction) Balanced() (bool, error) {
 		(&sum).Add(&sum, amount)
 		sums[securityid] = sum
 	}
+	return sums, nil
+}
+
+// Returns true if all securities contained in this transaction are balanced,
+// false otherwise
+func (t *Transaction) Balanced() (bool, error) {
+	var zero big.Rat
+
+	sums, err := t.GetImbalances()
+	if err != nil {
+		return false, err
+	}
+
 	for _, security_sum := range sums {
 		if security_sum.Cmp(&zero) != 0 {
 			return false, nil
