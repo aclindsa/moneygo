@@ -356,7 +356,7 @@ const AddEditTransactionModal = React.createClass({
 			}
 
 			splits.push((
-				<Row key={s.SplitId}>
+				<Row key={s.SplitId == -1 ? (i+999) : s.SplitId}>
 				<Col xs={1}><Input
 					type="text"
 					value={s.Number}
