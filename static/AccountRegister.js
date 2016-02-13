@@ -792,7 +792,8 @@ module.exports = React.createClass({
 				transactions: [],
 				currentPage: 0
 			});
-			this.getTransactionPage(nextProps.selectedAccount, 0);
+			if (nextProps.selectedAccount != null)
+				this.getTransactionPage(nextProps.selectedAccount, 0);
 		}
 	},
 	render: function() {
