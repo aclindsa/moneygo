@@ -277,7 +277,7 @@ module.exports = React.createClass({
 			if (this.state.user.isUser())
 				mainContent = (
 					<Tabs defaultActiveKey={1}>
-						<Tab title="Accounts" eventKey={1} tabClassName="fullheight">
+						<Tab title="Accounts" eventKey={1} >
 						<AccountsTab
 							className="fullheight"
 							accounts={this.state.accounts}
@@ -288,9 +288,9 @@ module.exports = React.createClass({
 							onUpdateAccount={this.handleUpdateAccount}
 							onDeleteAccount={this.handleDeleteAccount} />
 						</Tab>
-						<Tab title="Scheduled Transactions" eventKey={2} tabClassName="fullheight">Scheduled transactions go here...</Tab>
-						<Tab title="Budgets" eventKey={3} tabClassName="fullheight">Budgets go here...</Tab>
-						<Tab title="Reports" eventKey={4} tabClassName="fullheight">Reports go here...</Tab>
+						<Tab title="Scheduled Transactions" eventKey={2} >Scheduled transactions go here...</Tab>
+						<Tab title="Budgets" eventKey={3} >Budgets go here...</Tab>
+						<Tab title="Reports" eventKey={4} >Reports go here...</Tab>
 					</Tabs>);
 			else
 				mainContent = (
