@@ -1,3 +1,4 @@
 *.swp
 static/bundle.js
 static/react-widgets
+node_modules
