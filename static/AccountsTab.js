@@ -1,51 +1,24 @@
-// Import all the objects we want to use from ReactBootstrap
-var ListGroup = ReactBootstrap.ListGroup;
-var ListGroupItem = ReactBootstrap.ListGroupItem;
+var React = require('react');
+var ReactDOM = require('react-dom');
 
+var ReactBootstrap = require('react-bootstrap');
 var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
-
+var Input = ReactBootstrap.Input;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 var Glyphicon = ReactBootstrap.Glyphicon;
+var ListGroup = ReactBootstrap.ListGroup;
+var ListGroupItem = ReactBootstrap.ListGroupItem;
+var Collapse = ReactBootstrap.Collapse;
+var Modal = ReactBootstrap.Modal;
+var Collapse = ReactBootstrap.Collapse;
 
-var CollapsibleMixin = ReactBootstrap.CollapsibleMixin;
+var Combobox = require('react-widgets').Combobox;
 
-var Combobox = ReactWidgets.Combobox;
-
-const AccountCombobox = React.createClass({
-	getDefaultProps: function() {
-		return {
-			includeRoot: true,
-			rootName: "New Top-level Account"
-		};
-	},
-	handleAccountChange: function(account) {
-		if (this.props.onSelect != null &&
-				account.hasOwnProperty('AccountId') &&
-				(this.props.account_map.hasOwnProperty([account.AccountId]) ||
-				 account.AccountId == -1)) {
-			this.props.onSelect(account)
-		}
-	},
-	render: function() {
-		var accounts = getAccountDisplayList(this.props.accounts, this.props.includeRoot, this.props.rootName);
-		var className = "";
-		if (this.props.className)
-			className = this.props.className;
-		return (
-			<Combobox
-				data={accounts}
-				valueField='AccountId'
-				textField='Name'
-				value={this.props.value}
-				onSelect={this.handleAccountChange}
-				ref="account"
-				className={className} />
-	   );
-	}
-});
+var AccountCombobox = require('./AccountCombobox.js');
+var AccountRegister = require('./AccountRegister.js');
 
 const AddEditAccountModal = React.createClass({
 	getInitialState: function() {
@@ -139,7 +112,7 @@ const AddEditAccountModal = React.createClass({
 						account_map={this.props.account_map}
 						value={this.state.parentaccountid}
 						rootName={rootName}
-						onSelect={this.handleParentChange}
+						onChange={this.handleParentChange}
 						ref="parent" />
 					</Input>
 					<Input wrapperClassName="wrapper"
@@ -151,7 +124,7 @@ const AddEditAccountModal = React.createClass({
 						valueField='SecurityId'
 						textField='Name'
 						value={this.state.security}
-						onSelect={this.handleSecurityChange}
+						onChange={this.handleSecurityChange}
 						ref="security" />
 					</Input>
 					<Input wrapperClassName="wrapper"
@@ -163,7 +136,7 @@ const AddEditAccountModal = React.createClass({
 						valueField='TypeId'
 						textField='Name'
 						value={this.state.type}
-						onSelect={this.handleTypeChange}
+						onChange={this.handleTypeChange}
 						ref="type" />
 					</Input>
 				</form>
@@ -178,6 +151,7 @@ const AddEditAccountModal = React.createClass({
 		);
 	}
 });
+
 
 const DeleteAccountModal = React.createClass({
 	getInitialState: function() {
@@ -263,7 +237,7 @@ const DeleteAccountModal = React.createClass({
 						accounts={this.props.accounts}
 						account_map={this.props.account_map}
 						value={this.state.accountid}
-						onSelect={this.handleChange}/>
+						onChange={this.handleChange}/>
 					</Input>
 					{checkbox}
 				</form>
@@ -280,12 +254,8 @@ const DeleteAccountModal = React.createClass({
 });
 
 const AccountTreeNode = React.createClass({
-	mixins: [CollapsibleMixin],
-	getCollapsibleDOMNode: function() {
-		return React.findDOMNode(this.refs.children);
-	},
-	getCollapsibleDimensionValue: function() {
-		return React.findDOMNode(this.refs.children).scrollHeight;
+	getInitialState: function() {
+		return {expanded: false};
 	},
 	handleToggle: function(e) {
 		e.preventDefault();
@@ -300,8 +270,7 @@ const AccountTreeNode = React.createClass({
 			this.props.onSelect(this.props.account);
 	},
 	render: function() {
-		var styles = this.getCollapsibleClassSet();
-		var glyph = this.isExpanded() ? 'minus' : 'plus';
+		var glyph = this.state.expanded ? 'minus' : 'plus';
 		var active = (this.props.selectedAccount != null &&
 			this.props.account.AccountId == this.props.selectedAccount.AccountId);
 		var buttonStyle = active ? "info" : "link";
@@ -317,7 +286,7 @@ const AccountTreeNode = React.createClass({
 		});
 		var accounttreeClasses = "accounttree"
 		var expandButton = [];
-		if (children.length > 0)
+		if (children.length > 0) {
 			expandButton.push((
 				<Button onClick={this.handleToggle}
 						bsSize="xsmall"
@@ -326,8 +295,9 @@ const AccountTreeNode = React.createClass({
 					<Glyphicon glyph={glyph} bsSize="xsmall"/>
 				</Button>
 			));
-		else
+		} else {
 			accounttreeClasses += "-nochildren";
+		}
 		return (
 			<div className={accounttreeClasses}>
 				{expandButton}
@@ -336,9 +306,11 @@ const AccountTreeNode = React.createClass({
 						className="accounttree-name">
 					{this.props.account.Name}
 				</Button>
-				<div ref='children' className={classNames(styles)}>
-					{children}
-				</div>
+				<Collapse in={this.state.expanded}>
+					<div>
+						{children}
+					</div>
+				</Collapse>
 			</div>
 		);
 	}
@@ -356,7 +328,7 @@ const AccountTree = React.createClass({
 		}
 	},
 	resize: function() {
-		var div = React.findDOMNode(this);
+		var div = ReactDOM.findDOMNode(this);
 		this.setState({height: div.parentElement.clientHeight - 73});
 	},
 	componentDidMount: function() {
@@ -386,7 +358,8 @@ const AccountTree = React.createClass({
 	}
 });
 
-const AccountsTab = React.createClass({
+module.exports = React.createClass({
+	displayName: "AccountsTab",
 	getInitialState: function() {
 		return {
 			selectedAccount: null,
@@ -436,7 +409,7 @@ const AccountsTab = React.createClass({
 		var accounts = this.props.accounts;
 		var account_map = this.props.account_map;
 
-		var disabled = (this.state.selectedAccount == null) ? "disabled" : "";
+		var disabled = (this.state.selectedAccount == null) ? true : false;
 
 		return (
 			<Grid fluid className="fullheight"><Row className="fullheight">

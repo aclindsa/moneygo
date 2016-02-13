@@ -1,28 +1,35 @@
-// Import all the objects we want to use from ReactBootstrap
+var React = require('react');
+var ReactDOM = require('react-dom');
 
+var react_update = require('react-addons-update');
+
+var ReactBootstrap = require('react-bootstrap');
 var Alert = ReactBootstrap.Alert;
 var Modal = ReactBootstrap.Modal;
 var Pagination = ReactBootstrap.Pagination;
-
 var Label = ReactBootstrap.Label;
 var Table = ReactBootstrap.Table;
 var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
 var Panel = ReactBootstrap.Panel;
-
+var Input = ReactBootstrap.Input;
 var Button = ReactBootstrap.Button;
+var ButtonGroup = ReactBootstrap.ButtonGroup;
 var ButtonToolbar = ReactBootstrap.ButtonToolbar;
-
 var ProgressBar = ReactBootstrap.ProgressBar;
+var Glyphicon = ReactBootstrap.Glyphicon;
 
-var DateTimePicker = ReactWidgets.DateTimePicker;
+var DateTimePicker = require('react-widgets').DateTimePicker;
+var Combobox = require('react-widgets').Combobox;
+
+var AccountCombobox = require('./AccountCombobox.js');
 
 const TransactionRow = React.createClass({
 	handleClick: function(e) {
 		const refs = ["date", "number", "description", "account", "status", "amount"];
 		for (var ref in refs) {
-			if (this.refs[refs[ref]].getDOMNode() == e.target) {
+			if (this.refs[refs[ref]] == e.target) {
 				this.props.onEdit(this.props.transaction, refs[ref]);
 				return;
 			}
@@ -135,7 +142,7 @@ const AmountInput = React.createClass({
 		var symbol = "?";
 		if (this.props.security)
 			symbol = this.props.security.Symbol;
-		var bsStyle = "";
+		var bsStyle = undefined;
 		if (this.props.bsStyle)
 			bsStyle = this.props.bsStyle;
 
@@ -173,7 +180,7 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleDescriptionChange: function() {
 		this.setState({
-			transaction: React.addons.update(this.state.transaction, {
+			transaction: react_update(this.state.transaction, {
 				Description: {$set: this.refs.description.getValue()}
 			})
 		});
@@ -182,7 +189,7 @@ const AddEditTransactionModal = React.createClass({
 		if (date == null)
 			return;
 		this.setState({
-			transaction: React.addons.update(this.state.transaction, {
+			transaction: react_update(this.state.transaction, {
 				Date: {$set: date}
 			})
 		});
@@ -190,7 +197,7 @@ const AddEditTransactionModal = React.createClass({
 	handleStatusChange: function(status) {
 		if (status.hasOwnProperty('StatusId')) {
 			this.setState({
-				transaction: React.addons.update(this.state.transaction, {
+				transaction: react_update(this.state.transaction, {
 					Status: {$set: status.StatusId}
 				})
 			});
@@ -198,21 +205,21 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleAddSplit: function() {
 		this.setState({
-			transaction: React.addons.update(this.state.transaction, {
+			transaction: react_update(this.state.transaction, {
 				Splits: {$push: [new Split()]}
 			})
 		});
 	},
 	handleDeleteSplit: function(split) {
 		this.setState({
-			transaction: React.addons.update(this.state.transaction, {
+			transaction: react_update(this.state.transaction, {
 				Splits: {$splice: [[split, 1]]}
 			})
 		});
 	},
 	handleUpdateNumber: function(split) {
 		var transaction = this.state.transaction;
-		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Number: {$set: this.refs['number-'+split].getValue()}
 		});
 		this.setState({
@@ -221,7 +228,7 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleUpdateMemo: function(split) {
 		var transaction = this.state.transaction;
-		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Memo: {$set: this.refs['memo-'+split].getValue()}
 		});
 		this.setState({
@@ -230,7 +237,7 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleUpdateAccount: function(account, split) {
 		var transaction = this.state.transaction;
-		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			SecurityId: {$set: -1},
 			AccountId: {$set: account.AccountId}
 		});
@@ -240,7 +247,7 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleUpdateAmount: function(split) {
 		var transaction = this.state.transaction;
-		transaction.Splits[split] = React.addons.update(transaction.Splits[split], {
+		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Amount: {$set: new Big(this.refs['amount-'+split].getValue())}
 		});
 		this.setState({
@@ -294,7 +301,7 @@ const AddEditTransactionModal = React.createClass({
 			var self = this;
 			var s = this.state.transaction.Splits[i];
 			var security = null;
-			var amountValidation = "";
+			var amountValidation = undefined;
 			var accountValidation = "";
 			if (s.AccountId in this.props.account_map) {
 				security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
@@ -355,7 +362,7 @@ const AddEditTransactionModal = React.createClass({
 					account_map={this.props.account_map}
 					value={s.AccountId}
 					includeRoot={false}
-					onSelect={updateAccountFn}
+					onChange={updateAccountFn}
 					ref={"account-"+i}
 					className={accountValidation}/></Col>
 				<Col xs={2}><AmountInput type="text"
@@ -401,7 +408,7 @@ const AddEditTransactionModal = React.createClass({
 						data={TransactionStatusList}
 						valueField='StatusId'
 						textField='Name'
-						value={this.state.transaction.Status}
+						defaultValue={this.state.transaction.Status}
 						onSelect={this.handleStatusChange}
 						ref="status" />
 					</Input>
@@ -536,7 +543,7 @@ const ImportTransactionsModal = React.createClass({
 			panel = (<Panel header="Successfully Imported Transactions" bsStyle="success">Your import is now complete.</Panel>);
 		}
 
-		var buttonsDisabled = (this.state.importing) ? "disabled" : "";
+		var buttonsDisabled = (this.state.importing) ? true : false;
 		var button1 = [];
 		var button2 = [];
 		if (!this.state.imported && this.state.error == null) {
@@ -545,9 +552,9 @@ const ImportTransactionsModal = React.createClass({
 		} else {
 			button1 = (<Button onClick={this.handleCancel} disabled={buttonsDisabled} bsStyle="success">OK</Button>);
 		}
-		var inputDisabled = (this.state.importing || this.state.error != null || this.state.imported) ? "disabled" : "";
+		var inputDisabled = (this.state.importing || this.state.error != null || this.state.imported) ? true : false;
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="medium">
+			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="small">
 				<Modal.Header closeButton>
 					<Modal.Title>Import Transactions</Modal.Title>
 				</Modal.Header>
@@ -577,7 +584,8 @@ const ImportTransactionsModal = React.createClass({
 	}
 });
 
-const AccountRegister = React.createClass({
+module.exports = React.createClass({
+	displayName: "AccountRegister",
 	getInitialState: function() {
 		return {
 			importingTransactions: false,
@@ -591,7 +599,7 @@ const AccountRegister = React.createClass({
 		};
 	},
 	resize: function() {
-		var div = React.findDOMNode(this);
+		var div = ReactDOM.findDOMNode(this);
 		this.setState({height: div.parentElement.clientHeight - 64});
 	},
 	componentDidMount: function() {
@@ -830,7 +838,7 @@ const AccountRegister = React.createClass({
 			);
 		}
 
-		var disabled = (this.props.selectedAccount == null) ? "disabled" : "";
+		var disabled = (this.props.selectedAccount == null) ? true : false;
 
 		return (
 			<div className="transactions-container">

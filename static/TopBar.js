@@ -1,11 +1,11 @@
-// Import all the objects we want to use from ReactBootstrap
-var Alert = ReactBootstrap.Alert;
+var React = require('react');
 
+var ReactBootstrap = require('react-bootstrap');
+var Alert = ReactBootstrap.Alert;
 var Input = ReactBootstrap.Input;
 var Button = ReactBootstrap.Button;
 var DropdownButton = ReactBootstrap.DropdownButton;
 var MenuItem = ReactBootstrap.MenuItem;
-
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
 
@@ -62,7 +62,7 @@ const LoginBar = React.createClass({
 });
 
 const LogoutBar = React.createClass({
-	handleOnSelect: function(key) {
+	handleOnSelect: function(e, key) {
 		if (key == 1) {
 			if (this.props.onAccountSettings != null)
 				this.props.onAccountSettings();
@@ -79,7 +79,7 @@ const LogoutBar = React.createClass({
 					<Col xs={6}></Col>
 					<Col xs={4}>
 						<div className="pull-right">
-						<DropdownButton title={signedInString} onSelect={this.handleOnSelect} bsStyle="info">
+						<DropdownButton id="logout-settings-dropdown" title={signedInString} onSelect={this.handleOnSelect} bsStyle="info">
 							<MenuItem eventKey="1">Account Settings</MenuItem>
 							<MenuItem eventKey="2">Logout</MenuItem>
 						</DropdownButton>
@@ -91,7 +91,8 @@ const LogoutBar = React.createClass({
 	}
 });
 
-const TopBar = React.createClass({
+module.exports = React.createClass({
+	displayName: "TopBar",
 	render: function() {
 		var barContents;
 		var errorAlert;

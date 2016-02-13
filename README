@@ -1,0 +1,13 @@
+MoneyGo README
+
+Installation
+============
+
+First, install npm in your distribution:
+$ sudo pacman -S npm
+
+Install browserify globally:
+$ sudo npm install -g browserify
+
+Next, install browserify, babel, react, react-bootstrap, react-widgets, and globalize in our directory using npm:
+$ cd static && npm install browserify react react-dom react-addons-update react-bootstrap react-widgets babelify babel-preset-react globalize cldr-data
