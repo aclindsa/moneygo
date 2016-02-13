@@ -1,5 +1,7 @@
 package main
 
+//go:generate make
+
 import (
 	"flag"
 	"github.com/gorilla/context"
