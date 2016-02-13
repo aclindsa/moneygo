@@ -18,6 +18,11 @@ var Collapse = ReactBootstrap.Collapse;
 
 var Combobox = require('react-widgets').Combobox;
 
+var models = require('./models.js');
+var Security = models.Security;
+var Account = models.Account;
+var AccountTypeList = models.AccountTypeList;
+
 var AccountCombobox = require('./AccountCombobox.js');
 var AccountRegister = require('./AccountRegister.js');
 

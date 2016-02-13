@@ -9,6 +9,8 @@ var MenuItem = ReactBootstrap.MenuItem;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
 
+var User = require('./models.js').User;
+
 const LoginBar = React.createClass({
 	getInitialState: function() {
 		return {username: '', password: ''};

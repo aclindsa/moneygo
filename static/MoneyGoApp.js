@@ -6,6 +6,13 @@ var Tabs = ReactBootstrap.Tabs;
 var Tab = ReactBootstrap.Tab;
 var Modal = ReactBootstrap.Modal;
 
+var models = require('./models.js');
+var User = models.User;
+var Session = models.Session;
+var Security = models.Security;
+var Account = models.Account;
+var Error = models.Error;
+
 var TopBar = require('./TopBar.js');
 var NewUserForm = require('./NewUserForm.js');
 var AccountSettingsModal = require('./AccountSettingsModal.js');

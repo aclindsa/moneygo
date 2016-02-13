@@ -5,6 +5,10 @@ var Input = require('react-bootstrap').Input;
 var Button = require('react-bootstrap').Button;
 var ButtonGroup = require('react-bootstrap').ButtonGroup;
 
+var models = require('./models.js');
+var User = models.User;
+var Error = models.Error;
+
 module.exports = React.createClass({
 	getInitialState: function() {
 		return {error: "",

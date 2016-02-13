@@ -1,9 +1,14 @@
 var React = require('react');
 
-var Modal = require('react-bootstrap').Modal;
-var Button = require('react-bootstrap').Button;
-var ButtonGroup = require('react-bootstrap').ButtonGroup;
-var Input = require('react-bootstrap').Input;
+var ReactBootstrap = require('react-bootstrap');
+var Modal = ReactBootstrap.Modal;
+var Button = ReactBootstrap.Button;
+var ButtonGroup = ReactBootstrap.ButtonGroup;
+var Input = ReactBootstrap.Input;
+
+var models = require('./models.js');
+var User = models.User;
+var Error = models.Error;
 
 module.exports = React.createClass({
 	displayName: "AccountSettingsModal",
@@ -12,10 +17,10 @@ module.exports = React.createClass({
 			name: props.user.Name,
 			username: props.user.Username,
 			email: props.user.Email,
-			password: BogusPassword,
-			confirm_password: BogusPassword,
+			password: models.BogusPassword,
+			confirm_password: models.BogusPassword,
 			passwordChanged: false,
-			initial_password: BogusPassword};
+			initial_password: models.BogusPassword};
 	},
 	getInitialState: function() {
 		 return this._getInitialState(this.props);
@@ -74,7 +79,7 @@ module.exports = React.createClass({
 				return;
 			}
 		} else {
-			u.Password = BogusPassword;
+			u.Password = models.BogusPassword;
 		}
 
 		this.handleSaveSettings(u);

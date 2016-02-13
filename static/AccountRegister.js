@@ -23,6 +23,16 @@ var Glyphicon = ReactBootstrap.Glyphicon;
 var DateTimePicker = require('react-widgets').DateTimePicker;
 var Combobox = require('react-widgets').Combobox;
 
+var models = require('./models.js');
+var Security = models.Security;
+var Account = models.Account;
+var Split = models.Split;
+var Transaction = models.Transaction;
+var TransactionStatus = models.TransactionStatus;
+var TransactionStatusList = models.TransactionStatusList;
+var TransactionStatusMap = models.TransactionStatusMap;
+var Error = models.Error;
+
 var AccountCombobox = require('./AccountCombobox.js');
 
 const TransactionRow = React.createClass({

@@ -16,8 +16,6 @@ function User() {
 	this.Email = "";
 }
 
-const BogusPassword = "password";
-
 User.prototype.toJSON = function() {
 	var json_obj = {};
 	json_obj.UserId = this.UserId;
@@ -385,3 +383,27 @@ Error.prototype.isError = function() {
 	return this.ErrorId != empty_error.ErrorId ||
 		this.ErrorString != empty_error.ErrorString;
 }
+
+module.exports = models = {
+
+	// Classes
+	User: User,
+	Session: Session,
+	Security: Security,
+	Account: Account,
+	Split: Split,
+	Transaction: Transaction,
+	Error: Error,
+
+	// Enums, Lists
+	AccountType: AccountType,
+	AccountTypeList: AccountTypeList,
+	SecurityType: SecurityType,
+	SecurityTypeList: SecurityTypeList,
+	TransactionStatus: TransactionStatus,
+	TransactionStatusList: TransactionStatusList,
+	TransactionStatusMap: TransactionStatusMap,
+
+	// Constants
+	BogusPassword: "password"
+};
