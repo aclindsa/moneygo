@@ -23,6 +23,8 @@ var Glyphicon = ReactBootstrap.Glyphicon;
 var DateTimePicker = require('react-widgets').DateTimePicker;
 var Combobox = require('react-widgets').Combobox;
 
+var Big = require('big.js');
+
 var models = require('./models.js');
 var Security = models.Security;
 var Account = models.Account;

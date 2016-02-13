@@ -1,3 +1,5 @@
+var Big = require('big.js');
+
 function getJSONObj(json_input) {
 	if (typeof json_input == "string")
 		return $.parseJSON(json_input)
