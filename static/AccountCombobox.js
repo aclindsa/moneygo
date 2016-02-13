@@ -2,6 +2,8 @@ var React = require('react');
 
 var Combobox = require('react-widgets').Combobox;
 
+var getAccountDisplayList = require('./utils.js').getAccountDisplayList;
+
 module.exports = React.createClass({
 	displayName: "AccountCombobox",
 	getDefaultProps: function() {

@@ -25,3 +25,8 @@ const getAccountDisplayName = function(account, account_map) {
 	}
 	return name;
 };
+
+module.exports = {
+	getAccountDisplayList: getAccountDisplayList,
+	getAccountDisplayName: getAccountDisplayName
+};

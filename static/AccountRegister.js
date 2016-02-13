@@ -33,6 +33,8 @@ var TransactionStatusList = models.TransactionStatusList;
 var TransactionStatusMap = models.TransactionStatusMap;
 var Error = models.Error;
 
+var getAccountDisplayName = require('./utils.js').getAccountDisplayName;
+
 var AccountCombobox = require('./AccountCombobox.js');
 
 const TransactionRow = React.createClass({
