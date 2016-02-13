@@ -287,7 +287,7 @@ const AddEditTransactionModal = React.createClass({
 		var deleteButton = [];
 		if (editing) {
 			deleteButton = (
-				<Button onClick={this.handleDelete} bsStyle="danger">Delete Transaction</Button>
+				<Button key={1} onClick={this.handleDelete} bsStyle="danger">Delete Transaction</Button>
 		   );
 		}
 
@@ -346,7 +346,7 @@ const AddEditTransactionModal = React.createClass({
 			}
 
 			splits.push((
-				<Row>
+				<Row key={s.SplitId}>
 				<Col xs={1}><Input
 					type="text"
 					value={s.Number}
@@ -808,6 +808,7 @@ module.exports = React.createClass({
 				var t = this.state.transactions[i];
 				transactionRows.push((
 					<TransactionRow
+						key={t.TransactionId}
 						transaction={t}
 						account={this.props.selectedAccount}
 						accounts={this.props.accounts}

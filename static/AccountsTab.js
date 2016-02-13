@@ -279,6 +279,7 @@ const AccountTreeNode = React.createClass({
 		var children = this.props.account.Children.map(function(account) {
 			return (
 				<AccountTreeNode
+					key={account.AccountId}
 					account={account}
 					selectedAccount={self.props.selectedAccount}
 					onSelect={self.handleChildSelect}/>
@@ -289,6 +290,7 @@ const AccountTreeNode = React.createClass({
 		if (children.length > 0) {
 			expandButton.push((
 				<Button onClick={this.handleToggle}
+						key={1}
 						bsSize="xsmall"
 						bsStyle="link"
 						className="accounttree-expandbutton">
@@ -343,6 +345,7 @@ const AccountTree = React.createClass({
 		for (var i = 0; i < accounts.length; i++) {
 			if (accounts[i].isRootAccount())
 				children.push((<AccountTreeNode
+					key={accounts[i].AccountId}
 					account={accounts[i]}
 					selectedAccount={this.state.selectedAccount}
 					onSelect={this.handleSelect}/>));
