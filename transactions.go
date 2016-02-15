@@ -113,7 +113,7 @@ func (t *Transaction) Valid() bool {
 
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func (t *Transaction) GetImbalances() (map[int64]big.Rat, error) {
+func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -123,7 +123,13 @@ func (t *Transaction) GetImbalances() (map[int64]big.Rat, error) {
 	for i := range t.Splits {
 		securityid := t.Splits[i].SecurityId
 		if t.Splits[i].AccountId != -1 {
-			account, err := GetAccount(t.Splits[i].AccountId, t.UserId)
+			var err error
+			var account *Account
+			if transaction != nil {
+				account, err = GetAccountTx(transaction, t.Splits[i].AccountId, t.UserId)
+			} else {
+				account, err = GetAccount(t.Splits[i].AccountId, t.UserId)
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -135,6 +141,10 @@ func (t *Transaction) GetImbalances() (map[int64]big.Rat, error) {
 		sums[securityid] = sum
 	}
 	return sums, nil
+}
+
+func (t *Transaction) GetImbalances() (map[int64]big.Rat, error) {
+	return t.GetImbalancesTx(nil)
 }
 
 // Returns true if all securities contained in this transaction are balanced,
@@ -235,23 +245,16 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransaction(t *Transaction, user *User) error {
-	transaction, err := DB.Begin()
-	if err != nil {
-		return err
-	}
-
+func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
 		if t.Splits[i].AccountId != -1 {
 			existing, err := transaction.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
 			if err != nil {
-				transaction.Rollback()
 				return err
 			}
 			if existing != 1 {
-				transaction.Rollback()
 				return AccountMissingError{}
 			}
 			a_map[t.Splits[i].AccountId] = true
@@ -269,15 +272,14 @@ func InsertTransaction(t *Transaction, user *User) error {
 	if len(a_ids) < 1 {
 		return AccountMissingError{}
 	}
-	err = incrementAccountVersions(transaction, user, a_ids)
+	err := incrementAccountVersions(transaction, user, a_ids)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
+	t.UserId = user.UserId
 	err = transaction.Insert(t)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
@@ -286,9 +288,22 @@ func InsertTransaction(t *Transaction, user *User) error {
 		t.Splits[i].SplitId = -1
 		err = transaction.Insert(t.Splits[i])
 		if err != nil {
-			transaction.Rollback()
 			return err
 		}
+	}
+
+	return nil
+}
+func InsertTransaction(t *Transaction, user *User) error {
+	transaction, err := DB.Begin()
+	if err != nil {
+		return err
+	}
+
+	err = InsertTransactionTx(transaction, t, user)
+	if err != nil {
+		transaction.Rollback()
+		return err
 	}
 
 	err = transaction.Commit()

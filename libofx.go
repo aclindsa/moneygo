@@ -25,11 +25,11 @@ import (
 )
 
 type ImportObject struct {
-	TransactionList ImportTransactionsList
+	TransactionList OFXImport
 	Error           error
 }
 
-type ImportTransactionsList struct {
+type OFXImport struct {
 	Account           *Account
 	Transactions      *[]Transaction
 	TotalTransactions int64
@@ -249,7 +249,7 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 	return 0
 }
 
-func ImportOFX(filename string, account *Account) (*ImportTransactionsList, error) {
+func ImportOFX(filename string, account *Account) (*OFXImport, error) {
 	var a Account
 	var t []Transaction
 	var iobj ImportObject

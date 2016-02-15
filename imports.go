@@ -12,7 +12,9 @@ import (
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
+func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64, importtype string) {
+	//TODO branch off for different importtype's
+
 	// Return Account with this Id
 	account, err := GetAccount(accountid, user.UserId)
 	if err != nil {
@@ -58,8 +60,15 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 	itl, err := ImportOFX(tmpFilename, account)
 
 	if err != nil {
-		//TODO is this necessarily an invalid request?
+		//TODO is this necessarily an invalid request (what if it was an error on our end)?
 		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+
+	sqltransaction, err := DB.Begin()
+	if err != nil {
+		WriteError(w, 999 /*Internal Error*/)
+		log.Print(err)
 		return
 	}
 
@@ -69,12 +78,14 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 		transaction.Status = Imported
 
 		if !transaction.Valid() {
+			sqltransaction.Rollback()
 			WriteError(w, 3 /*Invalid Request*/)
 			return
 		}
 
-		imbalances, err := transaction.GetImbalances()
+		imbalances, err := transaction.GetImbalancesTx(sqltransaction)
 		if err != nil {
+			sqltransaction.Rollback()
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
 			return
@@ -95,11 +106,12 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 				// If we're dealing with exactly two securities, assume any imbalances
 				// from imports are from trading currencies/securities
 				if num_imbalances == 2 {
-					imbalanced_account, err = GetTradingAccount(user.UserId, imbalanced_security)
+					imbalanced_account, err = GetTradingAccount(sqltransaction, user.UserId, imbalanced_security)
 				} else {
-					imbalanced_account, err = GetImbalanceAccount(user.UserId, imbalanced_security)
+					imbalanced_account, err = GetImbalanceAccount(sqltransaction, user.UserId, imbalanced_security)
 				}
 				if err != nil {
+					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
 					log.Print(err)
 					return
@@ -121,8 +133,9 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 		// accounts
 		for _, split := range transaction.Splits {
 			if split.SecurityId != -1 || split.AccountId == -1 {
-				imbalanced_account, err := GetImbalanceAccount(user.UserId, split.SecurityId)
+				imbalanced_account, err := GetImbalanceAccount(sqltransaction, user.UserId, split.SecurityId)
 				if err != nil {
+					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
 					log.Print(err)
 					return
@@ -133,22 +146,23 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 			}
 		}
 
-		balanced, err := transaction.Balanced()
-		if !balanced || err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
-
 		transactions = append(transactions, transaction)
 	}
 
 	for _, transaction := range transactions {
-		err := InsertTransaction(&transaction, user)
+		err := InsertTransactionTx(sqltransaction, &transaction, user)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
 		}
+	}
+
+	err = sqltransaction.Commit()
+	if err != nil {
+		sqltransaction.Rollback()
+		WriteError(w, 999 /*Internal Error*/)
+		log.Print(err)
+		return
 	}
 
 	WriteSuccess(w)

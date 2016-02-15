@@ -9,6 +9,7 @@ module.exports = React.createClass({
 	getDefaultProps: function() {
 		return {
 			includeRoot: true,
+			disabled: false,
 			rootName: "New Top-level Account"
 		};
 	},
@@ -33,6 +34,7 @@ module.exports = React.createClass({
 				defaultValue={this.props.value}
 				onChange={this.handleAccountChange}
 				ref="account"
+				disabled={this.props.disabled}
 				className={className} />
 	   );
 	}

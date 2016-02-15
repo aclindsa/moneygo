@@ -20,8 +20,10 @@ var ButtonToolbar = ReactBootstrap.ButtonToolbar;
 var ProgressBar = ReactBootstrap.ProgressBar;
 var Glyphicon = ReactBootstrap.Glyphicon;
 
-var DateTimePicker = require('react-widgets').DateTimePicker;
-var Combobox = require('react-widgets').Combobox;
+var ReactWidgets = require('react-widgets')
+var DateTimePicker = ReactWidgets.DateTimePicker;
+var Combobox = ReactWidgets.Combobox;
+var DropdownList = ReactWidgets.DropdownList;
 
 var Big = require('big.js');
 
@@ -455,28 +457,38 @@ const AddEditTransactionModal = React.createClass({
 	}
 });
 
+const ImportType = {
+	OFX: 1,
+	Gnucash: 2
+};
+var ImportTypeList = [];
+for (var type in ImportType) {
+	if (ImportType.hasOwnProperty(type)) {
+		var name = ImportType[type] == ImportType.OFX ? "OFX/QFX" : type; //QFX is a special snowflake
+		ImportTypeList.push({'TypeId': ImportType[type], 'Name': name});
+   }
+}
+
 const ImportTransactionsModal = React.createClass({
 	getInitialState: function() {
 		 return {
 			importing: false,
 			imported: false,
 			importFile: "",
+			importType: ImportType.Gnucash,
 			uploadProgress: -1,
 			error: null};
 	},
 	handleCancel: function() {
-		this.setState({
-			importing: false,
-			imported: false,
-			importFile: "",
-			uploadProgress: -1,
-			error: null
-		});
+		this.setState(this.getInitialState());
 		if (this.props.onCancel != null)
 			this.props.onCancel();
 	},
-	onImportChanged: function() {
+	handleImportChange: function() {
 		this.setState({importFile: this.refs.importfile.getValue()});
+	},
+	handleTypeChange: function(type) {
+		this.setState({importType: type.TypeId});
 	},
 	handleSubmit: function() {
 		if (this.props.onSubmit != null)
@@ -493,11 +505,18 @@ const ImportTransactionsModal = React.createClass({
 	handleImportTransactions: function() {
 		var file = this.refs.importfile.getInputDOMNode().files[0];
 		var formData = new FormData();
-		this.setState({importing: true});
 		formData.append('importfile', file, this.state.importFile);
+		var url = ""
+		if (this.state.importType == ImportType.OFX)
+			url = "account/"+this.props.account.AccountId+"/import/ofx";
+		else if (this.state.importType == ImportType.Gnucash)
+			url = "import/gnucash";
+
+		this.setState({importing: true});
+
 		$.ajax({
 			type: "POST",
-			url: "account/"+this.props.account.AccountId+"/import",
+			url: url,
 			data: formData,
 			xhr: function() {
 				var xhrObject = $.ajaxSettings.xhr();
@@ -514,7 +533,7 @@ const ImportTransactionsModal = React.createClass({
 				if (e.isError()) {
 					var errString = e.ErrorString;
 					if (e.ErrorId == 3 /* Invalid Request */) {
-						errString = "Please check that the file you uploaded is a valid OFX file for this account and try again.";
+						errString = "Please check that the file you uploaded is valid and try again.";
 					}
 					this.setState({
 						importing: false,
@@ -540,9 +559,11 @@ const ImportTransactionsModal = React.createClass({
 		});
 	},
 	render: function() {
-		var accountNameLabel = ""
-		if (this.props.account != null )
+		var accountNameLabel = "Performing global import:"
+		if (this.props.account != null && this.state.importType != ImportType.Gnucash)
 			accountNameLabel = "Importing to '" + getAccountDisplayName(this.props.account, this.props.account_map) + "' account:";
+
+		// Display the progress bar if an upload/import is in progress
 		var progressBar = [];
 		if (this.state.importing && this.state.uploadProgress == 100) {
 			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Importing transactions..." />);
@@ -550,6 +571,7 @@ const ImportTransactionsModal = React.createClass({
 			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Uploading... %(percent)s%" />);
 		}
 
+		// Create panel, possibly displaying error or success messages
 		var panel = [];
 		if (this.state.error != null) {
 			panel = (<Panel header="Error Importing Transactions" bsStyle="danger">{this.state.error}</Panel>);
@@ -557,16 +579,22 @@ const ImportTransactionsModal = React.createClass({
 			panel = (<Panel header="Successfully Imported Transactions" bsStyle="success">Your import is now complete.</Panel>);
 		}
 
-		var buttonsDisabled = (this.state.importing) ? true : false;
+		// Display proper buttons, possibly disabling them if an import is in progress
 		var button1 = [];
 		var button2 = [];
 		if (!this.state.imported && this.state.error == null) {
-			button1 = (<Button onClick={this.handleCancel} disabled={buttonsDisabled} bsStyle="warning">Cancel</Button>);
-			button2 = (<Button onClick={this.handleImportTransactions} disabled={buttonsDisabled} bsStyle="success">Import</Button>);
+			button1 = (<Button onClick={this.handleCancel} disabled={this.state.importing} bsStyle="warning">Cancel</Button>);
+			button2 = (<Button onClick={this.handleImportTransactions} disabled={this.state.importing || this.state.importFile == ""} bsStyle="success">Import</Button>);
 		} else {
-			button1 = (<Button onClick={this.handleCancel} disabled={buttonsDisabled} bsStyle="success">OK</Button>);
+			button1 = (<Button onClick={this.handleCancel} disabled={this.state.importing} bsStyle="success">OK</Button>);
 		}
 		var inputDisabled = (this.state.importing || this.state.error != null || this.state.imported) ? true : false;
+
+		// Disable OFX/QFX imports if no account is selected
+		var disabledTypes = false;
+		if (this.props.account == null)
+			disabledTypes = [ImportTypeList[ImportType.OFX - 1]];
+
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="small">
 				<Modal.Header closeButton>
@@ -576,13 +604,21 @@ const ImportTransactionsModal = React.createClass({
 				<form onSubmit={this.handleImportTransactions}
 						encType="multipart/form-data"
 						ref="importform">
+					<DropdownList
+						data={ImportTypeList}
+						valueField='TypeId'
+						textField='Name'
+						onSelect={this.handleTypeChange}
+						defaultValue={this.state.importType}
+						disabled={disabledTypes}
+						ref="importtype" />
 					<Input type="file"
 							ref="importfile"
 							disabled={inputDisabled}
 							value={this.state.importFile}
 							label={accountNameLabel}
 							help="Select an OFX/QFX file to upload."
-							onChange={this.onImportChanged} />
+							onChange={this.handleImportChange} />
 				</form>
 				{progressBar}
 				{panel}
@@ -897,8 +933,7 @@ module.exports = React.createClass({
 					</Button>
 					<Button
 							onClick={this.handleImportClicked}
-							bsStyle="primary"
-							disabled={disabled}>
+							bsStyle="primary">
 						<Glyphicon glyph='import' /> Import
 					</Button>
 					</ButtonGroup>

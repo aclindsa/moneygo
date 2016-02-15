@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -55703,7 +55703,16 @@ func GetSecurityByName(name string) (*Security, error) {
 			return value, nil
 		}
 	}
-	return nil, errors.New("Invalid Security Name")
+	return nil, fmt.Errorf("Invalid Security Name: \"%s\"", name)
+}
+
+func GetSecurityByNameAndType(name string, _type int64) (*Security, error) {
+	for _, value := range security_map {
+		if value.Name == name && value.Type == _type {
+			return value, nil
+		}
+	}
+	return nil, fmt.Errorf("Invalid Security Name (%s) or Type (%d)", name, _type)
 }
 
 func GetSecurities() []*Security {

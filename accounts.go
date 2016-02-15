@@ -48,7 +48,7 @@ var accountImportRE *regexp.Regexp
 
 func init() {
 	accountTransactionsRE = regexp.MustCompile(`^/account/[0-9]+/transactions/?$`)
-	accountImportRE = regexp.MustCompile(`^/account/[0-9]+/import/?$`)
+	accountImportRE = regexp.MustCompile(`^/account/[0-9]+/import/[a-z]+/?$`)
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {
@@ -97,138 +97,98 @@ func GetAccounts(userid int64) (*[]Account, error) {
 	return &accounts, nil
 }
 
-// Get (and attempt to create if it doesn't exist) the security/currency
-// trading account for the supplied security/currency
-func GetTradingAccount(userid int64, securityid int64) (*Account, error) {
-	var tradingAccounts []Account //top-level 'Trading' account(s)
-	var tradingAccount Account
-	var accounts []Account //second-level security-specific trading account(s)
+// Get (and attempt to create if it doesn't exist). Matches on UserId,
+// SecurityId, Type, Name, and ParentAccountId
+func GetCreateAccountTx(transaction *gorp.Transaction, a Account) (*Account, error) {
+	var accounts []Account
 	var account Account
 
-	transaction, err := DB.Begin()
-	if err != nil {
-		return nil, err
-	}
-
 	// Try to find the top-level trading account
-	_, err = transaction.Select(&tradingAccounts, "SELECT * from accounts where UserId=? AND Name='Trading' AND ParentAccountId=-1 AND Type=? ORDER BY AccountId ASC LIMIT 1", userid, Trading)
+	_, err := transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND Type=? AND Name=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", a.UserId, a.SecurityId, a.Type, a.Name, a.ParentAccountId)
 	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-	if len(tradingAccounts) == 1 {
-		tradingAccount = tradingAccounts[0]
-	} else {
-		tradingAccount.UserId = userid
-		tradingAccount.Name = "Trading"
-		tradingAccount.ParentAccountId = -1
-		tradingAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level trading account, but maybe we should grab the user's default
-		tradingAccount.Type = Trading
-
-		err = transaction.Insert(&tradingAccount)
-		if err != nil {
-			transaction.Rollback()
-			return nil, err
-		}
-	}
-
-	// Now, try to find the security-specific trading account
-	_, err = transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", userid, securityid, tradingAccount.AccountId)
-	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 	if len(accounts) == 1 {
 		account = accounts[0]
 	} else {
-		security := GetSecurity(securityid)
-		account.UserId = userid
-		account.Name = security.Name
-		account.ParentAccountId = tradingAccount.AccountId
-		account.SecurityId = securityid
-		account.Type = Trading
+		account.UserId = a.UserId
+		account.SecurityId = a.SecurityId
+		account.Type = a.Type
+		account.Name = a.Name
+		account.ParentAccountId = a.ParentAccountId
 
 		err = transaction.Insert(&account)
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
 	return &account, nil
 }
 
 // Get (and attempt to create if it doesn't exist) the security/currency
-// imbalance account for the supplied security/currency
-func GetImbalanceAccount(userid int64, securityid int64) (*Account, error) {
-	var imbalanceAccounts []Account //top-level imbalance account(s)
-	var imbalanceAccount Account
-	var accounts []Account //second-level security-specific imbalance account(s)
+// trading account for the supplied security/currency
+func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid int64) (*Account, error) {
+	var tradingAccount Account
 	var account Account
 
-	transaction, err := DB.Begin()
+	tradingAccount.UserId = userid
+	tradingAccount.Type = Trading
+	tradingAccount.Name = "Trading"
+	tradingAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level trading account, but maybe we should grab the user's default
+	tradingAccount.ParentAccountId = -1
+
+	// Find/create the top-level trading account
+	ta, err := GetCreateAccountTx(transaction, tradingAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	// Try to find the top-level imbalance account
-	_, err = transaction.Select(&imbalanceAccounts, "SELECT * from accounts where UserId=? AND Name='Imbalances' AND ParentAccountId=-1 AND Type=? ORDER BY AccountId ASC LIMIT 1", userid, Bank)
+	security := GetSecurity(securityid)
+	account.UserId = userid
+	account.Name = security.Name
+	account.ParentAccountId = ta.AccountId
+	account.SecurityId = securityid
+	account.Type = Trading
+
+	a, err := GetCreateAccountTx(transaction, account)
 	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-	if len(imbalanceAccounts) == 1 {
-		imbalanceAccount = imbalanceAccounts[0]
-	} else {
-		imbalanceAccount.UserId = userid
-		imbalanceAccount.Name = "Imbalances"
-		imbalanceAccount.ParentAccountId = -1
-		imbalanceAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level imbalance account, but maybe we should grab the user's default
-		imbalanceAccount.Type = Bank
-
-		err = transaction.Insert(&imbalanceAccount)
-		if err != nil {
-			transaction.Rollback()
-			return nil, err
-		}
-	}
-
-	// Now, try to find the security-specific imbalances account
-	_, err = transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", userid, securityid, imbalanceAccount.AccountId)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-	if len(accounts) == 1 {
-		account = accounts[0]
-	} else {
-		security := GetSecurity(securityid)
-		account.UserId = userid
-		account.Name = security.Name
-		account.ParentAccountId = imbalanceAccount.AccountId
-		account.SecurityId = securityid
-		account.Type = Bank
-
-		err = transaction.Insert(&account)
-		if err != nil {
-			transaction.Rollback()
-			return nil, err
-		}
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
-	return &account, nil
+	return a, nil
+}
+
+// Get (and attempt to create if it doesn't exist) the security/currency
+// imbalance account for the supplied security/currency
+func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid int64) (*Account, error) {
+	var imbalanceAccount Account
+	var account Account
+
+	imbalanceAccount.UserId = userid
+	imbalanceAccount.Name = "Imbalances"
+	imbalanceAccount.ParentAccountId = -1
+	imbalanceAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level imbalance account, but maybe we should grab the user's default
+	imbalanceAccount.Type = Bank
+
+	// Find/create the top-level trading account
+	ia, err := GetCreateAccountTx(transaction, imbalanceAccount)
+	if err != nil {
+		return nil, err
+	}
+
+	security := GetSecurity(securityid)
+	account.UserId = userid
+	account.Name = security.Name
+	account.ParentAccountId = ia.AccountId
+	account.SecurityId = securityid
+	account.Type = Bank
+
+	a, err := GetCreateAccountTx(transaction, account)
+	if err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }
 
 type ParentAccountMissingError struct{}
@@ -358,14 +318,15 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		// import handler
 		if accountImportRE.MatchString(r.URL.Path) {
 			var accountid int64
-			n, err := GetURLPieces(r.URL.Path, "/account/%d", &accountid)
+			var importtype string
+			n, err := GetURLPieces(r.URL.Path, "/account/%d/import/%s", &accountid, &importtype)
 
-			if err != nil || n != 1 {
+			if err != nil || n != 2 {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
 				return
 			}
-			AccountImportHandler(w, r, user, accountid)
+			AccountImportHandler(w, r, user, accountid, importtype)
 			return
 		}
 

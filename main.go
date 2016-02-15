@@ -69,6 +69,7 @@ func main() {
 	servemux.HandleFunc("/security/", SecurityHandler)
 	servemux.HandleFunc("/account/", AccountHandler)
 	servemux.HandleFunc("/transaction/", TransactionHandler)
+	servemux.HandleFunc("/import/gnucash", GnucashImportHandler)
 
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
