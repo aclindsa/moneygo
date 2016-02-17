@@ -782,6 +782,7 @@ module.exports = React.createClass({
 	},
 	handleImportComplete: function() {
 		this.setState({importingTransactions: false});
+		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
 	},
 	handleDeleteTransaction: function(transaction) {
 		this.setState({
