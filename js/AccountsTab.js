@@ -128,8 +128,8 @@ const AddEditAccountModal = React.createClass({
 					<Combobox
 						data={this.props.securities}
 						valueField='SecurityId'
-						textField='Name'
-						value={this.state.security}
+						textField={item => item.Name + " - " + item.Description}
+						defaultValue={this.state.security}
 						onChange={this.handleSecurityChange}
 						ref="security" />
 					</Input>
@@ -141,7 +141,7 @@ const AddEditAccountModal = React.createClass({
 						data={AccountTypeList}
 						valueField='TypeId'
 						textField='Name'
-						value={this.state.type}
+						defaultValue={this.state.type}
 						onChange={this.handleTypeChange}
 						ref="type" />
 					</Input>
