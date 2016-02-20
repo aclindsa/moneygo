@@ -19,6 +19,9 @@ const (
 	Income           = 6
 	Expense          = 7
 	Trading          = 8
+	Equity           = 9
+	Receivable       = 10
+	Payable          = 11
 )
 
 type Account struct {

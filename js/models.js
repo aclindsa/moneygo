@@ -134,7 +134,10 @@ const AccountType = {
 	Investment: 5,
 	Income: 6,
 	Expense: 7,
-	Trading: 8
+	Trading: 8,
+	Equity: 9,
+	Receivable: 10,
+	Payable: 11
 }
 var AccountTypeList = [];
 for (var type in AccountType) {
