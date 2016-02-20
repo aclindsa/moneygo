@@ -50,6 +50,9 @@ func init() {
 	if !static_dir.IsDir() {
 		log.Fatal(dir_err_str)
 	}
+
+	// Setup the logging flags to be printed
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
