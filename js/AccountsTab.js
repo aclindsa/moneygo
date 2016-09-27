@@ -8,6 +8,7 @@ var Col = ReactBootstrap.Col;
 var Form = ReactBootstrap.Form;
 var FormGroup = ReactBootstrap.FormGroup;
 var FormControl = ReactBootstrap.FormControl;
+var Checkbox = ReactBootstrap.Checkbox;
 var ControlLabel = ReactBootstrap.ControlLabel;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
@@ -212,12 +213,15 @@ const DeleteAccountModal = React.createClass({
 				parentAccount = "and any child accounts will be re-parented to: " + this.props.account_map[parentAccountId].Name;
 
 			var warningString = "I understand that deleting this account cannot be undone and that all transactions " + parentAccount;
-			checkbox = (<FormGroup>
-				<FormControl
-					type='checkbox'
+			checkbox = (
+				<FormGroup>
+				<Col xsOffset={2} sm={10}>
+				<Checkbox
 					checked={this.state.checked ? "checked" : ""}
-					onClick={this.handleCheckboxClick}/>
-				<ControlLabel>{warningString}</ControlLabel>
+					onClick={this.handleCheckboxClick}>
+					{warningString}
+				</Checkbox>
+				</Col>
 				</FormGroup>);
 		}
 		var warning = [];
@@ -229,9 +233,9 @@ const DeleteAccountModal = React.createClass({
 
 		return (
 			<Modal
-					show={this.props.show}
-					onHide={this.handleCancel}
-					ref="modal">
+				show={this.props.show}
+				onHide={this.handleCancel}
+				ref="modal">
 				<Modal.Header closeButton>
 					<Modal.Title>Delete Account</Modal.Title>
 				</Modal.Header>
@@ -239,15 +243,17 @@ const DeleteAccountModal = React.createClass({
 				{warning}
 				<Form horizontal onSubmit={this.handleSubmit}>
 					<FormGroup>
-					<ControlLabel>Delete Account</ControlLabel>
-					<AccountCombobox
-						includeRoot={false}
-						accounts={this.props.accounts}
-						account_map={this.props.account_map}
-						value={this.state.accountid}
-						onChange={this.handleChange}/>
-					{checkbox}
+						<Col componentClass={ControlLabel} xs={2}>Delete Account</Col>
+						<Col xs={10}>
+						<AccountCombobox
+							includeRoot={false}
+							accounts={this.props.accounts}
+							account_map={this.props.account_map}
+							value={this.state.accountid}
+							onChange={this.handleChange}/>
+						</Col>
 					</FormGroup>
+					{checkbox}
 				</Form>
 				</Modal.Body>
 				<Modal.Footer>
