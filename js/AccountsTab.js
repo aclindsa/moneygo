@@ -5,7 +5,10 @@ var ReactBootstrap = require('react-bootstrap');
 var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
-var Input = ReactBootstrap.Input;
+var Form = ReactBootstrap.Form;
+var FormGroup = ReactBootstrap.FormGroup;
+var FormControl = ReactBootstrap.FormControl;
+var ControlLabel = ReactBootstrap.ControlLabel;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 var Glyphicon = ReactBootstrap.Glyphicon;
@@ -54,7 +57,7 @@ const AddEditAccountModal = React.createClass({
 	},
 	handleChange: function() {
 		this.setState({
-			name: this.refs.name.getValue(),
+			name: ReactDOM.findDOMNode(this.refs.name).value,
 		});
 	},
 	handleSecurityChange: function(security) {
@@ -100,52 +103,53 @@ const AddEditAccountModal = React.createClass({
 					<Modal.Title>{headerText} Account</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<form onSubmit={this.handleSubmit}
-						className="form-horizontal">
-					<Input type="text"
-						label="Name"
-						value={this.state.name}
-						onChange={this.handleChange}
-						ref="name"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10"/>
-					<Input wrapperClassName="wrapper"
-						label="Parent Account"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
-					<AccountCombobox
-						accounts={this.props.accounts}
-						account_map={this.props.account_map}
-						value={this.state.parentaccountid}
-						rootName={rootName}
-						onChange={this.handleParentChange}
-						ref="parent" />
-					</Input>
-					<Input wrapperClassName="wrapper"
-						label="Security"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
-					<Combobox
-						data={this.props.securities}
-						valueField='SecurityId'
-						textField={item => item.Name + " - " + item.Description}
-						defaultValue={this.state.security}
-						onChange={this.handleSecurityChange}
-						ref="security" />
-					</Input>
-					<Input wrapperClassName="wrapper"
-						label="Account Type"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
-					<Combobox
-						data={AccountTypeList}
-						valueField='TypeId'
-						textField='Name'
-						defaultValue={this.state.type}
-						onChange={this.handleTypeChange}
-						ref="type" />
-					</Input>
-				</form>
+				<Form horizontal onSubmit={this.handleSubmit}>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Name</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.name}
+							onChange={this.handleChange}
+							ref="name"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Parent Account</Col>
+						<Col xs={10}>
+						<AccountCombobox
+							accounts={this.props.accounts}
+							account_map={this.props.account_map}
+							value={this.state.parentaccountid}
+							rootName={rootName}
+							onChange={this.handleParentChange}
+							ref="parent" />
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Security</Col>
+						<Col xs={10}>
+						<Combobox
+							data={this.props.securities}
+							valueField='SecurityId'
+							textField={item => item.Name + " - " + item.Description}
+							defaultValue={this.state.security}
+							onChange={this.handleSecurityChange}
+							ref="security" />
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Account Type</Col>
+						<Col xs={10}>
+						<Combobox
+							data={AccountTypeList}
+							valueField='TypeId'
+							textField='Name'
+							defaultValue={this.state.type}
+							onChange={this.handleTypeChange}
+							ref="type" />
+						</Col>
+					</FormGroup>
+				</Form>
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
@@ -208,12 +212,13 @@ const DeleteAccountModal = React.createClass({
 				parentAccount = "and any child accounts will be re-parented to: " + this.props.account_map[parentAccountId].Name;
 
 			var warningString = "I understand that deleting this account cannot be undone and that all transactions " + parentAccount;
-			checkbox = (<Input
-				type='checkbox'
-				checked={this.state.checked ? "checked" : ""}
-				onClick={this.handleCheckboxClick}
-				label={warningString}
-				wrapperClassName="col-xs-offset-2 col-xs-10"/>);
+			checkbox = (<FormGroup>
+				<FormControl
+					type='checkbox'
+					checked={this.state.checked ? "checked" : ""}
+					onClick={this.handleCheckboxClick}/>
+				<ControlLabel>{warningString}</ControlLabel>
+				</FormGroup>);
 		}
 		var warning = [];
 		if (this.state.error.length != "") {
@@ -232,21 +237,18 @@ const DeleteAccountModal = React.createClass({
 				</Modal.Header>
 				<Modal.Body>
 				{warning}
-				<form onSubmit={this.handleSubmit}
-						className="form-horizontal">
-					<Input wrapperClassName="wrapper"
-						label="Delete Account"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
+				<Form horizontal onSubmit={this.handleSubmit}>
+					<FormGroup>
+					<ControlLabel>Delete Account</ControlLabel>
 					<AccountCombobox
 						includeRoot={false}
 						accounts={this.props.accounts}
 						account_map={this.props.account_map}
 						value={this.state.accountid}
 						onChange={this.handleChange}/>
-					</Input>
 					{checkbox}
-				</form>
+					</FormGroup>
+				</Form>
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">

@@ -1,9 +1,15 @@
 var React = require('react');
+var ReactDOM = require('react-dom');
 
-var Panel = require('react-bootstrap').Panel;
-var Input = require('react-bootstrap').Input;
-var Button = require('react-bootstrap').Button;
-var ButtonGroup = require('react-bootstrap').ButtonGroup;
+var ReactBootstrap = require('react-bootstrap');
+var Panel = ReactBootstrap.Panel;
+var Form = ReactBootstrap.Form;
+var FormGroup = ReactBootstrap.FormGroup;
+var FormControl = ReactBootstrap.FormControl;
+var ControlLabel = ReactBootstrap.ControlLabel;
+var Col = ReactBootstrap.Col;
+var Button = ReactBootstrap.Button;
+var ButtonGroup = ReactBootstrap.ButtonGroup;
 
 var models = require('./models.js');
 var User = models.User;
@@ -43,14 +49,14 @@ module.exports = React.createClass({
 			this.props.onCancel();
 	},
 	handleChange: function() {
-		if (this.refs.password.getValue() != this.state.initial_password)
+		if (ReactDOM.findDOMNode(this.refs.password).value != this.state.initial_password)
 			this.setState({passwordChanged: true});
 		this.setState({
-			name: this.refs.name.getValue(),
-			username: this.refs.username.getValue(),
-			email: this.refs.email.getValue(),
-			password: this.refs.password.getValue(),
-			confirm_password: this.refs.confirm_password.getValue()
+			name: ReactDOM.findDOMNode(this.refs.name).value,
+			username: ReactDOM.findDOMNode(this.refs.username).value,
+			email: ReactDOM.findDOMNode(this.refs.email).value,
+			password: ReactDOM.findDOMNode(this.refs.password).value,
+			confirm_password: ReactDOM.findDOMNode(this.refs.confirm_password).value
 		});
 	},
 	handleSubmit: function(e) {
@@ -97,54 +103,62 @@ module.exports = React.createClass({
 		return (
 			<Panel header={title} bsStyle="info">
 				<span color="red">{this.state.error}</span>
-				<form onSubmit={this.handleSubmit}
-						className="form-horizontal">
-					<Input type="text"
-							label="Name"
+				<Form horizontal onSubmit={this.handleSubmit}>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Name</Col>
+						<Col xs={10}>
+						<FormControl type="text"
 							value={this.state.name}
 							onChange={this.handleChange}
-							ref="name"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"/>
-					<Input type="text"
-							label="Username"
+							ref="name"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Username</Col>
+						<Col xs={10}>
+						<FormControl type="text"
 							value={this.state.username}
 							onChange={this.handleChange}
-							ref="username"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"/>
-					<Input type="email"
-							label="Email"
+							ref="username"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Email</Col>
+						<Col xs={10}>
+						<FormControl type="email"
 							value={this.state.email}
 							onChange={this.handleChange}
-							ref="email"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"/>
-					<Input type="password"
-							label="Password"
+							ref="email"/>
+						</Col>
+					</FormGroup>
+					<FormGroup validationState={this.passwordValidationState()}>
+						<Col componentClass={ControlLabel} xs={2}>Password</Col>
+						<Col xs={10}>
+						<FormControl type="password"
 							value={this.state.password}
 							onChange={this.handleChange}
-							ref="password"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"
-							bsStyle={this.passwordValidationState()}
-							hasFeedback/>
-					<Input type="password"
-							label="Confirm Password"
+							ref="password"/>
+						<FormControl.Feedback/>
+						</Col>
+					</FormGroup>
+					<FormGroup validationState={this.confirmPasswordValidationState()}>
+						<Col componentClass={ControlLabel} xs={2}>Confirm Password</Col>
+						<Col xs={10}>
+						<FormControl type="password"
 							value={this.state.confirm_password}
 							onChange={this.handleChange}
-							ref="confirm_password"
-							labelClassName="col-xs-2"
-							wrapperClassName="col-xs-10"
-							bsStyle={this.confirmPasswordValidationState()}
-							hasFeedback/>
+							ref="confirm_password"/>
+						<FormControl.Feedback/>
+						</Col>
+					</FormGroup>
+
 					<ButtonGroup className="pull-right">
 						<Button onClick={this.handleCancel}
 								bsStyle="warning">Cancel</Button>
 						<Button type="submit"
 								bsStyle="success">Create New User</Button>
 					</ButtonGroup>
-				</form>
+				</Form>
 			</Panel>
 		);
 	}

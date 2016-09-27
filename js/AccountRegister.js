@@ -13,7 +13,12 @@ var Grid = ReactBootstrap.Grid;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
 var Panel = ReactBootstrap.Panel;
-var Input = ReactBootstrap.Input;
+var Form = ReactBootstrap.Form;
+var FormGroup = ReactBootstrap.FormGroup;
+var FormControl = ReactBootstrap.FormControl;
+var InputGroup = ReactBootstrap.InputGroup;
+var ControlLabel = ReactBootstrap.ControlLabel;
+var HelpBlock = ReactBootstrap.HelpBlock;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 var ButtonToolbar = ReactBootstrap.ButtonToolbar;
@@ -127,7 +132,7 @@ const AmountInput = React.createClass({
 		}
 	},
 	componentDidMount: function() {
-		this.refs.amount.getInputDOMNode().onblur = this.onBlur;
+		ReactDOM.findDOMNode(this.refs.amount).onblur = this.onBlur;
 	},
 	onBlur: function() {
 		var a;
@@ -140,13 +145,13 @@ const AmountInput = React.createClass({
 		});
 	},
 	onChange: function() {
-		this.setState({Amount: this.refs.amount.getValue()});
+		this.setState({Amount: ReactDOM.findDOMNode(this.refs.amount).value});
 		if (this.props.onChange)
 			this.props.onChange();
 	},
 	getValue: function() {
 		try {
-			var value = this.refs.amount.getValue();
+			var value = ReactDOM.findDOMNode(this.refs.amount).value;
 			var ret = new Big(value);
 			this.setState({LastGoodAmount: value});
 			return ret;
@@ -158,17 +163,17 @@ const AmountInput = React.createClass({
 		var symbol = "?";
 		if (this.props.security)
 			symbol = this.props.security.Symbol;
-		var bsStyle = undefined;
-		if (this.props.bsStyle)
-			bsStyle = this.props.bsStyle;
 
 		return (
-			<Input type="text"
-				value={this.state.Amount}
-				onChange={this.onChange}
-				addonBefore={symbol}
-				bsStyle={bsStyle}
-				ref="amount"/>
+			<FormGroup validationState={this.props.validationState}>
+				<InputGroup>
+					<InputGroup.Addon>{symbol}</InputGroup.Addon>
+					<FormControl type="text"
+						value={this.state.Amount}
+						onChange={this.onChange}
+						ref="amount"/>
+				</InputGroup>
+			</FormGroup>
 		);
 	}
 });
@@ -197,7 +202,7 @@ const AddEditTransactionModal = React.createClass({
 	handleDescriptionChange: function() {
 		this.setState({
 			transaction: react_update(this.state.transaction, {
-				Description: {$set: this.refs.description.getValue()}
+				Description: {$set: ReactDOM.findDOMNode(this.refs.description).value}
 			})
 		});
 	},
@@ -236,7 +241,7 @@ const AddEditTransactionModal = React.createClass({
 	handleUpdateNumber: function(split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
-			Number: {$set: this.refs['number-'+split].getValue()}
+			Number: {$set: ReactDOM.findDOMNode(this.refs['number-'+split]).value}
 		});
 		this.setState({
 			transaction: transaction
@@ -245,7 +250,7 @@ const AddEditTransactionModal = React.createClass({
 	handleUpdateMemo: function(split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
-			Memo: {$set: this.refs['memo-'+split].getValue()}
+			Memo: {$set: ReactDOM.findDOMNode(this.refs['memo-'+split]).value}
 		});
 		this.setState({
 			transaction: transaction
@@ -363,12 +368,12 @@ const AddEditTransactionModal = React.createClass({
 
 			splits.push((
 				<Row key={s.SplitId == -1 ? (i+999) : s.SplitId}>
-				<Col xs={1}><Input
+				<Col xs={1}><FormControl
 					type="text"
 					value={s.Number}
 					onChange={updateNumberFn}
 					ref={"number-"+i} /></Col>
-				<Col xs={5}><Input
+				<Col xs={5}><FormControl
 					type="text"
 					value={s.Memo}
 					onChange={updateMemoFn}
@@ -386,7 +391,7 @@ const AddEditTransactionModal = React.createClass({
 					security={security}
 					onChange={updateAmountFn}
 					ref={"amount-"+i}
-					bsStyle={amountValidation}/></Col>
+					validationState={amountValidation}/></Col>
 				{deleteSplitButton}
 				</Row>
 			));
@@ -398,36 +403,39 @@ const AddEditTransactionModal = React.createClass({
 					<Modal.Title>{headerText} Transaction</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<form onSubmit={this.handleSubmit}
-						className="form-horizontal">
-					<Input wrapperClassName="wrapper"
-						label="Date"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
-					<DateTimePicker
-						time={false}
-						defaultValue={this.state.transaction.Date}
-						onChange={this.handleDateChange} />
-					</Input>
-					<Input type="text"
-						label="Description"
-						value={this.state.transaction.Description}
-						onChange={this.handleDescriptionChange}
-						ref="description"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10"/>
-					<Input wrapperClassName="wrapper"
-						label="Status"
-						labelClassName="col-xs-2"
-						wrapperClassName="col-xs-10">
-					<Combobox
-						data={TransactionStatusList}
-						valueField='StatusId'
-						textField='Name'
-						defaultValue={this.state.transaction.Status}
-						onSelect={this.handleStatusChange}
-						ref="status" />
-					</Input>
+				<Form horizontal
+						onSubmit={this.handleSubmit}>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Date</Col>
+						<Col xs={10}>
+						<DateTimePicker
+							time={false}
+							defaultValue={this.state.transaction.Date}
+							onChange={this.handleDateChange} />
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Description</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.transaction.Description}
+							onChange={this.handleDescriptionChange}
+							ref="description"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Status</Col>
+						<Col xs={10}>
+						<Combobox
+							data={TransactionStatusList}
+							valueField='StatusId'
+							textField='Name'
+							defaultValue={this.state.transaction.Status}
+							onSelect={this.handleStatusChange}
+							ref="status" />
+						</Col>
+					</FormGroup>
+
 					<Grid fluid={true}><Row>
 					<span className="split-header col-xs-1">#</span>
 					<span className="split-header col-xs-5">Memo</span>
@@ -443,7 +451,7 @@ const AddEditTransactionModal = React.createClass({
 					</Row>
 					<Row>{this.state.errorAlert}</Row>
 					</Grid>
-				</form>
+				</Form>
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup>
@@ -485,7 +493,7 @@ const ImportTransactionsModal = React.createClass({
 			this.props.onCancel();
 	},
 	handleImportChange: function() {
-		this.setState({importFile: this.refs.importfile.getValue()});
+		this.setState({importFile: ReactDOM.findDOMNode(this.refs.importfile).value});
 	},
 	handleTypeChange: function(type) {
 		this.setState({importType: type.TypeId});
@@ -612,13 +620,15 @@ const ImportTransactionsModal = React.createClass({
 						defaultValue={this.state.importType}
 						disabled={disabledTypes}
 						ref="importtype" />
-					<Input type="file"
+					<FormGroup>
+						<ControlLabel>{accountNameLabel}</ControlLabel>
+						<FormControl type="file"
 							ref="importfile"
 							disabled={inputDisabled}
 							value={this.state.importFile}
-							label={accountNameLabel}
-							help="Select an OFX/QFX file to upload."
 							onChange={this.handleImportChange} />
+						<HelpBlock>Select an OFX/QFX file to upload.</HelpBlock>
+					</FormGroup>
 				</form>
 				{progressBar}
 				{panel}
@@ -918,7 +928,7 @@ module.exports = React.createClass({
 					<ButtonGroup>
 					<Pagination
 						className="skinny-pagination"
-						prev next first last ellipses
+						prev next first last ellipsis
 						items={this.state.numPages}
 						maxButtons={Math.min(5, this.state.numPages)}
 						activePage={this.state.currentPage+1}

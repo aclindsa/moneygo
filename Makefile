@@ -1,4 +1,4 @@
-JS_SOURCES = $(wildcard js/*.js)
+JS_SOURCES = $(wildcard js/*.js) $(wildcard js/*/*.js)
 
 all: static/bundle.js static/react-widgets
 

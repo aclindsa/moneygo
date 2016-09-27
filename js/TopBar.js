@@ -2,12 +2,15 @@ var React = require('react');
 
 var ReactBootstrap = require('react-bootstrap');
 var Alert = ReactBootstrap.Alert;
-var Input = ReactBootstrap.Input;
+var FormGroup = ReactBootstrap.FormGroup;
+var FormControl = ReactBootstrap.FormControl;
 var Button = ReactBootstrap.Button;
 var DropdownButton = ReactBootstrap.DropdownButton;
 var MenuItem = ReactBootstrap.MenuItem;
 var Row = ReactBootstrap.Row;
 var Col = ReactBootstrap.Col;
+
+var ReactDOM = require('react-dom');
 
 var User = require('./models.js').User;
 
@@ -24,8 +27,8 @@ const LoginBar = React.createClass({
 	handleSubmit: function(e) {
 		var user = new User();
 		e.preventDefault();
-		user.Username = this.refs.username.getValue();
-		user.Password = this.refs.password.getValue();
+		user.Username = ReactDOM.findDOMNode(this.refs.username).value;
+		user.Password = ReactDOM.findDOMNode(this.refs.password).value;
 		this.props.onLoginSubmit(user);
 	},
 	handleNewUserSubmit: function(e) {
@@ -35,7 +38,7 @@ const LoginBar = React.createClass({
 	render: function() {
 		return (
 			<form onSubmit={this.handleSubmit}>
-			<Input wrapperClassName="wrapper">
+			<FormGroup>
 				<Row>
 					<Col xs={4}></Col>
 					<Col xs={2}>
@@ -43,28 +46,28 @@ const LoginBar = React.createClass({
 							onClick={this.handleNewUserSubmit}>Create New User</Button>
 					</Col>
 					<Col xs={2}>
-						<Input type="text"
+						<FormControl type="text"
 							placeholder="Username..."
 							ref="username"/>
 					</Col>
 					<Col xs={2}>
-						<Input type="password"
+						<FormControl type="password"
 							placeholder="Password..."
-							ref="password" block/>
+							ref="password"/>
 					</Col>
 					<Col xs={2}>
 						<Button type="submit" bsStyle="primary" block>
 							Login</Button>
 					</Col>
 				</Row>
-			</Input>
+			</FormGroup>
 			</form>
 		);
 	}
 });
 
 const LogoutBar = React.createClass({
-	handleOnSelect: function(e, key) {
+	handleOnSelect: function(key) {
 		if (key == 1) {
 			if (this.props.onAccountSettings != null)
 				this.props.onAccountSettings();
@@ -75,20 +78,20 @@ const LogoutBar = React.createClass({
 	render: function() {
 		var signedInString = "Signed in as "+this.props.user.Name;
 		return (
-			<Input wrapperClassName="wrapper">
+			<FormGroup>
 				<Row>
 					<Col xs={2}><label className="control-label pull-left">Money<i>Go</i></label></Col>
 					<Col xs={6}></Col>
 					<Col xs={4}>
 						<div className="pull-right">
 						<DropdownButton id="logout-settings-dropdown" title={signedInString} onSelect={this.handleOnSelect} bsStyle="info">
-							<MenuItem eventKey="1">Account Settings</MenuItem>
-							<MenuItem eventKey="2">Logout</MenuItem>
+							<MenuItem eventKey={1}>Account Settings</MenuItem>
+							<MenuItem eventKey={2}>Logout</MenuItem>
 						</DropdownButton>
 						</div>
 					</Col>
 				</Row>
-			</Input>
+			</FormGroup>
 		);
 	}
 });
