@@ -283,7 +283,7 @@ module.exports = React.createClass({
 		} else {
 			if (this.state.user.isUser())
 				mainContent = (
-					<Tabs defaultActiveKey={1}>
+					<Tabs defaultActiveKey={1} id='mainNavigationTabs'>
 						<Tab title="Accounts" eventKey={1} >
 						<AccountsTab
 							className="fullheight"
