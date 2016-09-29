@@ -362,7 +362,13 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		WriteSuccess(w)
+		w.WriteHeader(201 /*Created*/)
+		err = account.Write(w)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 	} else if r.Method == "GET" {
 		var accountid int64
 		n, err := GetURLPieces(r.URL.Path, "/account/%d", &accountid)
@@ -438,7 +444,12 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			WriteSuccess(w)
+			err = account.Write(w)
+			if err != nil {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
 		} else if r.Method == "DELETE" {
 			accountid, err := GetURLID(r.URL.Path)
 			if err != nil {
