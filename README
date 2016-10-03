@@ -10,4 +10,4 @@ Install browserify globally:
 $ sudo npm install -g browserify
 
 Next, install browserify, babel, react, react-bootstrap, react-widgets, globalize, and big.js in our directory using npm:
-$ npm install browserify react react-dom react-addons-update react-bootstrap react-widgets babelify babel-preset-react globalize cldr-data big.js
+$ npm install browserify react react-dom react-addons-update react-bootstrap react-widgets redux react-redux redux-thunk babelify babel-preset-react globalize cldr-data big.js keymirror
