@@ -131,7 +131,13 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		WriteSuccess(w)
+		w.WriteHeader(201 /*Created*/)
+		err = user.Write(w)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 	} else {
 		user, err := GetUserFromSession(r)
 		if err != nil {
@@ -188,7 +194,12 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			WriteSuccess(w)
+			err = user.Write(w)
+			if err != nil {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
 		} else if r.Method == "DELETE" {
 			count, err := DB.Delete(&user)
 			if count != 1 || err != nil {
