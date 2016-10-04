@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"log"
 	"net/http"
 )
 
@@ -96,13 +97,18 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 		DeleteSessionIfExists(r)
 
-		_, err = NewSession(w, r, dbuser.UserId)
+		session, err := NewSession(w, r, dbuser.UserId)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			return
 		}
 
-		WriteSuccess(w)
+		err = session.Write(w)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 	} else if r.Method == "GET" {
 		s, err := GetSession(r)
 		if err != nil {
