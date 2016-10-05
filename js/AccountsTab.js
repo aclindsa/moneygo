@@ -119,7 +119,7 @@ const AddEditAccountModal = React.createClass({
 						<Col xs={10}>
 						<AccountCombobox
 							accounts={this.props.accounts}
-							account_map={this.props.account_map}
+							accountChildren={this.props.accountChildren}
 							value={this.state.parentaccountid}
 							rootName={rootName}
 							onChange={this.handleParentChange}
@@ -130,7 +130,7 @@ const AddEditAccountModal = React.createClass({
 						<Col componentClass={ControlLabel} xs={2}>Security</Col>
 						<Col xs={10}>
 						<Combobox
-							data={this.props.securities}
+							data={this.props.security_list}
 							valueField='SecurityId'
 							textField={item => item.Name + " - " + item.Description}
 							defaultValue={this.state.security}
@@ -188,10 +188,10 @@ const DeleteAccountModal = React.createClass({
 		this.setState({checked: !this.state.checked});
 	},
 	handleSubmit: function() {
-		if (this.props.account_map.hasOwnProperty(this.state.accountid)) {
+		if (this.props.accounts.hasOwnProperty(this.state.accountid)) {
 			if (this.state.checked) {
 				if (this.props.onSubmit != null)
-					this.props.onSubmit(this.props.account_map[this.state.accountid]);
+					this.props.onSubmit(this.props.accounts[this.state.accountid]);
 			} else {
 				this.setState({error: "You must confirm you wish to delete this account."});
 			}
@@ -206,11 +206,11 @@ const DeleteAccountModal = React.createClass({
 	},
 	render: function() {
 		var checkbox = [];
-		if (this.props.account_map.hasOwnProperty(this.state.accountid)) {
-			var parentAccountId = this.props.account_map[this.state.accountid].ParentAccountId;
+		if (this.props.accounts.hasOwnProperty(this.state.accountid)) {
+			var parentAccountId = this.props.accounts[this.state.accountid].ParentAccountId;
 			var parentAccount = "will be deleted and any child accounts will become top-level accounts.";
 			if (parentAccountId != -1)
-				parentAccount = "and any child accounts will be re-parented to: " + this.props.account_map[parentAccountId].Name;
+				parentAccount = "and any child accounts will be re-parented to: " + this.props.accounts[parentAccountId].Name;
 
 			var warningString = "I understand that deleting this account cannot be undone and that all transactions " + parentAccount;
 			checkbox = (
@@ -248,7 +248,7 @@ const DeleteAccountModal = React.createClass({
 						<AccountCombobox
 							includeRoot={false}
 							accounts={this.props.accounts}
-							account_map={this.props.account_map}
+							accountChildren={this.props.accountChildren}
 							value={this.state.accountid}
 							onChange={this.handleChange}/>
 						</Col>
@@ -285,17 +285,20 @@ const AccountTreeNode = React.createClass({
 	},
 	render: function() {
 		var glyph = this.state.expanded ? 'minus' : 'plus';
-		var active = (this.props.selectedAccount != null &&
-			this.props.account.AccountId == this.props.selectedAccount.AccountId);
+		var active = (this.props.selectedAccount != -1 &&
+			this.props.account.AccountId == this.props.selectedAccount);
 		var buttonStyle = active ? "info" : "link";
 
 		var self = this;
-		var children = this.props.account.Children.map(function(account) {
+		var children = this.props.accountChildren[this.props.account.AccountId].map(function(childId) {
+			var account = self.props.accounts[childId];
 			return (
 				<AccountTreeNode
 					key={account.AccountId}
 					account={account}
 					selectedAccount={self.props.selectedAccount}
+					accounts={self.props.accounts}
+					accountChildren={self.props.accountChildren}
 					onSelect={self.handleChildSelect}/>
 		   );
 		});
@@ -334,11 +337,9 @@ const AccountTreeNode = React.createClass({
 
 const AccountTree = React.createClass({
 	getInitialState: function() {
-		return {selectedAccount: null,
-			height: 0};
+		return {height: 0};
 	},
 	handleSelect: function(account) {
-		this.setState({selectedAccount: account});
 		if (this.props.onSelect != null) {
 			this.props.onSelect(account);
 		}
@@ -356,13 +357,17 @@ const AccountTree = React.createClass({
 		var accounts = this.props.accounts;
 
 		var children = [];
-		for (var i = 0; i < accounts.length; i++) {
-			if (accounts[i].isRootAccount())
+		for (var accountId in accounts) {
+			if (accounts.hasOwnProperty(accountId) &&
+					accounts[accountId].isRootAccount()) {
 				children.push((<AccountTreeNode
-					key={accounts[i].AccountId}
-					account={accounts[i]}
-					selectedAccount={this.state.selectedAccount}
+					key={accounts[accountId].AccountId}
+					account={accounts[accountId]}
+					selectedAccount={this.props.selectedAccount}
+					accounts={this.props.accounts}
+					accountChildren={this.props.accountChildren}
 					onSelect={this.handleSelect}/>));
+			}
 		}
 
 		var style = {height: this.state.height + "px"};
@@ -379,7 +384,6 @@ module.exports = React.createClass({
 	displayName: "AccountsTab",
 	getInitialState: function() {
 		return {
-			selectedAccount: null,
 			creatingNewAccount: false,
 			editingAccount: false,
 			deletingAccount: false
@@ -416,46 +420,48 @@ module.exports = React.createClass({
 	handleRemoveAccount: function(account) {
 		if (this.props.onDeleteAccount != null)
 			this.props.onDeleteAccount(account);
-		this.setState({deletingAccount: false,
-			selectedAccount: null});
+		this.setState({deletingAccount: false});
 	},
 	handleAccountSelected: function(account) {
-		this.setState({selectedAccount: account});
+		this.props.onSelectAccount(account.AccountId);
 	},
 	render: function() {
-		var accounts = this.props.accounts;
-		var account_map = this.props.account_map;
+		var disabled = (this.props.selectedAccount == -1) ? true : false;
 
-		var disabled = (this.state.selectedAccount == null) ? true : false;
+		var selectedAccount = null;
+		if (this.props.accounts.hasOwnProperty(this.props.selectedAccount))
+			selectedAccount = this.props.accounts[this.props.selectedAccount];
 
 		return (
 			<Grid fluid className="fullheight"><Row className="fullheight">
 				<Col xs={2} className="fullheight account-column">
 					<AddEditAccountModal
 						show={this.state.creatingNewAccount}
-						initialParentAccount={this.state.selectedAccount}
+						initialParentAccount={selectedAccount}
 						accounts={this.props.accounts}
-						account_map={this.props.account_map}
+						accountChildren={this.props.accountChildren}
 						onCancel={this.handleCreationCancel}
 						onSubmit={this.handleCreateAccount}
-						securities={this.props.securities}/>
+						security_list={this.props.security_list}/>
 					<AddEditAccountModal
 						show={this.state.editingAccount}
-						editAccount={this.state.selectedAccount}
+						editAccount={selectedAccount}
 						accounts={this.props.accounts}
-						account_map={this.props.account_map}
+						accountChildren={this.props.accountChildren}
 						onCancel={this.handleEditingCancel}
 						onSubmit={this.handleUpdateAccount}
-						securities={this.props.securities}/>
+						security_list={this.props.security_list}/>
 					<DeleteAccountModal
 						show={this.state.deletingAccount}
-						initialAccount={this.state.selectedAccount}
+						initialAccount={selectedAccount}
 						accounts={this.props.accounts}
-						account_map={this.props.account_map}
+						accountChildren={this.props.accountChildren}
 						onCancel={this.handleDeletionCancel}
 						onSubmit={this.handleRemoveAccount}/>
 					<AccountTree
-						accounts={accounts}
+						accounts={this.props.accounts}
+						accountChildren={this.props.accountChildren}
+						selectedAccount={this.props.selectedAccount}
 						onSelect={this.handleAccountSelected}/>
 					<ButtonGroup className="account-buttongroup">
 						<Button onClick={this.handleNewAccount} bsStyle="success">
@@ -469,11 +475,10 @@ module.exports = React.createClass({
 					</ButtonGroup>
 				</Col><Col xs={10} className="fullheight transactions-column">
 					<AccountRegister
-						selectedAccount={this.state.selectedAccount}
+						selectedAccount={this.props.selectedAccount}
 						accounts={this.props.accounts}
-						account_map={this.props.account_map}
-						securities={this.props.securities}
-						security_map={this.props.security_map} />
+						accountChildren={this.props.accountChildren}
+						securities={this.props.securities} />
 				</Col>
 			</Row></Grid>
 		);

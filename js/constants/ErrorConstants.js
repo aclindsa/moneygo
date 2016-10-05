@@ -5,4 +5,5 @@ module.exports = keyMirror({
 	ERROR_SERVER: null,
 	ERROR_CLIENT: null,
 	ERROR_USER: null,
+	CLEAR_ERROR: null
 });

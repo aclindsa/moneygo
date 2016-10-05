@@ -1,6 +1,6 @@
 var AccountConstants = require('../constants/AccountConstants');
 
-var ErrorActions = require('ErrorActions');
+var ErrorActions = require('./ErrorActions');
 
 var models = require('../models.js');
 var Account = models.Account;
@@ -75,7 +75,6 @@ function fetchAll() {
 			url: "account/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
-				var accounts = [];
 				e.fromJSON(data);
 				if (e.isError()) {
 					ErrorActions.serverError(e);

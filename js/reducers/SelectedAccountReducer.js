@@ -1,4 +1,5 @@
 var AccountConstants = require('../constants/AccountConstants');
+var UserConstants = require('../constants/UserConstants');
 
 module.exports = function(state = -1, action) {
 	switch (action.type) {
@@ -14,6 +15,8 @@ module.exports = function(state = -1, action) {
 			return state;
 		case AccountConstants.ACCOUNT_SELECTED:
 			return action.accountId;
+		case UserConstants.USER_LOGGEDOUT:
+			return -1;
 		default:
 			return state;
 	}

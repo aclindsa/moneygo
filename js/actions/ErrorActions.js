@@ -21,7 +21,14 @@ function ajaxError(error) {
 	};
 }
 
+function clearError() {
+	return {
+		type: ErrorConstants.CLEAR_ERROR,
+	};
+}
+
 module.exports = {
 	serverError: serverError,
-	ajaxError: ajaxError
+	ajaxError: ajaxError,
+	clearError: clearError
 };

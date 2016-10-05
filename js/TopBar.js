@@ -29,7 +29,7 @@ const LoginBar = React.createClass({
 		e.preventDefault();
 		user.Username = ReactDOM.findDOMNode(this.refs.username).value;
 		user.Password = ReactDOM.findDOMNode(this.refs.password).value;
-		this.props.onLoginSubmit(user);
+		this.props.onLogin(user);
 	},
 	handleNewUserSubmit: function(e) {
 		e.preventDefault();
@@ -72,7 +72,7 @@ const LogoutBar = React.createClass({
 			if (this.props.onAccountSettings != null)
 				this.props.onAccountSettings();
 		} else if (key == 2) {
-			this.props.onLogoutSubmit();
+			this.props.onLogout();
 		}
 	},
 	render: function() {
@@ -102,15 +102,15 @@ module.exports = React.createClass({
 		var barContents;
 		var errorAlert;
 		if (!this.props.user.isUser())
-			barContents = <LoginBar onLoginSubmit={this.props.onLoginSubmit} onCreateNewUser={this.props.onCreateNewUser} />;
+			barContents = <LoginBar onLogin={this.props.onLogin} onCreateNewUser={this.props.onCreateNewUser} />;
 		else
-			barContents = <LogoutBar user={this.props.user} onLogoutSubmit={this.props.onLogoutSubmit} onAccountSettings={this.props.onAccountSettings}/>;
+			barContents = <LogoutBar user={this.props.user} onLogout={this.props.onLogout} onAccountSettings={this.props.onAccountSettings}/>;
 		if (this.props.error.isError())
 			errorAlert =
-					<Alert bsStyle="danger" onDismiss={this.props.onErrorClear}>
+					<Alert bsStyle="danger" onDismiss={this.props.onClearError}>
 						<h4>Error!</h4>
 						<p>Error {this.props.error.ErrorId}: {this.props.error.ErrorString}</p>
-						<Button onClick={this.props.onErrorClear}>Clear</Button>
+						<Button onClick={this.props.onClearError}>Clear</Button>
 					</Alert>;
 
 		return (

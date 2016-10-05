@@ -157,7 +157,6 @@ function Account() {
 	this.ParentAccountId = -1;
 	this.Type = -1;
 	this.Name = "";
-	this.Children = []; // Not sent across JSON, just used internally
 }
 
 Account.prototype.toJSON = function() {

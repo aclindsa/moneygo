@@ -8,7 +8,7 @@ var ReduxThunk = require('redux-thunk').default;
 var Globalize = require('globalize');
 var globalizeLocalizer = require('react-widgets/lib/localizers/globalize');
 
-var MoneyGoApp = require('./MoneyGoApp.js');
+var MoneyGoAppContainer = require('./containers/MoneyGoAppContainer');
 var MoneyGoReducer = require('./reducers/MoneyGoReducer');
 
 // Setup globalization for react-widgets
@@ -33,7 +33,7 @@ $(document).ready(function() {
 
 	ReactDOM.render(
 		<Provider store={store}>
-			<MoneyGoApp />
+			<MoneyGoAppContainer />
 		</Provider>,
 		document.getElementById("content")
 	);

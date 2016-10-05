@@ -62,7 +62,7 @@ const TransactionRow = React.createClass({
 		var number = ""
 		var accountName = "";
 		var status = "";
-		var security = this.props.security_map[this.props.account.SecurityId];
+		var security = this.props.securities[this.props.account.SecurityId];
 
 		if (this.props.transaction.isTransaction()) {
 			var thisAccountSplit;
@@ -78,9 +78,9 @@ const TransactionRow = React.createClass({
 					var otherSplit = this.props.transaction.Splits[1];
 
 				if (otherSplit.AccountId == -1)
-					var accountName = "Unbalanced " + this.props.security_map[otherSplit.SecurityId].Symbol + " transaction";
+					var accountName = "Unbalanced " + this.props.securities[otherSplit.SecurityId].Symbol + " transaction";
 				else
-					var accountName = getAccountDisplayName(this.props.account_map[otherSplit.AccountId], this.props.account_map);
+					var accountName = getAccountDisplayName(this.props.accounts[otherSplit.AccountId], this.props.accounts);
 			} else {
 				accountName = "--Split Transaction--";
 			}
@@ -277,12 +277,12 @@ const AddEditTransactionModal = React.createClass({
 	},
 	handleSubmit: function() {
 		var errorString = ""
-		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.account_map);
+		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.accounts);
 		if (imbalancedSecurityList.length > 0)
 			errorString = "Transaction must balance"
 		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
 			var s = this.state.transaction.Splits[i];
-			if (!(s.AccountId in this.props.account_map)) {
+			if (!(s.AccountId in this.props.accounts)) {
 				errorString = "All accounts must be valid"
 			}
 		}
@@ -312,7 +312,7 @@ const AddEditTransactionModal = React.createClass({
 		   );
 		}
 
-		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.account_map);
+		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.accounts);
 		var imbalancedSecurityMap = {};
 		for (i = 0; i < imbalancedSecurityList.length; i++)
 			imbalancedSecurityMap[imbalancedSecurityList[i]] = i;
@@ -324,11 +324,11 @@ const AddEditTransactionModal = React.createClass({
 			var security = null;
 			var amountValidation = undefined;
 			var accountValidation = "";
-			if (s.AccountId in this.props.account_map) {
-				security = this.props.security_map[this.props.account_map[s.AccountId].SecurityId];
+			if (s.AccountId in this.props.accounts) {
+				security = this.props.securities[this.props.accounts[s.AccountId].SecurityId];
 			} else {
-				if (s.SecurityId in this.props.security_map) {
-					security = this.props.security_map[s.SecurityId];
+				if (s.SecurityId in this.props.securities) {
+					security = this.props.securities[s.SecurityId];
 				}
 				accountValidation = "has-error";
 			}
@@ -380,7 +380,7 @@ const AddEditTransactionModal = React.createClass({
 					ref={"memo-"+i} /></Col>
 				<Col xs={3}><AccountCombobox
 					accounts={this.props.accounts}
-					account_map={this.props.account_map}
+					accountChildren={this.props.accountChildren}
 					value={s.AccountId}
 					includeRoot={false}
 					onChange={updateAccountFn}
@@ -569,7 +569,7 @@ const ImportTransactionsModal = React.createClass({
 	render: function() {
 		var accountNameLabel = "Performing global import:"
 		if (this.props.account != null && this.state.importType != ImportType.Gnucash)
-			accountNameLabel = "Importing to '" + getAccountDisplayName(this.props.account, this.props.account_map) + "' account:";
+			accountNameLabel = "Importing to '" + getAccountDisplayName(this.props.account, this.props.accounts) + "' account:";
 
 		// Display the progress bar if an upload/import is in progress
 		var progressBar = [];
@@ -684,7 +684,7 @@ module.exports = React.createClass({
 		newTransaction.Date = new Date();
 		newTransaction.Splits.push(new Split());
 		newTransaction.Splits.push(new Split());
-		newTransaction.Splits[0].AccountId = this.props.selectedAccount.AccountId;
+		newTransaction.Splits[0].AccountId = this.props.accounts[this.props.selectedAccount].AccountId;
 
 		this.setState({
 			editingTransaction: true,
@@ -731,7 +731,7 @@ module.exports = React.createClass({
 					// Keep a talley of the running balance of these transactions
 					for (var j = 0; j < data.Transactions[i].Splits.length; j++) {
 						var split = data.Transactions[i].Splits[j];
-						if (this.props.selectedAccount.AccountId == split.AccountId) {
+						if (this.props.accounts[this.props.selectedAccount].AccountId == split.AccountId) {
 							balance = balance.minus(split.Amount);
 						}
 					}
@@ -758,20 +758,20 @@ module.exports = React.createClass({
 		if (newpage >= this.state.numPages)
 			newpage = this.state.numPages-1;
 		if (newpage != this.state.currentPage) {
-			if (this.props.selectedAccount != null) {
-				this.getTransactionPage(this.props.selectedAccount, newpage);
+			if (this.props.selectedAccount != -1) {
+				this.getTransactionPage(this.props.accounts[this.props.selectedAccount], newpage);
 			}
 			this.setState({currentPage: newpage});
 		}
 	},
 	onNewTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
+		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
 	},
 	onUpdatedTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
+		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
 	},
 	onDeletedTransaction: function() {
-		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
+		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
 	},
 	createNewTransaction: function(transaction) {
 		$.ajax({
@@ -828,7 +828,7 @@ module.exports = React.createClass({
 	},
 	handleImportComplete: function() {
 		this.setState({importingTransactions: false});
-		this.getTransactionPage(this.props.selectedAccount, this.state.currentPage);
+		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
 	},
 	handleDeleteTransaction: function(transaction) {
 		this.setState({
@@ -853,16 +853,16 @@ module.exports = React.createClass({
 				transactions: [],
 				currentPage: 0
 			});
-			if (nextProps.selectedAccount != null)
-				this.getTransactionPage(nextProps.selectedAccount, 0);
+			if (nextProps.selectedAccount != -1)
+				this.getTransactionPage(nextProps.accounts[nextProps.selectedAccount], 0);
 		}
 	},
 	render: function() {
 		var name = "Please select an account";
 		register = [];
 
-		if (this.props.selectedAccount != null) {
-			name = this.props.selectedAccount.Name;
+		if (this.props.selectedAccount != -1) {
+			name = this.props.accounts[this.props.selectedAccount].Name;
 
 			var transactionRows = [];
 			for (var i = 0; i < this.state.transactions.length; i++) {
@@ -871,11 +871,9 @@ module.exports = React.createClass({
 					<TransactionRow
 						key={t.TransactionId}
 						transaction={t}
-						account={this.props.selectedAccount}
+						account={this.props.accounts[this.props.selectedAccount]}
 						accounts={this.props.accounts}
-						account_map={this.props.account_map}
 						securities={this.props.securities}
-						security_map={this.props.security_map}
 						onEdit={this.handleEditTransaction}/>
 				));
 			}
@@ -901,7 +899,7 @@ module.exports = React.createClass({
 			);
 		}
 
-		var disabled = (this.props.selectedAccount == null) ? true : false;
+		var disabled = (this.props.selectedAccount == -1) ? true : false;
 
 		return (
 			<div className="transactions-container">
@@ -909,17 +907,15 @@ module.exports = React.createClass({
 					show={this.state.editingTransaction}
 					transaction={this.state.selectedTransaction}
 					accounts={this.props.accounts}
-					account_map={this.props.account_map}
+					accountChildren={this.props.accountChildren}
 					onCancel={this.handleEditingCancel}
 					onSubmit={this.handleUpdateTransaction}
 					onDelete={this.handleDeleteTransaction}
-					securities={this.props.securities}
-					security_map={this.props.security_map}/>
+					securities={this.props.securities} />
 				<ImportTransactionsModal
 					show={this.state.importingTransactions}
-					account={this.props.selectedAccount}
+					account={this.props.accounts[this.props.selectedAccount]}
 					accounts={this.props.accounts}
-					account_map={this.props.account_map}
 					onCancel={this.handleImportingCancel}
 					onSubmit={this.handleImportComplete}/>
 				<div className="transactions-register-toolbar">

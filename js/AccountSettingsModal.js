@@ -14,7 +14,6 @@ var Col = ReactBootstrap.Col;
 
 var models = require('./models.js');
 var User = models.User;
-var Error = models.Error;
 
 module.exports = React.createClass({
 	displayName: "AccountSettingsModal",
@@ -71,7 +70,6 @@ module.exports = React.createClass({
 	},
 	handleSubmit: function(e) {
 		var u = new User();
-		var error = "";
 		e.preventDefault();
 
 		u.UserId = this.props.user.UserId;
@@ -88,31 +86,8 @@ module.exports = React.createClass({
 			u.Password = models.BogusPassword;
 		}
 
-		this.handleSaveSettings(u);
-	},
-	handleSaveSettings: function(user) {
-		$.ajax({
-			type: "PUT",
-			dataType: "json",
-			url: "user/"+user.UserId+"/",
-			data: {user: user.toJSON()},
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-				} else {
-					user.Password = "";
-					this.props.onSubmit(user);
-				}
-			}.bind(this),
-			error: function(jqXHR, status, error) {
-				var e = new Error();
-				e.ErrorId = 5;
-				e.ErrorString = "Request Failed: " + status + error;
-				this.setState({error: e});
-			}.bind(this),
-		});
+		this.props.onUpdateUser(u);
+		this.props.onSubmit();
 	},
 	render: function() {
 		return (
