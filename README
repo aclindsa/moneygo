@@ -4,10 +4,25 @@ Installation
 ============
 
 First, install npm in your distribution:
-$ sudo pacman -S npm
+	$ sudo pacman -S npm
 
-Install browserify globally:
-$ sudo npm install -g browserify
+Install browserify globally using npm:
+	$ sudo npm install -g browserify
 
-Next, install browserify, babel, react, react-bootstrap, react-widgets, globalize, and big.js in our directory using npm:
-$ npm install browserify react react-dom react-addons-update react-bootstrap react-widgets redux react-redux redux-thunk babelify babel-preset-react globalize cldr-data big.js keymirror
+You'll then want to build everything (the Golang and Javascript portions) using
+something like:
+
+	$ export GOPATH=`pwd`
+	$ go get -v github.com/aclindsa/moneygo
+	$ go generate -v github.com/aclindsa/moneygo
+	$ go install -v github.com/aclindsa/moneygo
+
+Running
+=======
+
+Assuming you're in the same directory you ran the above installation comands
+from, running MoneyGo is then as easy as:
+
+	$ ./bin/moneygo \
+	  -port 8080 \
+	  -base src/github.com/aclindsa/moneygo/
