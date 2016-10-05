@@ -12,8 +12,7 @@ var FormControl = ReactBootstrap.FormControl;
 var ControlLabel = ReactBootstrap.ControlLabel;
 var Col = ReactBootstrap.Col;
 
-var models = require('./models.js');
-var User = models.User;
+var User = require('../models').User;
 
 module.exports = React.createClass({
 	displayName: "AccountSettingsModal",

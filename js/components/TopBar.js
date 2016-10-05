@@ -12,7 +12,7 @@ var Col = ReactBootstrap.Col;
 
 var ReactDOM = require('react-dom');
 
-var User = require('./models.js').User;
+var User = require('../models').User;
 
 const LoginBar = React.createClass({
 	getInitialState: function() {

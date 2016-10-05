@@ -32,7 +32,7 @@ var DropdownList = ReactWidgets.DropdownList;
 
 var Big = require('big.js');
 
-var models = require('./models.js');
+var models = require('../models');
 var Security = models.Security;
 var Account = models.Account;
 var Split = models.Split;
@@ -42,9 +42,9 @@ var TransactionStatusList = models.TransactionStatusList;
 var TransactionStatusMap = models.TransactionStatusMap;
 var Error = models.Error;
 
-var getAccountDisplayName = require('./utils.js').getAccountDisplayName;
+var getAccountDisplayName = require('../utils').getAccountDisplayName;
 
-var AccountCombobox = require('./AccountCombobox.js');
+var AccountCombobox = require('./AccountCombobox');
 
 const TransactionRow = React.createClass({
 	handleClick: function(e) {

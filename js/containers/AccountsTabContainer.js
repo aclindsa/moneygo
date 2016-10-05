@@ -1,7 +1,7 @@
 var connect = require('react-redux').connect;
 
 var AccountActions = require('../actions/AccountActions');
-var AccountsTab = require('../AccountsTab');
+var AccountsTab = require('../components/AccountsTab');
 
 function mapStateToProps(state) {
 	var security_list = [];

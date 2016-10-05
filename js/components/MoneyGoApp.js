@@ -6,10 +6,10 @@ var Tabs = ReactBootstrap.Tabs;
 var Tab = ReactBootstrap.Tab;
 var Modal = ReactBootstrap.Modal;
 
-var TopBarContainer = require('./containers/TopBarContainer');
-var NewUserForm = require('./NewUserForm.js');
-var AccountSettingsModalContainer = require('./containers/AccountSettingsModalContainer');
-var AccountsTabContainer = require('./containers/AccountsTabContainer');
+var TopBarContainer = require('../containers/TopBarContainer');
+var NewUserForm = require('./NewUserForm');
+var AccountSettingsModalContainer = require('../containers/AccountSettingsModalContainer');
+var AccountsTabContainer = require('../containers/AccountsTabContainer');
 
 module.exports = React.createClass({
 	displayName: "MoneyGoApp",

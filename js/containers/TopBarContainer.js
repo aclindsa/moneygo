@@ -3,7 +3,7 @@ var connect = require('react-redux').connect;
 var UserActions = require('../actions/UserActions');
 var ErrorActions = require('../actions/ErrorActions');
 
-var TopBar = require('../TopBar');
+var TopBar = require('../components/TopBar');
 
 function mapStateToProps(state) {
 	return {

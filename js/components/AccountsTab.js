@@ -22,13 +22,13 @@ var Collapse = ReactBootstrap.Collapse;
 
 var Combobox = require('react-widgets').Combobox;
 
-var models = require('./models.js');
+var models = require('../models');
 var Security = models.Security;
 var Account = models.Account;
 var AccountTypeList = models.AccountTypeList;
 
-var AccountCombobox = require('./AccountCombobox.js');
-var AccountRegister = require('./AccountRegister.js');
+var AccountCombobox = require('./AccountCombobox');
+var AccountRegister = require('./AccountRegister');
 
 const AddEditAccountModal = React.createClass({
 	getInitialState: function() {

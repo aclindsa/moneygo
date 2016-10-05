@@ -1,7 +1,7 @@
 var connect = require('react-redux').connect;
 
 var UserActions = require('../actions/UserActions');
-var AccountSettingsModal = require('../AccountSettingsModal');
+var AccountSettingsModal = require('../components/AccountSettingsModal');
 
 function mapStateToProps(state) {
 	return {

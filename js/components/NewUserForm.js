@@ -11,7 +11,7 @@ var Col = ReactBootstrap.Col;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 
-var models = require('./models.js');
+var models = require('../models');
 var User = models.User;
 var Error = models.Error;
 
