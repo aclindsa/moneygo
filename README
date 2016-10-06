@@ -3,8 +3,8 @@ MoneyGo README
 Installation
 ============
 
-First, install npm in your distribution:
-	$ sudo pacman -S npm
+First, install npm and libofx in your distribution:
+	$ sudo pacman -S npm libofx
 
 Install browserify globally using npm:
 	$ sudo npm install -g browserify
