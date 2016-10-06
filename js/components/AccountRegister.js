@@ -427,6 +427,7 @@ const AddEditTransactionModal = React.createClass({
 						<Col componentClass={ControlLabel} xs={2}>Status</Col>
 						<Col xs={10}>
 						<Combobox
+							suggest
 							data={TransactionStatusList}
 							valueField='StatusId'
 							textField='Name'

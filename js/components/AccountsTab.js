@@ -130,9 +130,10 @@ const AddEditAccountModal = React.createClass({
 						<Col componentClass={ControlLabel} xs={2}>Security</Col>
 						<Col xs={10}>
 						<Combobox
+							suggest
 							data={this.props.security_list}
 							valueField='SecurityId'
-							textField={item => item.Name + " - " + item.Description}
+							textField={item => typeof item === 'string' ? item : item.Name + " - " + item.Description}
 							defaultValue={this.state.security}
 							onChange={this.handleSecurityChange}
 							ref="security" />
@@ -142,6 +143,7 @@ const AddEditAccountModal = React.createClass({
 						<Col componentClass={ControlLabel} xs={2}>Account Type</Col>
 						<Col xs={10}>
 						<Combobox
+							suggest
 							data={AccountTypeList}
 							valueField='TypeId'
 							textField='Name'

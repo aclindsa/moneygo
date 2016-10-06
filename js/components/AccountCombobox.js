@@ -35,6 +35,7 @@ module.exports = React.createClass({
 				onChange={this.handleAccountChange}
 				ref="account"
 				disabled={this.props.disabled}
+				suggest
 				className={className} />
 	   );
 	}
