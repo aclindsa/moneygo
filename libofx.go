@@ -132,7 +132,13 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 		split := new(Split)
 		r := new(big.Rat)
 		r.SetFloat64(float64(transaction_data.amount))
-		security := GetSecurity(itl.Account.SecurityId)
+		security, err := GetSecurity(itl.Account.SecurityId, itl.Account.UserId)
+		if err != nil {
+			if iobj.Error == nil {
+				iobj.Error = err
+			}
+			return 1
+		}
 		split.Amount = r.FloatString(security.Precision)
 		if transaction_data.memo_valid != 0 {
 			split.Memo = C.GoString(&transaction_data.memo[0])
@@ -151,6 +157,7 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 	}
 
 	var security *Security
+	var err error
 	split := new(Split)
 	units := new(big.Rat)
 
@@ -183,7 +190,13 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 				}
 			}
 		} else {
-			security = GetSecurity(itl.Account.SecurityId)
+			security, err = GetSecurity(itl.Account.SecurityId, itl.Account.UserId)
+			if err != nil {
+				if iobj.Error == nil {
+					iobj.Error = err
+				}
+				return 1
+			}
 		}
 	} else {
 		// Calculate units from other available fields if its not present
@@ -207,7 +220,13 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 		}
 
 		// If 'units' wasn't present, assume we're using the account's security
-		security = GetSecurity(itl.Account.SecurityId)
+		security, err = GetSecurity(itl.Account.SecurityId, itl.Account.UserId)
+		if err != nil {
+			if iobj.Error == nil {
+				iobj.Error = err
+			}
+			return 1
+		}
 	}
 
 	split.Amount = units.FloatString(security.Precision)
@@ -219,7 +238,13 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 		split := new(Split)
 		r := new(big.Rat)
 		r.SetFloat64(float64(-transaction_data.fees))
-		security := GetSecurity(itl.Account.SecurityId)
+		security, err := GetSecurity(itl.Account.SecurityId, itl.Account.UserId)
+		if err != nil {
+			if iobj.Error == nil {
+				iobj.Error = err
+			}
+			return 1
+		}
 		split.Amount = r.FloatString(security.Precision)
 		split.Memo = "fees"
 		split.SecurityId = itl.Account.SecurityId
@@ -231,7 +256,13 @@ func OFXTransactionCallback(transaction_data C.struct_OfxTransactionData, data u
 		split := new(Split)
 		r := new(big.Rat)
 		r.SetFloat64(float64(-transaction_data.commission))
-		security := GetSecurity(itl.Account.SecurityId)
+		security, err := GetSecurity(itl.Account.SecurityId, itl.Account.UserId)
+		if err != nil {
+			if iobj.Error == nil {
+				iobj.Error = err
+			}
+			return 1
+		}
 		split.Amount = r.FloatString(security.Precision)
 		split.Memo = "commission"
 		split.SecurityId = itl.Account.SecurityId

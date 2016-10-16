@@ -2,3 +2,5 @@
 static/bundle.js
 static/react-widgets
 node_modules
+cusip_list.csv
+security_templates.go

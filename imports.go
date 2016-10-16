@@ -121,7 +121,13 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 				split := new(Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
-				security := GetSecurity(imbalanced_security)
+				security, err := GetSecurity(imbalanced_security, user.UserId)
+				if err != nil {
+					sqltransaction.Rollback()
+					WriteError(w, 999 /*Internal Error*/)
+					log.Print(err)
+					return
+				}
 				split.Amount = r.FloatString(security.Precision)
 				split.SecurityId = -1
 				split.AccountId = imbalanced_account.AccountId

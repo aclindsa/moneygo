@@ -294,6 +294,7 @@ func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 
 	return nil
 }
+
 func InsertTransaction(t *Transaction, user *User) error {
 	transaction, err := DB.Begin()
 	if err != nil {
@@ -692,7 +693,10 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	}
 	atl.TotalTransactions = count
 
-	security := GetSecurity(atl.Account.SecurityId)
+	security, err := GetSecurity(atl.Account.SecurityId, user.UserId)
+	if err != nil {
+		return nil, err
+	}
 	if security == nil {
 		return nil, errors.New("Security not found")
 	}

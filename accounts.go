@@ -143,7 +143,11 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 		return nil, err
 	}
 
-	security := GetSecurity(securityid)
+	security, err := GetSecurity(securityid, userid)
+	if err != nil {
+		return nil, err
+	}
+
 	account.UserId = userid
 	account.Name = security.Name
 	account.ParentAccountId = ta.AccountId
@@ -176,7 +180,11 @@ func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid
 		return nil, err
 	}
 
-	security := GetSecurity(securityid)
+	security, err := GetSecurity(securityid, userid)
+	if err != nil {
+		return nil, err
+	}
+
 	account.UserId = userid
 	account.Name = security.Name
 	account.ParentAccountId = ia.AccountId
@@ -346,7 +354,13 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		account.UserId = user.UserId
 		account.AccountVersion = 0
 
-		if GetSecurity(account.SecurityId) == nil {
+		security, err := GetSecurity(account.SecurityId, user.UserId)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
+		if security == nil {
 			WriteError(w, 3 /*Invalid Request*/)
 			return
 		}
@@ -432,7 +446,13 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			account.UserId = user.UserId
 
-			if GetSecurity(account.SecurityId) == nil {
+			security, err := GetSecurity(account.SecurityId, user.UserId)
+			if err != nil {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
+			if security == nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
@@ -451,12 +471,6 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			accountid, err := GetURLID(r.URL.Path)
-			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
-			}
-
 			account, err := GetAccount(accountid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)

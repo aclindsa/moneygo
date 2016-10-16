@@ -70,6 +70,7 @@ func main() {
 	servemux.HandleFunc("/session/", SessionHandler)
 	servemux.HandleFunc("/user/", UserHandler)
 	servemux.HandleFunc("/security/", SecurityHandler)
+	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
 	servemux.HandleFunc("/account/", AccountHandler)
 	servemux.HandleFunc("/transaction/", TransactionHandler)
 	servemux.HandleFunc("/import/gnucash", GnucashImportHandler)
