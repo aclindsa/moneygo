@@ -19,6 +19,52 @@ function securitiesFetched(securities) {
 	}
 }
 
+function createSecurity() {
+	return {
+		type: SecurityConstants.CREATE_SECURITY
+	}
+}
+
+function securityCreated(security) {
+	return {
+		type: SecurityConstants.SECURITY_CREATED,
+		security: security
+	}
+}
+
+function updateSecurity() {
+	return {
+		type: SecurityConstants.UPDATE_SECURITY
+	}
+}
+
+function securityUpdated(security) {
+	return {
+		type: SecurityConstants.SECURITY_UPDATED,
+		security: security
+	}
+}
+
+function removeSecurity() {
+	return {
+		type: SecurityConstants.REMOVE_SECURITY
+	}
+}
+
+function securityRemoved(securityId) {
+	return {
+		type: SecurityConstants.SECURITY_REMOVED,
+		securityId: securityId
+	}
+}
+
+function securitySelected(securityId) {
+	return {
+		type: SecurityConstants.SECURITY_SELECTED,
+		securityId: securityId
+	}
+}
+
 function fetchAll() {
 	return function (dispatch) {
 		dispatch(fetchSecurities());
@@ -47,6 +93,88 @@ function fetchAll() {
 	};
 }
 
+function create(security) {
+	return function (dispatch) {
+		dispatch(createSecurity());
+
+		$.ajax({
+			type: "POST",
+			dataType: "json",
+			url: "security/",
+			data: {security: security.toJSON()},
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					ErrorActions.serverError(e);
+				} else {
+					var s = new Security();
+					s.fromJSON(data);
+					dispatch(securityCreated(s));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				ErrorActions.ajaxError(e);
+			}
+		});
+	};
+}
+
+function update(security) {
+	return function (dispatch) {
+		dispatch(updateSecurity());
+
+		$.ajax({
+			type: "PUT",
+			dataType: "json",
+			url: "security/"+security.SecurityId+"/",
+			data: {security: security.toJSON()},
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					ErrorActions.serverError(e);
+				} else {
+					var s = new Security();
+					s.fromJSON(data);
+					dispatch(securityUpdated(s));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				ErrorActions.ajaxError(e);
+			}
+		});
+	};
+}
+
+function remove(security) {
+	return function(dispatch) {
+		dispatch(removeSecurity());
+
+		$.ajax({
+			type: "DELETE",
+			dataType: "json",
+			url: "security/"+security.SecurityId+"/",
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					ErrorActions.serverError(e);
+				} else {
+					dispatch(securityRemoved(security.SecurityId));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				ErrorActions.ajaxError(e);
+			}
+		});
+	};
+}
+
 module.exports = {
-	fetchAll: fetchAll
+	fetchAll: fetchAll,
+	create: create,
+	update: update,
+	remove: remove,
+	select: securitySelected
 };

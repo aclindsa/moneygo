@@ -94,6 +94,7 @@ function Security() {
 	this.Symbol = "";
 	this.Precision = -1;
 	this.Type = -1;
+	this.AlternateId = "";
 }
 
 Security.prototype.toJSON = function() {
@@ -104,6 +105,7 @@ Security.prototype.toJSON = function() {
 	json_obj.Symbol = this.Symbol;
 	json_obj.Precision = this.Precision;
 	json_obj.Type = this.Type;
+	json_obj.AlternateId = this.AlternateId;
 	return JSON.stringify(json_obj);
 }
 
@@ -122,6 +124,8 @@ Security.prototype.fromJSON = function(json_input) {
 		this.Precision = json_obj.Precision;
 	if (json_obj.hasOwnProperty("Type"))
 		this.Type = json_obj.Type;
+	if (json_obj.hasOwnProperty("AlternateId"))
+		this.AlternateId = json_obj.AlternateId;
 }
 
 Security.prototype.isSecurity = function() {

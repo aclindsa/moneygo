@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -58,7 +59,7 @@ func (sl *SecurityList) Write(w http.ResponseWriter) error {
 	return enc.Encode(sl)
 }
 
-func SearchSecurityTemplates(search string, _type int64) []*Security {
+func SearchSecurityTemplates(search string, _type int64, limit int64) []*Security {
 	upperSearch := strings.ToUpper(search)
 	var results []*Security
 	for i, security := range SecurityTemplates {
@@ -67,6 +68,9 @@ func SearchSecurityTemplates(search string, _type int64) []*Security {
 			strings.Contains(strings.ToUpper(security.Symbol), upperSearch) {
 			if _type == 0 || _type == security.Type {
 				results = append(results, &SecurityTemplates[i])
+				if limit != -1 && int64(len(results)) >= limit {
+					break
+				}
 			}
 		}
 	}
@@ -298,10 +302,22 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		var sl SecurityList
 
 		query, _ := url.ParseQuery(r.URL.RawQuery)
+
+		var limit int64 = -1
 		search := query.Get("search")
 		_type := GetSecurityType(query.Get("type"))
 
-		securities := SearchSecurityTemplates(search, _type)
+		limitstring := query.Get("limit")
+		if limitstring != "" {
+			limitint, err := strconv.ParseInt(limitstring, 10, 0)
+			if err != nil {
+				WriteError(w, 3 /*Invalid Request*/)
+				return
+			}
+			limit = limitint
+		}
+
+		securities := SearchSecurityTemplates(search, _type, limit)
 
 		sl.Securities = &securities
 		err := (&sl).Write(w)

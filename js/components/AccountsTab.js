@@ -15,7 +15,6 @@ var ButtonGroup = ReactBootstrap.ButtonGroup;
 var Glyphicon = ReactBootstrap.Glyphicon;
 var ListGroup = ReactBootstrap.ListGroup;
 var ListGroupItem = ReactBootstrap.ListGroupItem;
-var Collapse = ReactBootstrap.Collapse;
 var Alert = ReactBootstrap.Alert;
 var Modal = ReactBootstrap.Modal;
 var Collapse = ReactBootstrap.Collapse;

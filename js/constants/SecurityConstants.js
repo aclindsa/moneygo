@@ -8,5 +8,6 @@ module.exports = keyMirror({
 	UPDATE_SECURITY: null,
 	SECURITY_UPDATED: null,
 	REMOVE_SECURITY: null,
-	SECURITY_REMOVED: null
+	SECURITY_REMOVED: null,
+	SECURITY_SELECTED: null
 });

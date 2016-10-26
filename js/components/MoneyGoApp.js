@@ -10,6 +10,7 @@ var TopBarContainer = require('../containers/TopBarContainer');
 var NewUserForm = require('./NewUserForm');
 var AccountSettingsModalContainer = require('../containers/AccountSettingsModalContainer');
 var AccountsTabContainer = require('../containers/AccountsTabContainer');
+var SecuritiesTabContainer = require('../containers/SecuritiesTabContainer');
 
 module.exports = React.createClass({
 	displayName: "MoneyGoApp",
@@ -67,9 +68,13 @@ module.exports = React.createClass({
 						<AccountsTabContainer
 							className="fullheight" />
 						</Tab>
-						<Tab title="Scheduled Transactions" eventKey={2} >Scheduled transactions go here...</Tab>
-						<Tab title="Budgets" eventKey={3} >Budgets go here...</Tab>
-						<Tab title="Reports" eventKey={4} >Reports go here...</Tab>
+						<Tab title="Securities" eventKey={2} >
+						<SecuritiesTabContainer
+							className="fullheight" />
+						</Tab>
+						<Tab title="Scheduled Transactions" eventKey={3} >Scheduled transactions go here...</Tab>
+						<Tab title="Budgets" eventKey={4} >Budgets go here...</Tab>
+						<Tab title="Reports" eventKey={5} >Reports go here...</Tab>
 					</Tabs>);
 			else
 				mainContent = (

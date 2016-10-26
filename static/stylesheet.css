@@ -61,7 +61,7 @@ div.accounttree-root div {
 	height: 100%-100px;
 	overflow: auto;
 }
-.account-column {
+.account-column, .securitylist-column {
 	padding: 15px 15px 43px 15px;
 	border-right: 1px solid #DDD;
 	border-left: 1px solid #DDD;
@@ -82,7 +82,7 @@ div.accounttree-root div {
 	height: 100%;
 	overflow: auto;
 }
-.transactions-column {
+.transactions-column, .securities-column {
 	padding: 15px;
 	border-right: 1px solid #DDD;
 }
