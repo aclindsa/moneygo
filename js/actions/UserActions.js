@@ -74,7 +74,7 @@ function fetch(userId) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var u = new User();
 					u.fromJSON(data);
@@ -82,7 +82,7 @@ function fetch(userId) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -108,7 +108,7 @@ function login(user) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var s = new Session();
 					s.fromJSON(data);
@@ -116,7 +116,7 @@ function login(user) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -133,7 +133,7 @@ function tryResumingSession() {
 				e.fromJSON(data);
 				if (e.isError()) {
 					if (e.ErrorId != 1 /* Not Signed In*/)
-						ErrorActions.serverError(e);
+						dispatch(ErrorActions.serverError(e));
 				} else {
 					var s = new Session();
 					s.fromJSON(data);
@@ -142,7 +142,7 @@ function tryResumingSession() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -160,13 +160,13 @@ function logout() {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					dispatch(userLoggedOut());
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -185,7 +185,7 @@ function update(user) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var u = new User();
 					u.fromJSON(data);
@@ -193,7 +193,7 @@ function update(user) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};

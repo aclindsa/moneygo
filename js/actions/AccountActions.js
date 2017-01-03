@@ -77,7 +77,7 @@ function fetchAll() {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					dispatch(accountsFetched(data.accounts.map(function(json) {
 						var a = new Account();
@@ -87,7 +87,7 @@ function fetchAll() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -106,7 +106,7 @@ function create(account) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var a = new Account();
 					a.fromJSON(data);
@@ -114,7 +114,7 @@ function create(account) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -133,7 +133,7 @@ function update(account) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var a = new Account();
 					a.fromJSON(data);
@@ -141,7 +141,7 @@ function update(account) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -159,13 +159,13 @@ function remove(account) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					dispatch(accountRemoved(account.AccountId));
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};

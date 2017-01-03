@@ -77,7 +77,7 @@ function fetchAll() {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					dispatch(securitiesFetched(data.securities.map(function(json) {
 						var s = new Security();
@@ -87,7 +87,7 @@ function fetchAll() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -106,7 +106,7 @@ function create(security) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var s = new Security();
 					s.fromJSON(data);
@@ -114,7 +114,7 @@ function create(security) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -133,7 +133,7 @@ function update(security) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					var s = new Security();
 					s.fromJSON(data);
@@ -141,7 +141,7 @@ function update(security) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
@@ -159,13 +159,13 @@ function remove(security) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else {
 					dispatch(securityRemoved(security.SecurityId));
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};

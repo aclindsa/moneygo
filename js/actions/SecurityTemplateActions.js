@@ -38,7 +38,7 @@ function search(searchString, searchType, limit) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
-					ErrorActions.serverError(e);
+					dispatch(ErrorActions.serverError(e));
 				} else if (data.securities == null) {
 					dispatch(securityTemplatesSearched(searchString, searchType, new Array()));
 				} else {
@@ -51,7 +51,7 @@ function search(searchString, searchType, limit) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				ErrorActions.ajaxError(e);
+				dispatch(ErrorActions.ajaxError(e));
 			}
 		});
 	};
