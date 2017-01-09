@@ -9,6 +9,20 @@ var User = models.User;
 var Session = models.Session;
 var Error = models.Error;
 
+function createUser(user) {
+	return {
+		type: UserConstants.CREATE_USER,
+		user: user
+	}
+}
+
+function userCreated(user) {
+	return {
+		type: UserConstants.USER_CREATED,
+		user: user
+	}
+}
+
 function loginUser() {
 	return {
 		type: UserConstants.LOGIN_USER
@@ -95,8 +109,34 @@ function initializeSession(dispatch, session) {
 	dispatch(SecurityActions.fetchAll());
 }
 
+function create(user) {
+	return function(dispatch) {
+		dispatch(createUser(user));
+		$.ajax({
+			type: "POST",
+			dataType: "json",
+			url: "user/",
+			data: {user: user.toJSON()},
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					dispatch(ErrorActions.serverError(e));
+				} else {
+					var u = new User();
+					u.fromJSON(data);
+					dispatch(userCreated(u));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				dispatch(ErrorActions.ajaxError(e));
+			}
+		});
+	};
+}
+
 function login(user) {
-	return function (dispatch) {
+	return function(dispatch) {
 		dispatch(loginUser());
 
 		$.ajax({
@@ -200,6 +240,7 @@ function update(user) {
 }
 
 module.exports = {
+	create: create,
 	fetch: fetch,
 	login: login,
 	logout: logout,

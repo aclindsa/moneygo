@@ -2,7 +2,7 @@ var React = require('react');
 var ReactDOM = require('react-dom');
 
 var ReactBootstrap = require('react-bootstrap');
-var Panel = ReactBootstrap.Panel;
+var Modal = ReactBootstrap.Modal;
 var Form = ReactBootstrap.Form;
 var FormGroup = ReactBootstrap.FormGroup;
 var FormControl = ReactBootstrap.FormControl;
@@ -16,6 +16,7 @@ var User = models.User;
 var Error = models.Error;
 
 module.exports = React.createClass({
+	displayName: "NewUserModal",
 	getInitialState: function() {
 		return {error: "",
 			name: "",
@@ -73,35 +74,17 @@ module.exports = React.createClass({
 			return;
 		}
 
-		this.handleCreateNewUser(u);
-	},
-	handleCreateNewUser: function(user) {
-		$.ajax({
-			type: "POST",
-			dataType: "json",
-			url: "user/",
-			data: {user: user.toJSON()},
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-				} else {
-					this.props.onNewUser();
-				}
-			}.bind(this),
-			error: function(jqXHR, status, error) {
-				var e = new Error();
-				e.ErrorId = 5;
-				e.ErrorString = "Request Failed: " + status + error;
-				this.setState({error: e});
-			}.bind(this),
-		});
+		this.props.createNewUser(u);
+		if (this.props.onSubmit != null)
+			this.props.onSubmit(u);
 	},
 	render: function() {
-		var title = <h3>Create New User</h3>;
 		return (
-			<Panel header={title} bsStyle="info">
+			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
+				<Modal.Header closeButton>
+					<Modal.Title>Create New user</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
 				<span color="red">{this.state.error}</span>
 				<Form horizontal onSubmit={this.handleSubmit}>
 					<FormGroup>
@@ -151,15 +134,17 @@ module.exports = React.createClass({
 						<FormControl.Feedback/>
 						</Col>
 					</FormGroup>
-
-					<ButtonGroup className="pull-right">
+				</Form>
+				</Modal.Body>
+				<Modal.Footer>
+					<ButtonGroup>
 						<Button onClick={this.handleCancel}
 								bsStyle="warning">Cancel</Button>
-						<Button type="submit"
+						<Button onClick={this.handleSubmit}
 								bsStyle="success">Create New User</Button>
 					</ButtonGroup>
-				</Form>
-			</Panel>
+				</Modal.Footer>
+			</Modal>
 		);
 	}
 });
