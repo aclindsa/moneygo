@@ -13,7 +13,6 @@ var ButtonGroup = ReactBootstrap.ButtonGroup;
 
 var models = require('../models');
 var User = models.User;
-var Error = models.Error;
 
 module.exports = React.createClass({
 	displayName: "NewUserModal",
@@ -70,7 +69,7 @@ module.exports = React.createClass({
 		u.Email = this.state.email;
 		u.Password = this.state.password;
 		if (u.Password != this.state.confirm_password) {
-			this.setState({error: "Error: password do not match"});
+			this.setState({error: "Error: passwords do not match"});
 			return;
 		}
 
@@ -85,7 +84,7 @@ module.exports = React.createClass({
 					<Modal.Title>Create New user</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<span color="red">{this.state.error}</span>
+				<span style={{color: "red"}}>{this.state.error}</span>
 				<Form horizontal onSubmit={this.handleSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Name</Col>
