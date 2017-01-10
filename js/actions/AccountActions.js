@@ -87,7 +87,7 @@ function fetchAll() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -114,7 +114,7 @@ function create(account) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -141,7 +141,7 @@ function update(account) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -165,7 +165,7 @@ function remove(account) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};

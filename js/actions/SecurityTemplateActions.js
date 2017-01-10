@@ -51,7 +51,7 @@ function search(searchString, searchType, limit) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};

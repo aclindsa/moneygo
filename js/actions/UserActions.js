@@ -96,7 +96,7 @@ function fetch(userId) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -129,7 +129,7 @@ function create(user) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -156,7 +156,7 @@ function login(user) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -182,7 +182,7 @@ function tryResumingSession() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -206,7 +206,7 @@ function logout() {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};
@@ -233,7 +233,7 @@ function update(user) {
 				}
 			},
 			error: function(jqXHR, status, error) {
-				dispatch(ErrorActions.ajaxError(e));
+				dispatch(ErrorActions.ajaxError(error));
 			}
 		});
 	};

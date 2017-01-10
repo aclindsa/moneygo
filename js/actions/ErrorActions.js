@@ -13,7 +13,7 @@ function serverError(error) {
 function ajaxError(error) {
 	var e = new Error();
 	e.ErrorId = 5;
-	e.ErrorString = "Request Failed: " + status + error;
+	e.ErrorString = "Request Failed: " + error;
 
 	return {
 		type: ErrorConstants.ERROR_AJAX,
