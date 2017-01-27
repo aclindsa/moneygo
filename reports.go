@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"github.com/yuin/gopher-lua"
+	"log"
 	"net/http"
 	"time"
 )
@@ -10,9 +11,13 @@ import (
 //type and value to store user in lua's Context
 type key int
 
-const userContextKey key = 0
+const (
+	userContextKey key = iota
+	accountsContextKey
+	securitiesContextKey
+)
 
-const luaTimeoutSeconds uint = 5 // maximum time a lua request can run for
+const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
 
 func ReportHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
@@ -50,10 +55,25 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 				panic(err)
 			}
 		}
-		err := L.DoString(`print("Hello World")`)
+
+		luaRegisterAccounts(L)
+		luaRegisterSecurities(L)
+
+		err := L.DoString(`accounts = account.get_all()
+last_parent = nil
+for id, account in pairs(accounts) do
+	parent = account.parent
+	print(account, parent, account.security)
+	if parent then
+		print(last_parent, parent)
+		print("parent equals last:", last_parent == parent)
+		last_parent = parent
+	end
+end
+`)
 
 		if err != nil {
-			panic(err)
+			log.Print("lua:" + err.Error())
 		}
 	}
 }
