@@ -617,6 +617,59 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func TransactionsBalanceDifference(transaction *gorp.Transaction, accountid int64, transactions []Transaction) (*big.Rat, error) {
+	var pageDifference, tmp big.Rat
+	for i := range transactions {
+		_, err := transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
+		if err != nil {
+			return nil, err
+		}
+
+		// Sum up the amounts from the splits we're returning so we can return
+		// an ending balance
+		for j := range transactions[i].Splits {
+			if transactions[i].Splits[j].AccountId == accountid {
+				rat_amount, err := GetBigAmount(transactions[i].Splits[j].Amount)
+				if err != nil {
+					return nil, err
+				}
+				tmp.Add(&pageDifference, rat_amount)
+				pageDifference.Set(&tmp)
+			}
+		}
+	}
+	return &pageDifference, nil
+}
+
+func GetAccountBalance(user *User, accountid int64) (*big.Rat, error) {
+	var transactions []Transaction
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?"
+	_, err = transaction.Select(&transactions, sql, user.UserId, accountid)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return pageDifference, nil
+}
+
 func GetAccountTransactions(user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
 	var transactions []Transaction
 	var atl AccountTransactionsList
@@ -663,27 +716,10 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	}
 	atl.Transactions = &transactions
 
-	var pageDifference, tmp big.Rat
-	for i := range transactions {
-		_, err = transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
-		if err != nil {
-			transaction.Rollback()
-			return nil, err
-		}
-
-		// Sum up the amounts from the splits we're returning so we can return
-		// an ending balance
-		for j := range transactions[i].Splits {
-			if transactions[i].Splits[j].AccountId == accountid {
-				rat_amount, err := GetBigAmount(transactions[i].Splits[j].Amount)
-				if err != nil {
-					transaction.Rollback()
-					return nil, err
-				}
-				tmp.Add(&pageDifference, rat_amount)
-				pageDifference.Set(&tmp)
-			}
-		}
+	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
 	}
 
 	count, err := transaction.SelectInt("SELECT count(DISTINCT transactions.TransactionId) FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?", user.UserId, accountid)
@@ -711,7 +747,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 		return nil, err
 	}
 
-	var balance big.Rat
+	var tmp, balance big.Rat
 	for _, amount := range amounts {
 		rat_amount, err := GetBigAmount(amount)
 		if err != nil {
@@ -722,7 +758,7 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 		balance.Set(&tmp)
 	}
 	atl.BeginningBalance = balance.FloatString(security.Precision)
-	atl.EndingBalance = tmp.Add(&balance, &pageDifference).FloatString(security.Precision)
+	atl.EndingBalance = tmp.Add(&balance, pageDifference).FloatString(security.Precision)
 
 	err = transaction.Commit()
 	if err != nil {

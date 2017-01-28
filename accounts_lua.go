@@ -120,6 +120,28 @@ func luaAccount__index(L *lua.LState) int {
 		L.Push(lua.LString(a.Name))
 	case "Type", "type":
 		L.Push(lua.LNumber(float64(a.Type)))
+	case "Balance", "balance":
+		ctx := L.Context()
+		user, ok := ctx.Value(userContextKey).(*User)
+		if !ok {
+			panic("Couldn't find User in lua's Context")
+		}
+		security_map, err := luaContextGetSecurities(L)
+		if err != nil {
+			panic("account.security couldn't fetch securities")
+		}
+		security, ok := security_map[a.SecurityId]
+		if !ok {
+			panic("SecurityId not in lua security_map")
+		}
+		rat, err := GetAccountBalance(user, a.AccountId)
+		if err != nil {
+			panic("Failed to GetAccountBalance:" + err.Error())
+		}
+		var b Balance
+		b.Security = security
+		b.Amount = rat
+		L.Push(BalanceToLua(L, &b))
 	default:
 		L.ArgError(2, "unexpected account attribute: "+field)
 	}

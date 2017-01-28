@@ -15,6 +15,7 @@ const (
 	userContextKey key = iota
 	accountsContextKey
 	securitiesContextKey
+	balanceContextKey
 )
 
 const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
@@ -58,6 +59,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 
 		luaRegisterAccounts(L)
 		luaRegisterSecurities(L)
+		luaRegisterBalances(L)
 
 		err := L.DoString(`accounts = account.get_all()
 last_parent = nil
