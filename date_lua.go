@@ -1,0 +1,111 @@
+package main
+
+import (
+	"github.com/yuin/gopher-lua"
+	"time"
+)
+
+const luaDateTypeName = "date"
+const timeFormat = "2006-01-02"
+
+// Registers my date type to given L.
+func luaRegisterDates(L *lua.LState) {
+	mt := L.NewTypeMetatable(luaDateTypeName)
+	L.SetGlobal("date", mt)
+	L.SetField(mt, "new", L.NewFunction(luaDateNew))
+	L.SetField(mt, "__tostring", L.NewFunction(luaDate__tostring))
+	L.SetField(mt, "__eq", L.NewFunction(luaDate__eq))
+	L.SetField(mt, "__lt", L.NewFunction(luaDate__lt))
+	L.SetField(mt, "__le", L.NewFunction(luaDate__le))
+	L.SetField(mt, "__metatable", lua.LString("protected"))
+}
+
+func TimeToLua(L *lua.LState, date *time.Time) *lua.LUserData {
+	ud := L.NewUserData()
+	ud.Value = date
+	L.SetMetatable(ud, L.GetTypeMetatable(luaDateTypeName))
+	return ud
+}
+
+// Checks whether the first lua argument is a *LUserData with *Time and returns this *Time.
+func luaCheckTime(L *lua.LState, n int) *time.Time {
+	ud := L.CheckUserData(n)
+	if date, ok := ud.Value.(*time.Time); ok {
+		return date
+	}
+	L.ArgError(n, "date expected")
+	return nil
+}
+
+func luaWeakCheckTableFieldInt(L *lua.LState, T *lua.LTable, n int, name string, def int) int {
+	lv := T.RawGetString(name)
+	if lv == lua.LNil {
+		return def
+	}
+	if i, ok := lv.(lua.LNumber); ok {
+		return int(i)
+	}
+	L.ArgError(n, "table field '"+name+"' expected to be int")
+	return def
+}
+
+func luaDateNew(L *lua.LState) int {
+	v := L.Get(1)
+	if s, ok := v.(lua.LString); ok {
+		date, err := time.Parse(timeFormat, s.String())
+		if err != nil {
+			L.ArgError(1, "error parsing date string: "+err.Error())
+			return 0
+		}
+		L.Push(TimeToLua(L, &date))
+		return 1
+	}
+	var year, month, day int
+	if t, ok := v.(*lua.LTable); ok {
+		year = luaWeakCheckTableFieldInt(L, t, 1, "year", 0)
+		month = luaWeakCheckTableFieldInt(L, t, 1, "month", 1)
+		day = luaWeakCheckTableFieldInt(L, t, 1, "day", 1)
+	} else {
+		year = L.CheckInt(1)
+		month = L.CheckInt(2)
+		day = L.CheckInt(3)
+	}
+	date := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+	L.Push(TimeToLua(L, &date))
+	return 1
+}
+
+func luaDate__tostring(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+
+	L.Push(lua.LString(a.Format(timeFormat)))
+
+	return 1
+}
+
+func luaDate__eq(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+	b := luaCheckTime(L, 2)
+
+	L.Push(lua.LBool(a.Equal(*b)))
+
+	return 1
+}
+
+func luaDate__lt(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+	b := luaCheckTime(L, 2)
+
+	L.Push(lua.LBool(a.Before(*b)))
+
+	return 1
+}
+
+func luaDate__le(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+	b := luaCheckTime(L, 2)
+
+	L.Push(lua.LBool(a.Equal(*b) || a.Before(*b)))
+
+	return 1
+}

@@ -60,6 +60,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		luaRegisterAccounts(L)
 		luaRegisterSecurities(L)
 		luaRegisterBalances(L)
+		luaRegisterDates(L)
 
 		err := L.DoString(`accounts = account.get_all()
 last_parent = nil
