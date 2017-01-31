@@ -37,6 +37,16 @@ func luaCheckTime(L *lua.LState, n int) *time.Time {
 	return nil
 }
 
+func luaWeakCheckTime(L *lua.LState, n int) *time.Time {
+	v := L.Get(n)
+	if ud, ok := v.(*lua.LUserData); ok {
+		if date, ok := ud.Value.(*time.Time); ok {
+			return date
+		}
+	}
+	return nil
+}
+
 func luaWeakCheckTableFieldInt(L *lua.LState, T *lua.LTable, n int, name string, def int) int {
 	lv := T.RawGetString(name)
 	if lv == lua.LNil {

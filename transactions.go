@@ -670,6 +670,64 @@ func GetAccountBalance(user *User, accountid int64) (*big.Rat, error) {
 	return pageDifference, nil
 }
 
+func GetAccountBalanceDate(user *User, accountid int64, date *time.Time) (*big.Rat, error) {
+	var transactions []Transaction
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=? AND transactions.Date < ?"
+	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, date)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return pageDifference, nil
+}
+
+func GetAccountBalanceDateRange(user *User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
+	var transactions []Transaction
+	transaction, err := DB.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=? AND transactions.Date >= ? AND transactions.Date < ?"
+	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, begin, end)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	err = transaction.Commit()
+	if err != nil {
+		transaction.Rollback()
+		return nil, err
+	}
+
+	return pageDifference, nil
+}
+
 func GetAccountTransactions(user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
 	var transactions []Transaction
 	var atl AccountTransactionsList

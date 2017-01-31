@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/yuin/gopher-lua"
+	"math/big"
 )
 
 const luaAccountTypeName = "account"
@@ -61,9 +62,9 @@ func luaRegisterAccounts(L *lua.LState) {
 	L.SetField(mt, "__tostring", L.NewFunction(luaAccount__tostring))
 	L.SetField(mt, "__eq", L.NewFunction(luaAccount__eq))
 	L.SetField(mt, "__metatable", lua.LString("protected"))
+
 	getAccountsFn := L.NewFunction(luaGetAccounts)
 	L.SetField(mt, "get_all", getAccountsFn)
-
 	// also register the get_accounts function as a global in its own right
 	L.SetGlobal("get_accounts", getAccountsFn)
 }
@@ -121,30 +122,49 @@ func luaAccount__index(L *lua.LState) int {
 	case "Type", "type":
 		L.Push(lua.LNumber(float64(a.Type)))
 	case "Balance", "balance":
-		ctx := L.Context()
-		user, ok := ctx.Value(userContextKey).(*User)
-		if !ok {
-			panic("Couldn't find User in lua's Context")
-		}
-		security_map, err := luaContextGetSecurities(L)
-		if err != nil {
-			panic("account.security couldn't fetch securities")
-		}
-		security, ok := security_map[a.SecurityId]
-		if !ok {
-			panic("SecurityId not in lua security_map")
-		}
-		rat, err := GetAccountBalance(user, a.AccountId)
-		if err != nil {
-			panic("Failed to GetAccountBalance:" + err.Error())
-		}
-		var b Balance
-		b.Security = security
-		b.Amount = rat
-		L.Push(BalanceToLua(L, &b))
+		L.Push(L.NewFunction(luaAccountBalance))
 	default:
 		L.ArgError(2, "unexpected account attribute: "+field)
 	}
+
+	return 1
+}
+
+func luaAccountBalance(L *lua.LState) int {
+	a := luaCheckAccount(L, 1)
+
+	ctx := L.Context()
+	user, ok := ctx.Value(userContextKey).(*User)
+	if !ok {
+		panic("Couldn't find User in lua's Context")
+	}
+	security_map, err := luaContextGetSecurities(L)
+	if err != nil {
+		panic("account.security couldn't fetch securities")
+	}
+	security, ok := security_map[a.SecurityId]
+	if !ok {
+		panic("SecurityId not in lua security_map")
+	}
+	date := luaWeakCheckTime(L, 2)
+	var b Balance
+	var rat *big.Rat
+	if date != nil {
+		end := luaWeakCheckTime(L, 3)
+		if end != nil {
+			rat, err = GetAccountBalanceDateRange(user, a.AccountId, date, end)
+		} else {
+			rat, err = GetAccountBalanceDate(user, a.AccountId, date)
+		}
+	} else {
+		rat, err = GetAccountBalance(user, a.AccountId)
+	}
+	if err != nil {
+		panic("Failed to GetAccountBalance:" + err.Error())
+	}
+	b.Amount = rat
+	b.Security = security
+	L.Push(BalanceToLua(L, &b))
 
 	return 1
 }

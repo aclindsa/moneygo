@@ -52,6 +52,7 @@ func luaWeakCheckBalance(L *lua.LState, n int) *Balance {
 		if balance, ok := ud.Value.(*Balance); ok {
 			return balance
 		}
+		L.ArgError(n, "balance expected")
 	}
 	return nil
 }
@@ -109,7 +110,7 @@ func luaBalance__index(L *lua.LState) int {
 func luaBalance__tostring(L *lua.LState) int {
 	b := luaCheckBalance(L, 1)
 
-	L.Push(lua.LString(b.Security.Symbol + b.Amount.FloatString(b.Security.Precision)))
+	L.Push(lua.LString(b.Security.Symbol + " " + b.Amount.FloatString(b.Security.Precision)))
 
 	return 1
 }
