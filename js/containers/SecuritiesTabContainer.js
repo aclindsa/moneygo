@@ -6,10 +6,10 @@ var SecuritiesTab = require('../components/SecuritiesTab');
 
 function mapStateToProps(state) {
 	var selectedSecurityAccounts = [];
-	for (var accountId in state.accounts) {
-		if (state.accounts.hasOwnProperty(accountId)
-				&& state.accounts[accountId].SecurityId == state.selectedSecurity)
-			selectedSecurityAccounts.push(state.accounts[accountId]);
+	for (var accountId in state.accounts.map) {
+		if (state.accounts.map.hasOwnProperty(accountId)
+				&& state.accounts.map[accountId].SecurityId == state.selectedSecurity)
+			selectedSecurityAccounts.push(state.accounts.map[accountId]);
 	}
 	return {
 		securities: state.securities,

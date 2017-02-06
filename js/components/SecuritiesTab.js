@@ -268,6 +268,26 @@ const AddEditSecurityModal = React.createClass({
 	}
 });
 
+const DeletionFailedModal = React.createClass({
+	render: function() {
+		return (
+			<Modal show={this.props.show} onHide={this.props.onClose}>
+				<Modal.Header closeButton>
+					<Modal.Title>Cannot Delete Security</Modal.Title>
+				</Modal.Header>
+				<Modal.Body>
+					We are unable to delete this security because it is in use by {this.props.securityAccounts.length} account(s). Please change those accounts to use other securities and try again.
+				</Modal.Body>
+				<Modal.Footer>
+					<ButtonGroup className="pull-right">
+						<Button onClick={this.props.onClose} bsStyle="warning">Close</Button>
+					</ButtonGroup>
+				</Modal.Footer>
+			</Modal>
+		);
+	}
+});
+
 const SecurityList = React.createClass({
 	render: function() {
 		var children = [];
@@ -301,7 +321,8 @@ module.exports = React.createClass({
 	getInitialState: function() {
 		return {
 			creatingNewSecurity: false,
-			editingSecurity: false
+			editingSecurity: false,
+			deletionFailedModal: false
 		};
 	},
 	handleNewSecurity: function() {
@@ -309,6 +330,12 @@ module.exports = React.createClass({
 	},
 	handleEditSecurity: function() {
 		this.setState({editingSecurity: true});
+	},
+	handleDeleteSecurity: function() {
+		if (this.props.selectedSecurityAccounts.length == 0)
+			this.props.onDeleteSecurity(this.props.securities[this.props.selectedSecurity]);
+		else
+			this.setState({deletionFailedModal: true});
 	},
 	handleCreationCancel: function() {
 		this.setState({creatingNewSecurity: false});
@@ -324,8 +351,11 @@ module.exports = React.createClass({
 		this.setState({editingSecurity: false});
 		this.props.onUpdateSecurity(security);
 	},
+	closeDeletionFailedModal: function() {
+		this.setState({deletionFailedModal: false});
+	},
 	render: function() {
-		var editDisabled = this.props.selectedSecurity == -1;
+		var noSecuritySelected = this.props.selectedSecurity == -1;
 
 		var selectedSecurity = null;
 		if (this.props.securities.hasOwnProperty(this.props.selectedSecurity))
@@ -347,14 +377,20 @@ module.exports = React.createClass({
 					onSubmit={this.handleEditingSubmit}
 					onSearchTemplates={this.props.onSearchTemplates}
 					securityTemplates={this.props.securityTemplates} />
+				<DeletionFailedModal
+					show={this.state.deletionFailedModal}
+					deletingSecurity={selectedSecurity}
+					onClose={this.closeDeletionFailedModal}
+					securityAccounts={this.props.selectedSecurityAccounts} />
 				<SecurityList
 					selectedSecurity={this.props.selectedSecurity}
 					securities={this.props.securities}
 					onSelectSecurity={this.props.onSelectSecurity} />
 				</Col><Col xs={9} className="fullheight securities-column">
 					<ButtonToolbar className="pull-right"><ButtonGroup>
-						<Button onClick={this.handleEditSecurity} bsStyle="primary" disabled={editDisabled}><Glyphicon glyph='cog'/> Edit Security</Button>
 						<Button onClick={this.handleNewSecurity} bsStyle="success"><Glyphicon glyph='plus-sign'/> New Security</Button>
+						<Button onClick={this.handleEditSecurity} bsStyle="primary" disabled={noSecuritySelected}><Glyphicon glyph='cog'/> Edit Security</Button>
+						<Button onClick={this.handleDeleteSecurity} bsStyle="danger" disabled={noSecuritySelected}><Glyphicon glyph='trash'/> Delete Security</Button>
 					</ButtonGroup></ButtonToolbar>
 				</Col>
 			</Row></Grid>
