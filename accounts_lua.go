@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/yuin/gopher-lua"
 	"math/big"
+	"strings"
 )
 
 const luaAccountTypeName = "account"
@@ -62,6 +63,10 @@ func luaRegisterAccounts(L *lua.LState) {
 	L.SetField(mt, "__tostring", L.NewFunction(luaAccount__tostring))
 	L.SetField(mt, "__eq", L.NewFunction(luaAccount__eq))
 	L.SetField(mt, "__metatable", lua.LString("protected"))
+
+	for _, accttype := range AccountTypes {
+		L.SetField(mt, accttype.String(), lua.LNumber(float64(accttype)))
+	}
 
 	getAccountsFn := L.NewFunction(luaGetAccounts)
 	L.SetField(mt, "get_all", getAccountsFn)
@@ -121,6 +126,10 @@ func luaAccount__index(L *lua.LState) int {
 		L.Push(lua.LString(a.Name))
 	case "Type", "type":
 		L.Push(lua.LNumber(float64(a.Type)))
+	case "TypeName", "Typename":
+		L.Push(lua.LString(a.Type.String()))
+	case "typename":
+		L.Push(lua.LString(strings.ToLower(a.Type.String())))
 	case "Balance", "balance":
 		L.Push(L.NewFunction(luaAccountBalance))
 	default:

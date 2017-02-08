@@ -10,19 +10,63 @@ import (
 	"strings"
 )
 
+type AccountType int64
+
 const (
-	Bank       int64 = 1
-	Cash             = 2
-	Asset            = 3
-	Liability        = 4
-	Investment       = 5
-	Income           = 6
-	Expense          = 7
-	Trading          = 8
-	Equity           = 9
-	Receivable       = 10
-	Payable          = 11
+	Bank       AccountType = 1 // start at 1 so that the default (0) is invalid
+	Cash                   = 2
+	Asset                  = 3
+	Liability              = 4
+	Investment             = 5
+	Income                 = 6
+	Expense                = 7
+	Trading                = 8
+	Equity                 = 9
+	Receivable             = 10
+	Payable                = 11
 )
+
+var AccountTypes = []AccountType{
+	Bank,
+	Cash,
+	Asset,
+	Liability,
+	Investment,
+	Income,
+	Expense,
+	Trading,
+	Equity,
+	Receivable,
+	Payable,
+}
+
+func (t AccountType) String() string {
+	switch t {
+	case Bank:
+		return "Bank"
+	case Cash:
+		return "Cash"
+	case Asset:
+		return "Asset"
+	case Liability:
+		return "Liability"
+	case Investment:
+		return "Investment"
+	case Income:
+		return "Income"
+	case Expense:
+		return "Expense"
+	case Trading:
+		return "Trading"
+	case Equity:
+		return "Equity"
+	case Receivable:
+		return "Receivable"
+	case Payable:
+		return "Payable"
+	}
+	return ""
+}
 
 type Account struct {
 	AccountId         int64
@@ -30,7 +74,7 @@ type Account struct {
 	UserId            int64
 	SecurityId        int64
 	ParentAccountId   int64 // -1 if this account is at the root
-	Type              int64
+	Type              AccountType
 	Name              string
 
 	// monotonically-increasing account transaction version number. Used for
