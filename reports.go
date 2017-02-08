@@ -5,6 +5,7 @@ import (
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
+	"path"
 	"time"
 )
 
@@ -28,6 +29,15 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" {
+		var reportname string
+		n, err := GetURLPieces(r.URL.Path, "/report/%s", &reportname)
+		if err != nil || n != 1 {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+
+		reportpath := path.Join(baseDir, "reports", reportname+".lua")
+
 		// Create a new LState without opening the default libs for security
 		L := lua.NewState(lua.Options{SkipOpenLibs: true})
 		defer L.Close()
@@ -53,7 +63,9 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 				NRet:    0,
 				Protect: true,
 			}, lua.LString(pair.n)); err != nil {
-				panic(err)
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
 			}
 		}
 
@@ -62,21 +74,12 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		luaRegisterBalances(L)
 		luaRegisterDates(L)
 
-		err := L.DoString(`accounts = account.get_all()
-last_parent = nil
-for id, account in pairs(accounts) do
-	parent = account.parent
-	print(account, parent, account.security)
-	if parent then
-		print(last_parent, parent)
-		print("parent equals last:", last_parent == parent)
-		last_parent = parent
-	end
-end
-`)
+		err = L.DoFile(reportpath)
 
 		if err != nil {
+			WriteError(w, 3 /*Invalid Request*/)
 			log.Print("lua:" + err.Error())
+			return
 		}
 	}
 }
