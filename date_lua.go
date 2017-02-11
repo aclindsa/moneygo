@@ -14,6 +14,7 @@ func luaRegisterDates(L *lua.LState) {
 	L.SetGlobal("date", mt)
 	L.SetField(mt, "new", L.NewFunction(luaDateNew))
 	L.SetField(mt, "now", L.NewFunction(luaDateNow))
+	L.SetField(mt, "__index", L.NewFunction(luaDate__index))
 	L.SetField(mt, "__tostring", L.NewFunction(luaDate__tostring))
 	L.SetField(mt, "__eq", L.NewFunction(luaDate__eq))
 	L.SetField(mt, "__lt", L.NewFunction(luaDate__lt))
@@ -90,6 +91,24 @@ func luaDateNow(L *lua.LState) int {
 	now := time.Now()
 	date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 	L.Push(TimeToLua(L, &date))
+	return 1
+}
+
+func luaDate__index(L *lua.LState) int {
+	d := luaCheckTime(L, 1)
+	field := L.CheckString(2)
+
+	switch field {
+	case "Year", "year":
+		L.Push(lua.LNumber(d.Year()))
+	case "Month", "month":
+		L.Push(lua.LNumber(float64(d.Month())))
+	case "Day", "day":
+		L.Push(lua.LNumber(float64(d.Day())))
+	default:
+		L.ArgError(2, "unexpected date attribute: "+field)
+	}
+
 	return 1
 }
 
