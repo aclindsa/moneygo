@@ -27,6 +27,7 @@ function generate()
 
 	accounts = get_accounts()
 	r = report.new(12)
+	r:title(year .. " Monthly Expenses")
 	series_map = account_series_map(accounts, r)
 
 	for month=1,12 do

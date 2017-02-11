@@ -81,6 +81,14 @@ func luaReport__index(L *lua.LState) int {
 		L.Push(L.NewFunction(luaReportLabel))
 	case "Series", "series":
 		L.Push(L.NewFunction(luaReportSeries))
+	case "Title", "title":
+		L.Push(L.NewFunction(luaReportTitle))
+	case "Subtitle", "subtitle":
+		L.Push(L.NewFunction(luaReportSubtitle))
+	case "XAxisLabel", "xaxislabel":
+		L.Push(L.NewFunction(luaReportXAxis))
+	case "YAxisLabel", "yaxislabel":
+		L.Push(L.NewFunction(luaReportYAxis))
 	default:
 		L.ArgError(2, "unexpected report attribute: "+field)
 	}
@@ -117,6 +125,50 @@ func luaReportSeries(L *lua.LState) int {
 	}
 	L.SetMetatable(ud, L.GetTypeMetatable(luaSeriesTypeName))
 	L.Push(ud)
+	return 1
+}
+
+func luaReportTitle(L *lua.LState) int {
+	report := luaCheckReport(L, 1)
+
+	if L.GetTop() == 2 {
+		report.Title = L.CheckString(2)
+		return 0
+	}
+	L.Push(lua.LString(report.Title))
+	return 1
+}
+
+func luaReportSubtitle(L *lua.LState) int {
+	report := luaCheckReport(L, 1)
+
+	if L.GetTop() == 2 {
+		report.Subtitle = L.CheckString(2)
+		return 0
+	}
+	L.Push(lua.LString(report.Subtitle))
+	return 1
+}
+
+func luaReportXAxis(L *lua.LState) int {
+	report := luaCheckReport(L, 1)
+
+	if L.GetTop() == 2 {
+		report.XAxisLabel = L.CheckString(2)
+		return 0
+	}
+	L.Push(lua.LString(report.XAxisLabel))
+	return 1
+}
+
+func luaReportYAxis(L *lua.LState) int {
+	report := luaCheckReport(L, 1)
+
+	if L.GetTop() == 2 {
+		report.YAxisLabel = L.CheckString(2)
+		return 0
+	}
+	L.Push(lua.LString(report.YAxisLabel))
 	return 1
 }
 
