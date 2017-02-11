@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"time"
 )
@@ -20,6 +22,68 @@ const (
 )
 
 const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
+
+func runReport(user *User, reportpath string) (*Report, error) {
+	// Create a new LState without opening the default libs for security
+	L := lua.NewState(lua.Options{SkipOpenLibs: true})
+	defer L.Close()
+
+	// Create a new context holding the current user with a timeout
+	ctx := context.WithValue(context.Background(), userContextKey, user)
+	ctx, cancel := context.WithTimeout(ctx, luaTimeoutSeconds*time.Second)
+	defer cancel()
+	L.SetContext(ctx)
+
+	for _, pair := range []struct {
+		n string
+		f lua.LGFunction
+	}{
+		{lua.LoadLibName, lua.OpenPackage}, // Must be first
+		{lua.BaseLibName, lua.OpenBase},
+		{lua.TabLibName, lua.OpenTable},
+		{lua.StringLibName, lua.OpenString},
+		{lua.MathLibName, lua.OpenMath},
+	} {
+		if err := L.CallByParam(lua.P{
+			Fn:      L.NewFunction(pair.f),
+			NRet:    0,
+			Protect: true,
+		}, lua.LString(pair.n)); err != nil {
+			return nil, errors.New("Error initializing Lua packages")
+		}
+	}
+
+	luaRegisterAccounts(L)
+	luaRegisterSecurities(L)
+	luaRegisterBalances(L)
+	luaRegisterDates(L)
+	luaRegisterReports(L)
+
+	err := L.DoFile(reportpath)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if err := L.CallByParam(lua.P{
+		Fn:      L.GetGlobal("generate"),
+		NRet:    1,
+		Protect: true,
+	}); err != nil {
+		return nil, err
+	}
+
+	value := L.Get(-1)
+	if ud, ok := value.(*lua.LUserData); ok {
+		if report, ok := ud.Value.(*Report); ok {
+			return report, nil
+		} else {
+			return nil, errors.New("generate() in " + reportpath + " didn't return a report")
+		}
+	} else {
+		return nil, errors.New("generate() in " + reportpath + " didn't return a report")
+	}
+}
 
 func ReportHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
@@ -37,48 +101,23 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		reportpath := path.Join(baseDir, "reports", reportname+".lua")
-
-		// Create a new LState without opening the default libs for security
-		L := lua.NewState(lua.Options{SkipOpenLibs: true})
-		defer L.Close()
-
-		// Create a new context holding the current user with a timeout
-		ctx := context.WithValue(context.Background(), userContextKey, user)
-		ctx, cancel := context.WithTimeout(ctx, luaTimeoutSeconds*time.Second)
-		defer cancel()
-		L.SetContext(ctx)
-
-		for _, pair := range []struct {
-			n string
-			f lua.LGFunction
-		}{
-			{lua.LoadLibName, lua.OpenPackage}, // Must be first
-			{lua.BaseLibName, lua.OpenBase},
-			{lua.TabLibName, lua.OpenTable},
-			{lua.StringLibName, lua.OpenString},
-			{lua.MathLibName, lua.OpenMath},
-		} {
-			if err := L.CallByParam(lua.P{
-				Fn:      L.NewFunction(pair.f),
-				NRet:    0,
-				Protect: true,
-			}, lua.LString(pair.n)); err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+		report_stat, err := os.Stat(reportpath)
+		if err != nil || !report_stat.Mode().IsRegular() {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
 		}
 
-		luaRegisterAccounts(L)
-		luaRegisterSecurities(L)
-		luaRegisterBalances(L)
-		luaRegisterDates(L)
-
-		err = L.DoFile(reportpath)
-
+		report, err := runReport(user, reportpath)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			log.Print("lua:" + err.Error())
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
+
+		err = report.Write(w)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
 			return
 		}
 	}
