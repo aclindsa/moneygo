@@ -19,6 +19,8 @@ func luaRegisterDates(L *lua.LState) {
 	L.SetField(mt, "__eq", L.NewFunction(luaDate__eq))
 	L.SetField(mt, "__lt", L.NewFunction(luaDate__lt))
 	L.SetField(mt, "__le", L.NewFunction(luaDate__le))
+	L.SetField(mt, "__add", L.NewFunction(luaDate__add))
+	L.SetField(mt, "__sub", L.NewFunction(luaDate__sub))
 	L.SetField(mt, "__metatable", lua.LString("protected"))
 }
 
@@ -143,6 +145,26 @@ func luaDate__le(L *lua.LState) int {
 	b := luaCheckTime(L, 2)
 
 	L.Push(lua.LBool(a.Equal(*b) || a.Before(*b)))
+
+	return 1
+}
+
+func luaDate__add(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+	b := luaCheckTime(L, 2)
+
+	date := a.AddDate(b.Year(), int(b.Month()), b.Day())
+	L.Push(TimeToLua(L, &date))
+
+	return 1
+}
+
+func luaDate__sub(L *lua.LState) int {
+	a := luaCheckTime(L, 1)
+	b := luaCheckTime(L, 2)
+
+	date := a.AddDate(-b.Year(), -int(b.Month()), -b.Day())
+	L.Push(TimeToLua(L, &date))
 
 	return 1
 }
