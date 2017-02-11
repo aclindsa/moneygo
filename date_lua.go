@@ -13,6 +13,7 @@ func luaRegisterDates(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaDateTypeName)
 	L.SetGlobal("date", mt)
 	L.SetField(mt, "new", L.NewFunction(luaDateNew))
+	L.SetField(mt, "now", L.NewFunction(luaDateNow))
 	L.SetField(mt, "__tostring", L.NewFunction(luaDate__tostring))
 	L.SetField(mt, "__eq", L.NewFunction(luaDate__eq))
 	L.SetField(mt, "__lt", L.NewFunction(luaDate__lt))
@@ -81,6 +82,13 @@ func luaDateNew(L *lua.LState) int {
 		day = L.CheckInt(3)
 	}
 	date := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+	L.Push(TimeToLua(L, &date))
+	return 1
+}
+
+func luaDateNow(L *lua.LState) int {
+	now := time.Now()
+	date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
 	L.Push(TimeToLua(L, &date))
 	return 1
 }
