@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/yuin/gopher-lua"
 	"log"
@@ -22,6 +23,26 @@ const (
 )
 
 const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
+
+type Series struct {
+	Values   []float64
+	Children map[string]*Series
+}
+
+type Report struct {
+	ReportId   string
+	Title      string
+	Subtitle   string
+	XAxisLabel string
+	YAxisLabel string
+	Labels     []string
+	Series     map[string]*Series
+}
+
+func (r *Report) Write(w http.ResponseWriter) error {
+	enc := json.NewEncoder(w)
+	return enc.Encode(r)
+}
 
 func runReport(user *User, reportpath string) (*Report, error) {
 	// Create a new LState without opening the default libs for security
@@ -113,6 +134,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 			return
 		}
+		report.ReportId = reportname
 
 		err = report.Write(w)
 		if err != nil {

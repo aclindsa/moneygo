@@ -1,32 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"github.com/yuin/gopher-lua"
-	"net/http"
 )
 
 const luaReportTypeName = "report"
 const luaSeriesTypeName = "series"
-
-type Series struct {
-	Values   []float64
-	Children map[string]*Series
-}
-
-type Report struct {
-	Title      string
-	Subtitle   string
-	XAxisLabel string
-	YAxisLabel string
-	Labels     []string
-	Series     map[string]*Series
-}
-
-func (r *Report) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(r)
-}
 
 func luaRegisterReports(L *lua.LState) {
 	mtr := L.NewTypeMetatable(luaReportTypeName)
