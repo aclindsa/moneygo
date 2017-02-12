@@ -7,6 +7,7 @@ var SecurityReducer = require('./SecurityReducer');
 var SecurityTemplateReducer = require('./SecurityTemplateReducer');
 var SelectedAccountReducer = require('./SelectedAccountReducer');
 var SelectedSecurityReducer = require('./SelectedSecurityReducer');
+var ReportReducer = require('./ReportReducer');
 var ErrorReducer = require('./ErrorReducer');
 
 module.exports = Redux.combineReducers({
@@ -17,5 +18,6 @@ module.exports = Redux.combineReducers({
 	securityTemplates: SecurityTemplateReducer,
 	selectedAccount: SelectedAccountReducer,
 	selectedSecurity: SelectedSecurityReducer,
+	reports: ReportReducer,
 	error: ErrorReducer
 });

@@ -396,6 +396,85 @@ Error.prototype.isError = function() {
 		this.ErrorString != empty_error.ErrorString;
 }
 
+
+function Series() {
+	this.Values = [];
+	this.Children = {};
+}
+
+Series.prototype.toJSONobj = function() {
+	var json_obj = {};
+	json_obj.Values = this.Values;
+	json_obj.Children = {};
+	for (var child in this.Children) {
+		if (this.Children.hasOwnProperty(child))
+			json_obj.Children[child] = this.Children[child].toJSONobj();
+	}
+	return json_obj;
+}
+
+Series.prototype.fromJSONobj = function(json_obj) {
+	if (json_obj.hasOwnProperty("Values"))
+		this.Values = json_obj.Values;
+	if (json_obj.hasOwnProperty("Children")) {
+		for (var child in json_obj.Children) {
+			if (json_obj.Children.hasOwnProperty(child))
+				this.Children[child] = new Series();
+				this.Children[child].fromJSONobj(json_obj.Children[child]);
+		}
+	}
+}
+
+function Report() {
+	this.ReportId = "";
+	this.Title = "";
+	this.Subtitle = "";
+	this.XAxisLabel = "";
+	this.YAxisLabel = "";
+	this.Labels = [];
+	this.Series = {};
+}
+
+Report.prototype.toJSON = function() {
+	var json_obj = {};
+	json_obj.ReportId = this.ReportId;
+	json_obj.Title = this.Title;
+	json_obj.Subtitle = this.Subtitle;
+	json_obj.XAxisLabel = this.XAxisLabel;
+	json_obj.YAxisLabel = this.YAxisLabel;
+	json_obj.Labels = this.Labels;
+	json_obj.Series = {};
+	for (var series in this.Series) {
+		if (this.Series.hasOwnProperty(series))
+			json_obj.Series[series] = this.Series[series].toJSONobj();
+	}
+	return JSON.stringify(json_obj);
+}
+
+Report.prototype.fromJSON = function(json_input) {
+	var json_obj = getJSONObj(json_input)
+
+	if (json_obj.hasOwnProperty("ReportId"))
+		this.ReportId = json_obj.ReportId;
+	if (json_obj.hasOwnProperty("Title"))
+		this.Title = json_obj.Title;
+	if (json_obj.hasOwnProperty("Subtitle"))
+		this.Subtitle = json_obj.Subtitle;
+	if (json_obj.hasOwnProperty("XAxisLabel"))
+		this.XAxisLabel = json_obj.XAxisLabel;
+	if (json_obj.hasOwnProperty("YAxisLabel"))
+		this.YAxisLabel = json_obj.YAxisLabel;
+	if (json_obj.hasOwnProperty("Labels"))
+		this.Labels = json_obj.Labels;
+	if (json_obj.hasOwnProperty("Series")) {
+		for (var series in json_obj.Series) {
+			if (json_obj.Series.hasOwnProperty(series))
+				this.Series[series] = new Series();
+				this.Series[series].fromJSONobj(json_obj.Series[series]);
+		}
+	}
+}
+
 module.exports = models = {
 
 	// Classes
@@ -405,6 +484,7 @@ module.exports = models = {
 	Account: Account,
 	Split: Split,
 	Transaction: Transaction,
+	Report: Report,
 	Error: Error,
 
 	// Enums, Lists
