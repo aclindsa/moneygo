@@ -1,0 +1,67 @@
+.chart-color1 {
+	fill: #a6cee3;
+	stroke: #86aec3;
+}
+.chart-color2 {
+	fill: #1f78b4;
+	stroke: #005894;
+}
+.chart-color3 {
+	fill: #b2df8a;
+	stroke: #92bf6a;
+}
+.chart-color4 {
+	fill: #33a02c;
+	stroke: #13800c;
+}
+.chart-color5 {
+	fill: #fb9a99;
+	stroke: #db7a79;
+}
+.chart-color6 {
+	fill: #e31a1c;
+	stroke: #c30000;
+}
+.chart-color7 {
+	fill: #fdbf6f;
+	stroke: #dd9f4f;
+}
+.chart-color8 {
+	fill: #ff7f00;
+	fill: #df5f00;
+}
+.chart-color9 {
+	fill: #cab2d6;
+	stroke: #aa92b6;
+}
+.chart-color10 {
+	fill: #6a3d9a;
+	stroke: #4a1d7a;
+}
+.chart-color11 {
+	fill: #ffff99;
+	stroke: #dfdf79;
+}
+.chart-color12 {
+	fill: #b15928;
+	stroke: #913908;
+}
+
+.chart-element {
+	stroke-width: 0;
+}
+.chart-element:hover {
+	stroke-width: 2;
+}
+.chart-legend rect {
+	stroke-width: 2;
+}
+
+.axis {
+	stroke: #000;
+	stroke-width: 2;
+}
+.axis-tick {
+	stroke: #000;
+	stroke-width: 1;
+}

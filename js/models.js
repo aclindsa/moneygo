@@ -425,6 +425,39 @@ Series.prototype.fromJSONobj = function(json_obj) {
 	}
 }
 
+Series.prototype.mapReduceChildren = function(mapFn, reduceFn) {
+	var children = {}
+	for (var child in this.Children) {
+		if (this.Children.hasOwnProperty(child))
+			children[child] = this.Children[child].mapReduce(mapFn, reduceFn);
+	}
+	return children;
+}
+
+Series.prototype.mapReduce = function(mapFn, reduceFn) {
+	var childValues = [];
+	if (mapFn)
+		childValues.push(this.Values.map(mapFn));
+	else
+		childValues.push(this.Values.slice());
+
+	for (var child in this.Children) {
+		if (this.Children.hasOwnProperty(child))
+			childValues.push(this.Children[child].mapReduce(mapFn, reduceFn));
+	}
+
+	var reducedValues = [];
+	if (reduceFn && childValues.length > 0 && childValues[0].length > 0) {
+		for (var j = 0; j < childValues[0].length; j++) {
+			reducedValues.push(childValues.reduce(function(accum, curr, i, arr) {
+				return reduceFn(accum, arr[i][j]);
+			}, childValues[0][j]));
+		}
+	}
+
+	return reducedValues;
+}
+
 function Report() {
 	this.ReportId = "";
 	this.Title = "";
@@ -473,6 +506,19 @@ Report.prototype.fromJSON = function(json_input) {
 				this.Series[series].fromJSONobj(json_obj.Series[series]);
 		}
 	}
+}
+
+Report.prototype.mapReduceChildren = function(mapFn, reduceFn) {
+	var series = {}
+	for (var child in this.Series) {
+		if (this.Series.hasOwnProperty(child))
+			series[child] = this.Series[child].mapReduce(mapFn, reduceFn);
+	}
+	return series;
+}
+
+Report.prototype.mapReduceSeries = function(mapFn, reduceFn) {
+	return this.mapReduceChildren(mapFn, reduceFn);
 }
 
 module.exports = models = {
