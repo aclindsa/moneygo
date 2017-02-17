@@ -55,7 +55,6 @@ func luaGetAccounts(L *lua.LState) int {
 	return 1
 }
 
-// Registers my account type to given L.
 func luaRegisterAccounts(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaAccountTypeName)
 	L.SetGlobal("account", mt)

@@ -97,8 +97,8 @@ func luaReportSeries(L *lua.LState) int {
 		ud.Value = s
 	} else {
 		report.Series[name] = &Series{
-			Children: make(map[string]*Series),
-			Values:   make([]float64, cap(report.Labels)),
+			Series: make(map[string]*Series),
+			Values: make([]float64, cap(report.Labels)),
 		}
 		ud.Value = report.Series[name]
 	}
@@ -157,8 +157,8 @@ func luaSeries__index(L *lua.LState) int {
 	switch field {
 	case "Value", "value":
 		L.Push(L.NewFunction(luaSeriesValue))
-	case "Series", "series", "Child", "child":
-		L.Push(L.NewFunction(luaSeriesChildren))
+	case "Series", "series":
+		L.Push(L.NewFunction(luaSeriesSeries))
 	default:
 		L.ArgError(2, "unexpected series attribute: "+field)
 	}
@@ -179,20 +179,20 @@ func luaSeriesValue(L *lua.LState) int {
 	return 0
 }
 
-func luaSeriesChildren(L *lua.LState) int {
+func luaSeriesSeries(L *lua.LState) int {
 	parent := luaCheckSeries(L, 1)
 	name := L.CheckString(2)
 	ud := L.NewUserData()
 
-	s, ok := parent.Children[name]
+	s, ok := parent.Series[name]
 	if ok {
 		ud.Value = s
 	} else {
-		parent.Children[name] = &Series{
-			Children: make(map[string]*Series),
-			Values:   make([]float64, cap(parent.Values)),
+		parent.Series[name] = &Series{
+			Series: make(map[string]*Series),
+			Values: make([]float64, cap(parent.Values)),
 		}
-		ud.Value = parent.Children[name]
+		ud.Value = parent.Series[name]
 	}
 	L.SetMetatable(ud, L.GetTypeMetatable(luaSeriesTypeName))
 	L.Push(ud)

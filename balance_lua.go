@@ -12,7 +12,6 @@ type Balance struct {
 
 const luaBalanceTypeName = "balance"
 
-// Registers my balance type to given L.
 func luaRegisterBalances(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaBalanceTypeName)
 	L.SetGlobal("balance", mt)

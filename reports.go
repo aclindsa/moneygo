@@ -25,8 +25,8 @@ const (
 const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
 
 type Series struct {
-	Values   []float64
-	Children map[string]*Series
+	Values []float64
+	Series map[string]*Series
 }
 
 type Report struct {

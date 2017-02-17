@@ -53,7 +53,6 @@ func luaGetSecurities(L *lua.LState) int {
 	return 1
 }
 
-// Registers my security type to given L.
 func luaRegisterSecurities(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaSecurityTypeName)
 	L.SetGlobal("security", mt)

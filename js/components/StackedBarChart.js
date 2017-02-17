@@ -1,15 +1,13 @@
 var d3 = require('d3');
 var React = require('react');
 
-var Panel = require('react-bootstrap').Panel;
-
 module.exports = React.createClass({
 	displayName: "StackedBarChart",
-	calcMinMax: function(data) {
+	calcMinMax: function(series) {
 		var children = [];
-		for (var child in data) {
-			if (data.hasOwnProperty(child))
-				children.push(data[child]);
+		for (var child in series) {
+			if (series.hasOwnProperty(child))
+				children.push(series[child]);
 		}
 
 		var positiveValues = [0];
@@ -40,12 +38,6 @@ module.exports = React.createClass({
 		return Math.ceil(rangePerTick/roundTo)*roundTo;
 	},
 	render: function() {
-		var data = this.props.data.mapReduceChildren(null,
-			function(accumulator, currentValue, currentIndex, array) {
-				return accumulator + currentValue;
-			}
-		);
-
 		height = 400;
 		width = 600;
 		legendWidth = 100;
@@ -54,7 +46,7 @@ module.exports = React.createClass({
 		height -= yMargin*2;
 		width -= xMargin*2;
 
-		var minMax = this.calcMinMax(data);
+		var minMax = this.calcMinMax(this.props.report.FlattenedSeries);
 		var y = d3.scaleLinear()
 			.range([0, height])
 			.domain(minMax);
@@ -63,7 +55,7 @@ module.exports = React.createClass({
 
 		var x = d3.scaleLinear()
 			.range([0, width])
-			.domain([0, this.props.data.Labels.length + 0.5]);
+			.domain([0, this.props.report.Labels.length + 0.5]);
 
 		var bars = [];
 		var labels = [];
@@ -76,13 +68,13 @@ module.exports = React.createClass({
 		// negativeSum arrays
 		var positiveSum = [];
 		var negativeSum = [];
-		for (var i=0; i < this.props.data.Labels.length; i++) {
+		for (var i=0; i < this.props.report.Labels.length; i++) {
 			positiveSum.push(0);
 			negativeSum.push(0);
 			var labelX = x(i) + barStart + barWidth/2;
 			var labelY = height + 15;
 			labels.push((
-				<text x={labelX} y={labelY} transform={"rotate(45 "+labelX+" "+labelY+")"}>{this.props.data.Labels[i]}</text>
+				<text x={labelX} y={labelY} transform={"rotate(45 "+labelX+" "+labelY+")"}>{this.props.report.Labels[i]}</text>
 			));
 			labels.push((
 				<line className="axis-tick" x1={labelX} y1={height-3} x2={labelX} y2={height+3} />
@@ -103,14 +95,24 @@ module.exports = React.createClass({
 		for (var i=0-xAxisMarksEvery; i > minMax[0]; i -= xAxisMarksEvery)
 			makeXLabel(i);
 
-		//TODO handle Values from current series?
 		var legendMap = {};
-		for (var child in data) {
-			childId++;
-			var rectClasses = "chart-element chart-color" + (childId % 12);
-			if (data.hasOwnProperty(child)) {
-				for (var i=0; i < data[child].length; i++) {
-					var value = data[child][i];
+		for (var child in this.props.report.FlattenedSeries) {
+			if (this.props.report.FlattenedSeries.hasOwnProperty(child)) {
+				childId++;
+				var childData = this.props.report.FlattenedSeries[child];
+				var rectClasses = "chart-element chart-color" + (childId % 12);
+				var self = this;
+				var rectOnClick = function() {
+					var childName = child;
+					var onSelectSeries = self.props.onSelectSeries;
+					return function() {
+						onSelectSeries(childName);
+					};
+				}();
+
+				var seriesBars = [];
+				for (var i=0; i < childData.length; i++) {
+					var value = childData[i];
 					if (value == 0)
 						continue;
 					legendMap[child] = childId;
@@ -124,10 +126,15 @@ module.exports = React.createClass({
 						negativeSum[i] += rectHeight;
 					}
 
-					bars.push((
-						<rect className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
+					seriesBars.push((
+						<rect onClick={rectOnClick} className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
 					));
 				}
+				bars.push((
+					<g className="chart-series">
+						{seriesBars}
+					</g>
+				));
 			}
 		}
 
@@ -144,19 +151,17 @@ module.exports = React.createClass({
 		}
 
 		return (
-			<Panel header={this.props.data.Title}>
-				<svg height={height + 2*yMargin} width={width + 2*xMargin + legendWidth}>
-					<g className="stacked-bar-chart" transform={"translate("+xMargin+" "+yMargin+")"}>
-						{bars}
-						<line className="axis x-axis" x1={0} y1={height} x2={width} y2={height} />
-						<line className="axis y-axis" x1={0} y1={0} x2={0} y2={height} />
-						{labels}
-					</g>
-					<g className="chart-legend" transform={"translate("+(width + 2*xMargin)+" "+yMargin+")"}>
-						{legend}
-					</g>
-				</svg>
-			</Panel>
+			<svg height={height + 2*yMargin} width={width + 2*xMargin + legendWidth}>
+				<g className="stacked-bar-chart" transform={"translate("+xMargin+" "+yMargin+")"}>
+					{bars}
+					<line className="axis x-axis" x1={0} y1={height} x2={width} y2={height} />
+					<line className="axis y-axis" x1={0} y1={0} x2={0} y2={height} />
+					{labels}
+				</g>
+				<g className="chart-legend" transform={"translate("+(width + 2*xMargin)+" "+yMargin+")"}>
+					{legend}
+				</g>
+			</svg>
 		);
 	}
 });

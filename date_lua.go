@@ -8,7 +8,6 @@ import (
 const luaDateTypeName = "date"
 const timeFormat = "2006-01-02"
 
-// Registers my date type to given L.
 func luaRegisterDates(L *lua.LState) {
 	mt := L.NewTypeMetatable(luaDateTypeName)
 	L.SetGlobal("date", mt)

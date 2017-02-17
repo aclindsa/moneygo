@@ -5,13 +5,15 @@ var ReportsTab = require('../components/ReportsTab');
 
 function mapStateToProps(state) {
 	return {
-		reports: state.reports
+		reports: state.reports,
+		selectedReport: state.selectedReport
 	}
 }
 
 function mapDispatchToProps(dispatch) {
 	return {
-		onFetchReport: function(reportname) {dispatch(ReportActions.fetch(reportname))}
+		onFetchReport: function(reportname) {dispatch(ReportActions.fetch(reportname))},
+		onSelectReport: function(report, seriesTraversal) {dispatch(ReportActions.select(report, seriesTraversal))}
 	}
 }
 

@@ -28,7 +28,7 @@
 }
 .chart-color8 {
 	fill: #ff7f00;
-	fill: #df5f00;
+	stroke: #df5f00;
 }
 .chart-color9 {
 	fill: #cab2d6;
@@ -50,7 +50,7 @@
 .chart-element {
 	stroke-width: 0;
 }
-.chart-element:hover {
+g.chart-series:hover .chart-element {
 	stroke-width: 2;
 }
 .chart-legend rect {

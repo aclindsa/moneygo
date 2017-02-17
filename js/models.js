@@ -399,16 +399,16 @@ Error.prototype.isError = function() {
 
 function Series() {
 	this.Values = [];
-	this.Children = {};
+	this.Series = {};
 }
 
 Series.prototype.toJSONobj = function() {
 	var json_obj = {};
 	json_obj.Values = this.Values;
-	json_obj.Children = {};
-	for (var child in this.Children) {
-		if (this.Children.hasOwnProperty(child))
-			json_obj.Children[child] = this.Children[child].toJSONobj();
+	json_obj.Series = {};
+	for (var child in this.Series) {
+		if (this.Series.hasOwnProperty(child))
+			json_obj.Series[child] = this.Series[child].toJSONobj();
 	}
 	return json_obj;
 }
@@ -416,20 +416,20 @@ Series.prototype.toJSONobj = function() {
 Series.prototype.fromJSONobj = function(json_obj) {
 	if (json_obj.hasOwnProperty("Values"))
 		this.Values = json_obj.Values;
-	if (json_obj.hasOwnProperty("Children")) {
-		for (var child in json_obj.Children) {
-			if (json_obj.Children.hasOwnProperty(child))
-				this.Children[child] = new Series();
-				this.Children[child].fromJSONobj(json_obj.Children[child]);
+	if (json_obj.hasOwnProperty("Series")) {
+		for (var child in json_obj.Series) {
+			if (json_obj.Series.hasOwnProperty(child))
+				this.Series[child] = new Series();
+				this.Series[child].fromJSONobj(json_obj.Series[child]);
 		}
 	}
 }
 
 Series.prototype.mapReduceChildren = function(mapFn, reduceFn) {
 	var children = {}
-	for (var child in this.Children) {
-		if (this.Children.hasOwnProperty(child))
-			children[child] = this.Children[child].mapReduce(mapFn, reduceFn);
+	for (var child in this.Series) {
+		if (this.Series.hasOwnProperty(child))
+			children[child] = this.Series[child].mapReduce(mapFn, reduceFn);
 	}
 	return children;
 }
@@ -441,9 +441,9 @@ Series.prototype.mapReduce = function(mapFn, reduceFn) {
 	else
 		childValues.push(this.Values.slice());
 
-	for (var child in this.Children) {
-		if (this.Children.hasOwnProperty(child))
-			childValues.push(this.Children[child].mapReduce(mapFn, reduceFn));
+	for (var child in this.Series) {
+		if (this.Series.hasOwnProperty(child))
+			childValues.push(this.Series[child].mapReduce(mapFn, reduceFn));
 	}
 
 	var reducedValues = [];
@@ -466,7 +466,10 @@ function Report() {
 	this.YAxisLabel = "";
 	this.Labels = [];
 	this.Series = {};
+	this.FlattenedSeries = {};
 }
+
+Report.prototype.topLevelAccountName = "(top level)";
 
 Report.prototype.toJSON = function() {
 	var json_obj = {};
