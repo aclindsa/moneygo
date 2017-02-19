@@ -62,7 +62,6 @@ module.exports = React.createClass({
 
 		var barWidth = x(0.75);
 		var barStart = x(0.25) + (x(1) - barWidth)/2;
-		var childId=0;
 
 		// Add Y axis marks and labels, and initialize positive- and
 		// negativeSum arrays
@@ -96,9 +95,9 @@ module.exports = React.createClass({
 			makeXLabel(i);
 
 		var legendMap = {};
+		var childId=1;
 		for (var child in this.props.report.FlattenedSeries) {
 			if (this.props.report.FlattenedSeries.hasOwnProperty(child)) {
-				childId++;
 				var childData = this.props.report.FlattenedSeries[child];
 				var rectClasses = "chart-element chart-color" + (childId % 12);
 				var self = this;
@@ -115,7 +114,6 @@ module.exports = React.createClass({
 					var value = childData[i];
 					if (value == 0)
 						continue;
-					legendMap[child] = childId;
 					if (value > 0) {
 						rectHeight = y(value) - y(0);
 						positiveSum[i] += rectHeight;
@@ -130,11 +128,15 @@ module.exports = React.createClass({
 						<rect onClick={rectOnClick} className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
 					));
 				}
-				bars.push((
-					<g className="chart-series">
-						{seriesBars}
-					</g>
-				));
+				if (seriesBars.length > 0) {
+					legendMap[child] = childId;
+					childId++;
+					bars.push((
+						<g className="chart-series">
+							{seriesBars}
+						</g>
+					));
+				}
 			}
 		}
 
