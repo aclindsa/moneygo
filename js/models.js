@@ -451,7 +451,7 @@ Series.prototype.mapReduce = function(mapFn, reduceFn) {
 		for (var j = 0; j < childValues[0].length; j++) {
 			reducedValues.push(childValues.reduce(function(accum, curr, i, arr) {
 				return reduceFn(accum, arr[i][j]);
-			}, childValues[0][j]));
+			}, 0));
 		}
 	}
 
