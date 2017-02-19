@@ -29,6 +29,26 @@ module.exports = React.createClass({
 
 		return [Math.min.apply(Math, negativeValues), Math.max.apply(Math, positiveValues)];
 	},
+	sortedSeries: function(series) {
+		// Return an array of the series names, from highest to lowest sums (in
+		// absolute terms)
+
+		var seriesNames = [];
+		var seriesValues = {};
+		for (var child in series) {
+			if (series.hasOwnProperty(child)) {
+				seriesNames.push(child);
+				seriesValues[child] = series[child].reduce(function(accum, curr, i, arr) {
+					return accum + Math.abs(curr);
+				}, 0);
+			}
+		}
+		seriesNames.sort(function(a, b) {
+			return seriesValues[b] - seriesValues[a];
+		});
+
+		return seriesNames;
+	},
 	calcAxisMarkSeparation: function(minMax, height, ticksPerHeight) {
 		var targetTicks = height / ticksPerHeight;
 		var range = minMax[1]-minMax[0];
@@ -47,15 +67,14 @@ module.exports = React.createClass({
 		width -= xMargin*2;
 
 		var minMax = this.calcMinMax(this.props.report.FlattenedSeries);
+		var xAxisMarksEvery = this.calcAxisMarkSeparation(minMax, height, 40);
 		var y = d3.scaleLinear()
 			.range([0, height])
 			.domain(minMax);
-
-		var xAxisMarksEvery = this.calcAxisMarkSeparation(minMax, height, 40);
-
 		var x = d3.scaleLinear()
 			.range([0, width])
 			.domain([0, this.props.report.Labels.length + 0.5]);
+		var sortedSeries = this.sortedSeries(this.props.report.FlattenedSeries);
 
 		var bars = [];
 		var labels = [];
@@ -94,52 +113,53 @@ module.exports = React.createClass({
 		for (var i=0-xAxisMarksEvery; i > minMax[0]; i -= xAxisMarksEvery)
 			makeXLabel(i);
 
+		// Add all the bars and group them
 		var legendMap = {};
 		var childId=1;
-		for (var child in this.props.report.FlattenedSeries) {
-			if (this.props.report.FlattenedSeries.hasOwnProperty(child)) {
-				var childData = this.props.report.FlattenedSeries[child];
-				var rectClasses = "chart-element chart-color" + (childId % 12);
-				var self = this;
-				var rectOnClick = function() {
-					var childName = child;
-					var onSelectSeries = self.props.onSelectSeries;
-					return function() {
-						onSelectSeries(childName);
-					};
-				}();
+		for (var i=0; i < sortedSeries.length; i++) {
+			var child = sortedSeries[i];
+			var childData = this.props.report.FlattenedSeries[child];
 
-				var seriesBars = [];
-				for (var i=0; i < childData.length; i++) {
-					var value = childData[i];
-					if (value == 0)
-						continue;
-					if (value > 0) {
-						rectHeight = y(value) - y(0);
-						positiveSum[i] += rectHeight;
-						rectY = height - y(0) - positiveSum[i];
-					} else {
-						rectHeight = y(0) - y(value);
-						rectY = height - y(0) + negativeSum[i];
-						negativeSum[i] += rectHeight;
-					}
+			var rectClasses = "chart-element chart-color" + (childId % 12);
+			var self = this;
+			var rectOnClick = function() {
+				var childName = child;
+				var onSelectSeries = self.props.onSelectSeries;
+				return function() {
+					onSelectSeries(childName);
+				};
+			}();
 
-					seriesBars.push((
-						<g>
-							<title>{child} - {value}</title>
-							<rect onClick={rectOnClick} className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
-						</g>
-					));
+			var seriesBars = [];
+			for (var j=0; j < childData.length; j++) {
+				var value = childData[j];
+				if (value == 0)
+					continue;
+				if (value > 0) {
+					rectHeight = y(value) - y(0);
+					positiveSum[j] += rectHeight;
+					rectY = height - y(0) - positiveSum[j];
+				} else {
+					rectHeight = y(0) - y(value);
+					rectY = height - y(0) + negativeSum[j];
+					negativeSum[j] += rectHeight;
 				}
-				if (seriesBars.length > 0) {
-					legendMap[child] = childId;
-					childId++;
-					bars.push((
-						<g className="chart-series">
-							{seriesBars}
-						</g>
-					));
-				}
+
+				seriesBars.push((
+					<g>
+						<title>{child}: {value}</title>
+						<rect onClick={rectOnClick} className={rectClasses} x={x(j) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
+					</g>
+				));
+			}
+			if (seriesBars.length > 0) {
+				legendMap[child] = childId;
+				bars.push((
+					<g className="chart-series">
+						{seriesBars}
+					</g>
+				));
+				childId++;
 			}
 		}
 
