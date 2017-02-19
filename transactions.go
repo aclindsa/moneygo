@@ -642,23 +642,28 @@ func TransactionsBalanceDifference(transaction *gorp.Transaction, accountid int6
 }
 
 func GetAccountBalance(user *User, accountid int64) (*big.Rat, error) {
-	var transactions []Transaction
+	var splits []Split
 	transaction, err := DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?"
-	_, err = transaction.Select(&transactions, sql, user.UserId, accountid)
+	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
+	_, err = transaction.Select(&splits, sql, accountid, user.UserId)
 	if err != nil {
 		transaction.Rollback()
 		return nil, err
 	}
 
-	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
+	var balance, tmp big.Rat
+	for _, s := range splits {
+		rat_amount, err := GetBigAmount(s.Amount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+		tmp.Add(&balance, rat_amount)
+		balance.Set(&tmp)
 	}
 
 	err = transaction.Commit()
@@ -667,27 +672,33 @@ func GetAccountBalance(user *User, accountid int64) (*big.Rat, error) {
 		return nil, err
 	}
 
-	return pageDifference, nil
+	return &balance, nil
 }
 
+// Assumes accountid is valid and is owned by the current user
 func GetAccountBalanceDate(user *User, accountid int64, date *time.Time) (*big.Rat, error) {
-	var transactions []Transaction
+	var splits []Split
 	transaction, err := DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=? AND transactions.Date < ?"
-	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, date)
+	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
+	_, err = transaction.Select(&splits, sql, accountid, user.UserId, date)
 	if err != nil {
 		transaction.Rollback()
 		return nil, err
 	}
 
-	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
+	var balance, tmp big.Rat
+	for _, s := range splits {
+		rat_amount, err := GetBigAmount(s.Amount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+		tmp.Add(&balance, rat_amount)
+		balance.Set(&tmp)
 	}
 
 	err = transaction.Commit()
@@ -696,27 +707,32 @@ func GetAccountBalanceDate(user *User, accountid int64, date *time.Time) (*big.R
 		return nil, err
 	}
 
-	return pageDifference, nil
+	return &balance, nil
 }
 
 func GetAccountBalanceDateRange(user *User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
-	var transactions []Transaction
+	var splits []Split
 	transaction, err := DB.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=? AND transactions.Date >= ? AND transactions.Date < ?"
-	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, begin, end)
+	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
+	_, err = transaction.Select(&splits, sql, accountid, user.UserId, begin, end)
 	if err != nil {
 		transaction.Rollback()
 		return nil, err
 	}
 
-	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
+	var balance, tmp big.Rat
+	for _, s := range splits {
+		rat_amount, err := GetBigAmount(s.Amount)
+		if err != nil {
+			transaction.Rollback()
+			return nil, err
+		}
+		tmp.Add(&balance, rat_amount)
+		balance.Set(&tmp)
 	}
 
 	err = transaction.Commit()
@@ -725,7 +741,7 @@ func GetAccountBalanceDateRange(user *User, accountid int64, begin, end *time.Ti
 		return nil, err
 	}
 
-	return pageDifference, nil
+	return &balance, nil
 }
 
 func GetAccountTransactions(user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
