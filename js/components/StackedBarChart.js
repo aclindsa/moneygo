@@ -92,20 +92,20 @@ module.exports = React.createClass({
 			var labelX = x(i) + barStart + barWidth/2;
 			var labelY = height + 15;
 			labels.push((
-				<text x={labelX} y={labelY} transform={"rotate(45 "+labelX+" "+labelY+")"}>{this.props.report.Labels[i]}</text>
+				<text key={"y-axis-label-"+i} x={labelX} y={labelY} transform={"rotate(45 "+labelX+" "+labelY+")"}>{this.props.report.Labels[i]}</text>
 			));
 			labels.push((
-				<line className="axis-tick" x1={labelX} y1={height-3} x2={labelX} y2={height+3} />
+				<line key={"y-axis-tick-"+i} className="axis-tick" x1={labelX} y1={height-3} x2={labelX} y2={height+3} />
 			));
 		}
 
 		// Make X axis marks and labels
 		var makeXLabel = function(value) {
 			labels.push((
-					<line className="axis-tick" x1={-3} y1={height - y(value)} x2={3} y2={height - y(value)} />
+					<line key={"x-axis-tick-"+value} className="axis-tick" x1={-3} y1={height - y(value)} x2={3} y2={height - y(value)} />
 			));
 			labels.push((
-					<text is x={-10} y={height - y(value) + 6} text-anchor={"end"}>{value}</text>
+					<text key={"x-axis-label-"+value} is x={-10} y={height - y(value) + 6} text-anchor={"end"}>{value}</text>
 			));
 		}
 		for (var i=0; i < minMax[1]; i+= xAxisMarksEvery)
@@ -146,7 +146,7 @@ module.exports = React.createClass({
 				}
 
 				seriesBars.push((
-					<g>
+					<g key={"stacked-bar-"+j}>
 						<title>{child}: {value}</title>
 						<rect onClick={rectOnClick} className={rectClasses} x={x(j) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
 					</g>
@@ -155,7 +155,7 @@ module.exports = React.createClass({
 			if (seriesBars.length > 0) {
 				legendMap[child] = childId;
 				bars.push((
-					<g className="chart-series">
+					<g key={"series-bars-"+childId} className="chart-series">
 						{seriesBars}
 					</g>
 				));
@@ -168,10 +168,10 @@ module.exports = React.createClass({
 			var legendClasses = "chart-color" + (legendMap[series] % 12);
 			var legendY = (legendMap[series] - 1)*15;
 			legend.push((
-				<rect className={legendClasses} x={0} y={legendY} width={10} height={10}/>
+				<rect key={"legend-key-"+legendMap[series]} className={legendClasses} x={0} y={legendY} width={10} height={10}/>
 			));
 			legend.push((
-				<text x={0 + 15} y={legendY + 10}>{series}</text>
+				<text key={"legend-label-"+legendMap[series]} x={0 + 15} y={legendY + 10}>{series}</text>
 			));
 		}
 

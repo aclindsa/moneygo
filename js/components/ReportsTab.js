@@ -49,26 +49,28 @@ module.exports = React.createClass({
 					};
 				}();
 				titleTracks.push((
-					<Button bsStyle="link"
-					onClick={navOnClick}>
-					{name}
+					<Button key={i*2} bsStyle="link"
+							onClick={navOnClick}>
+						{name}
 					</Button>
 				));
-				titleTracks.push((<span>/</span>));
+				titleTracks.push((<span key={i*2+1}>/</span>));
 				seriesTraversal.push(this.props.selectedReport.seriesTraversal[i]);
 			}
-			if (titleTracks.length == 0)
+			if (titleTracks.length == 0) {
 				titleTracks.push((
-					<Button bsStyle="link">
-					{this.props.selectedReport.report.Title}
+					<Button key={0} bsStyle="link">
+						{this.props.selectedReport.report.Title}
 					</Button>
 				));
-			else
+			} else {
+				var i = this.props.selectedReport.seriesTraversal.length-1;
 				titleTracks.push((
-					<Button bsStyle="link">
-					{this.props.selectedReport.seriesTraversal[this.props.selectedReport.seriesTraversal.length-1]}
+					<Button key={i*2+2} bsStyle="link">
+					{this.props.selectedReport.seriesTraversal[i]}
 					</Button>
 				));
+			}
 
 			report = (<Panel header={titleTracks}>
 				<StackedBarChart
