@@ -125,7 +125,10 @@ module.exports = React.createClass({
 					}
 
 					seriesBars.push((
-						<rect onClick={rectOnClick} className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
+						<g>
+							<title>{child} - {value}</title>
+							<rect onClick={rectOnClick} className={rectClasses} x={x(i) + barStart} y={rectY} width={barWidth} height={rectHeight} rx={1} ry={1}/>
+						</g>
 					));
 				}
 				if (seriesBars.length > 0) {
