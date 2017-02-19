@@ -16,7 +16,8 @@ var error_codes = map[int]string{
 	2: "Unauthorized Access",
 	3: "Invalid Request",
 	4: "User Exists",
-	//  5:   "Connection Failed", //client-side error
+	//  5:   "Connection Failed", //reserved for client-side error
+	6:   "Import Error",
 	999: "Internal Error",
 }
 

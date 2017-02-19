@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
 	"net/url"
@@ -77,6 +78,15 @@ func SearchSecurityTemplates(search string, _type int64, limit int64) []*Securit
 	return results
 }
 
+func FindSecurityTemplate(name string, _type int64) *Security {
+	for _, security := range SecurityTemplates {
+		if name == security.Name && _type == security.Type {
+			return &security
+		}
+	}
+	return nil
+}
+
 func GetSecurity(securityid int64, userid int64) (*Security, error) {
 	var s Security
 
@@ -99,6 +109,14 @@ func GetSecurities(userid int64) (*[]*Security, error) {
 
 func InsertSecurity(s *Security) error {
 	err := DB.Insert(s)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func InsertSecurityTx(transaction *gorp.Transaction, s *Security) error {
+	err := transaction.Insert(s)
 	if err != nil {
 		return err
 	}
@@ -161,6 +179,59 @@ func DeleteSecurity(s *Security) error {
 	}
 
 	return nil
+}
+
+func ImportGetCreateSecurity(transaction *gorp.Transaction, user *User, security *Security) (*Security, error) {
+	security.UserId = user.UserId
+	if len(security.AlternateId) == 0 {
+		// Always create a new local security if we can't match on the AlternateId
+		err := InsertSecurityTx(transaction, security)
+		if err != nil {
+			return nil, err
+		}
+		return security, nil
+	}
+
+	var securities []*Security
+
+	_, err := transaction.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", user.UserId, security.Type, security.AlternateId, security.Precision)
+	if err != nil {
+		return nil, err
+	}
+
+	// First try to find a case insensitive match on the name or symbol
+	upperName := strings.ToUpper(security.Name)
+	upperSymbol := strings.ToUpper(security.Symbol)
+	for _, s := range securities {
+		if (len(s.Name) > 0 && strings.ToUpper(s.Name) == upperName) ||
+			(len(s.Symbol) > 0 && strings.ToUpper(s.Symbol) == upperSymbol) {
+			return s, nil
+		}
+	}
+	//		if strings.Contains(strings.ToUpper(security.Name), upperSearch) ||
+
+	// Try to find a partial string match on the name or symbol
+	for _, s := range securities {
+		sUpperName := strings.ToUpper(s.Name)
+		sUpperSymbol := strings.ToUpper(s.Symbol)
+		if (len(upperName) > 0 && len(s.Name) > 0 && (strings.Contains(upperName, sUpperName) || strings.Contains(sUpperName, upperName))) ||
+			(len(upperSymbol) > 0 && len(s.Symbol) > 0 && (strings.Contains(upperSymbol, sUpperSymbol) || strings.Contains(sUpperSymbol, upperSymbol))) {
+			return s, nil
+		}
+	}
+
+	// Give up and return the first security in the list
+	if len(securities) > 0 {
+		return securities[0], nil
+	}
+
+	// If there wasn't even one security in the list, make a new one
+	err = InsertSecurityTx(transaction, security)
+	if err != nil {
+		return nil, err
+	}
+
+	return security, nil
 }
 
 func GetSecurityByName(name string) (*Security, error) {

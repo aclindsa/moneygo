@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -27,18 +28,28 @@ func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 		return err
 	}
 
-	gc.Security.Type = Stock // assumed default
-	if gxc.Type == "ISO4217" {
-		gc.Security.Type = Currency
-	}
 	gc.Name = gxc.Name
 	gc.Symbol = gxc.Name
 	gc.Description = gxc.Description
 	gc.AlternateId = gxc.XCode
-	if gxc.Fraction > 0 {
-		gc.Precision = int(math.Ceil(math.Log10(float64(gxc.Fraction))))
+
+	gc.Security.Type = Stock // assumed default
+	if gxc.Type == "ISO4217" {
+		gc.Security.Type = Currency
+		// Get the number from our templates for the AlternateId because
+		// Gnucash uses 'id' (our Name) to supply the string ISO4217 code
+		template := FindSecurityTemplate(gxc.Name, Currency)
+		if template == nil {
+			return errors.New("Unable to find security template for Gnucash ISO4217 commodity")
+		}
+		gc.AlternateId = template.AlternateId
+		gc.Precision = template.Precision
 	} else {
-		gc.Precision = 0
+		if gxc.Fraction > 0 {
+			gc.Precision = int(math.Ceil(math.Log10(float64(gxc.Fraction))))
+		} else {
+			gc.Precision = 0
+		}
 	}
 	return nil
 }
@@ -252,7 +263,7 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// assume there is only one 'part'
+	// Assume there is only one 'part' and it's the one we care about
 	part, err := multipartReader.NextPart()
 	if err != nil {
 		if err == io.EOF {
@@ -281,17 +292,16 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 	// internal IDs
 	securityMap := make(map[int64]int64)
 	for _, security := range gnucashImport.Securities {
-		//TODO FIXME check on AlternateID also, and convert to the case
-		//where users have their own internal securities
-		s, err := GetSecurityByNameAndType(security.Name, security.Type)
+		securityId := security.SecurityId // save off because it could be updated
+		s, err := ImportGetCreateSecurity(sqltransaction, user, &security)
 		if err != nil {
-			//TODO attempt to create security if it doesn't exist
 			sqltransaction.Rollback()
-			WriteError(w, 999 /*Internal Error*/)
+			WriteError(w, 6 /*Import Error*/)
 			log.Print(err)
+			log.Print(security)
 			return
 		}
-		securityMap[security.SecurityId] = s.SecurityId
+		securityMap[securityId] = s.SecurityId
 	}
 
 	// Get/create accounts in the database, building a map from Gnucash account
@@ -349,7 +359,6 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			split.AccountId = acctId
-			fmt.Printf("Setting split AccountId to %d\n", acctId)
 		}
 		err := InsertTransactionTx(sqltransaction, &transaction, user)
 		if err != nil {

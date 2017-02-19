@@ -22,7 +22,7 @@ const (
 	balanceContextKey
 )
 
-const luaTimeoutSeconds time.Duration = 5 // maximum time a lua request can run for
+const luaTimeoutSeconds time.Duration = 30 // maximum time a lua request can run for
 
 type Series struct {
 	Values []float64
