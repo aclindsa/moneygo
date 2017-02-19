@@ -512,7 +512,7 @@ const ImportTransactionsModal = React.createClass({
 		}
 	},
 	handleImportTransactions: function() {
-		var file = this.refs.importfile.getInputDOMNode().files[0];
+		var file = ReactDOM.findDOMNode(this.refs.importfile).files[0];
 		var formData = new FormData();
 		formData.append('importfile', file, this.state.importFile);
 		var url = ""
@@ -560,7 +560,7 @@ const ImportTransactionsModal = React.createClass({
 			error: function(e) {
 				this.setState({importing: false});
 				console.log("error handler", e);
-			},
+			}.bind(this),
 			// So jQuery doesn't try to process teh data or content-type
 			cache: false,
 			contentType: false,
@@ -751,8 +751,8 @@ module.exports = React.createClass({
 			error: this.ajaxError
 		});
 	},
-	handleSelectPage: function(event, selectedEvent) {
-		var newpage = selectedEvent.eventKey - 1;
+	handleSelectPage: function(eventKey) {
+		var newpage = eventKey - 1;
 		// Don't do pages that don't make sense
 		if (newpage < 0)
 			newpage = 0;
