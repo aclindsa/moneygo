@@ -23,25 +23,23 @@ end
 
 function generate()
 	year = date.now().year
-	account_type = account.Expense
+	account_type = account.Income
 
 	accounts = get_accounts()
-	r = report.new(12)
-	r:title(year .. " Monthly Expenses")
+	r = report.new(1)
+	r:title(year .. " Income")
 	series_map = account_series_map(accounts, r)
 
-	for month=1,12 do
-		begin_date = date.new(year, month, 1)
-		end_date = date.new(year, month+1, 1)
+	begin_date = date.new(year, 1, 1)
+	end_date = date.new(year+1, 1, 1)
 
-		r:label(month, tostring(begin_date))
+	r:label(1, year .. " Income")
 
-		for id, acct in pairs(accounts) do
-			series = series_map[id]
-			if acct.type == account_type then
-				balance = acct:balance(begin_date, end_date)
-				series:value(month, balance.amount)
-			end
+	for id, acct in pairs(accounts) do
+		series = series_map[id]
+		if acct.type == account_type then
+			balance = acct:balance(begin_date, end_date)
+			series:value(1, balance.amount)
 		end
 	end
 
