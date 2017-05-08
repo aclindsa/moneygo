@@ -44,8 +44,7 @@ func (s *Split) GetAmount() (*big.Rat, error) {
 }
 
 func (s *Split) Valid() bool {
-	if (s.AccountId == -1 && s.SecurityId == -1) ||
-		(s.AccountId != -1 && s.SecurityId != -1) {
+	if (s.AccountId == -1) == (s.SecurityId == -1) {
 		return false
 	}
 	_, err := s.GetAmount()

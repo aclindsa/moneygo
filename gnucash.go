@@ -167,12 +167,11 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 			}
 		}
 		a.Name = ga.Name
-		security, ok := securityMap[ga.Commodity.Name]
-		if ok {
+		if security, ok := securityMap[ga.Commodity.Name]; ok {
+			a.SecurityId = security.SecurityId
 		} else {
 			return nil, fmt.Errorf("Unable to find security: %s", ga.Commodity.Name)
 		}
-		a.SecurityId = security.SecurityId
 
 		//TODO find account types
 		switch ga.Type {

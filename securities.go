@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
@@ -232,14 +231,6 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, user *User, security
 	}
 
 	return security, nil
-}
-
-func GetSecurityByName(name string) (*Security, error) {
-	return nil, fmt.Errorf("unimplemented")
-}
-
-func GetSecurityByNameAndType(name string, _type int64) (*Security, error) {
-	return nil, fmt.Errorf("unimplemented")
 }
 
 func SecurityHandler(w http.ResponseWriter, r *http.Request) {
