@@ -1,6 +1,8 @@
 var connect = require('react-redux').connect;
 
 var AccountActions = require('../actions/AccountActions');
+var TransactionPageActions = require('../actions/TransactionPageActions');
+
 var AccountsTab = require('../components/AccountsTab');
 
 function mapStateToProps(state) {
@@ -14,7 +16,8 @@ function mapStateToProps(state) {
 		accountChildren: state.accounts.children,
 		securities: state.securities,
 		security_list: security_list,
-		selectedAccount: state.selectedAccount
+		selectedAccount: state.selectedAccount,
+		transactionPage: state.transactionPage
 	}
 }
 
@@ -23,7 +26,8 @@ function mapDispatchToProps(dispatch) {
 		onCreateAccount: function(account) {dispatch(AccountActions.create(account))},
 		onUpdateAccount: function(account) {dispatch(AccountActions.update(account))},
 		onDeleteAccount: function(accountId) {dispatch(AccountActions.remove(accountId))},
-		onSelectAccount: function(accountId) {dispatch(AccountActions.select(accountId))}
+		onSelectAccount: function(accountId) {dispatch(AccountActions.select(accountId))},
+		onFetchTransactionPage: function(account, pageSize, page) {dispatch(TransactionPageActions.fetch(account, pageSize, page))},
 	}
 }
 

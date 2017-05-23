@@ -9,6 +9,7 @@ var SelectedAccountReducer = require('./SelectedAccountReducer');
 var SelectedSecurityReducer = require('./SelectedSecurityReducer');
 var ReportReducer = require('./ReportReducer');
 var SelectedReportReducer = require('./SelectedReportReducer');
+var TransactionPageReducer = require('./TransactionPageReducer');
 var ErrorReducer = require('./ErrorReducer');
 
 module.exports = Redux.combineReducers({
@@ -21,5 +22,6 @@ module.exports = Redux.combineReducers({
 	selectedSecurity: SelectedSecurityReducer,
 	reports: ReportReducer,
 	selectedReport: SelectedReportReducer,
+	transactionPage: TransactionPageReducer,
 	error: ErrorReducer
 });

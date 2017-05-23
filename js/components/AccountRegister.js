@@ -652,10 +652,6 @@ module.exports = React.createClass({
 			importingTransactions: false,
 			editingTransaction: false,
 			selectedTransaction: new Transaction(),
-			transactions: [],
-			pageSize: 20,
-			numPages: 0,
-			currentPage: 0,
 			height: 0
 		};
 	},
@@ -708,71 +704,27 @@ module.exports = React.createClass({
 		e.ErrorString = "Request Failed: " + status + error;
 		this.setState({error: e});
 	},
-	getTransactionPage: function(account, page) {
-		$.ajax({
-			type: "GET",
-			dataType: "json",
-			url: "account/"+account.AccountId+"/transactions?sort=date-desc&limit="+this.state.pageSize+"&page="+page,
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-					return;
-				}
-
-				var transactions = [];
-				var balance = new Big(data.EndingBalance);
-
-				for (var i = 0; i < data.Transactions.length; i++) {
-					var t = new Transaction();
-					t.fromJSON(data.Transactions[i]);
-
-					t.Balance = balance.plus(0); // Make a copy of the current balance
-					// Keep a talley of the running balance of these transactions
-					for (var j = 0; j < data.Transactions[i].Splits.length; j++) {
-						var split = data.Transactions[i].Splits[j];
-						if (this.props.accounts[this.props.selectedAccount].AccountId == split.AccountId) {
-							balance = balance.minus(split.Amount);
-						}
-					}
-					transactions.push(t);
-				}
-				var a = new Account();
-				a.fromJSON(data.Account);
-
-				var pages = Math.ceil(data.TotalTransactions / this.state.pageSize);
-
-				this.setState({
-					transactions: transactions,
-					numPages: pages
-				});
-			}.bind(this),
-			error: this.ajaxError
-		});
-	},
 	handleSelectPage: function(eventKey) {
 		var newpage = eventKey - 1;
 		// Don't do pages that don't make sense
 		if (newpage < 0)
 			newpage = 0;
-		if (newpage >= this.state.numPages)
-			newpage = this.state.numPages-1;
-		if (newpage != this.state.currentPage) {
+		if (newpage >= this.props.transactionPage.numPages)
+			newpage = this.props.transactionPage.numPages - 1;
+		if (newpage != this.props.transactionPage.page) {
 			if (this.props.selectedAccount != -1) {
-				this.getTransactionPage(this.props.accounts[this.props.selectedAccount], newpage);
+				this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, newpage);
 			}
-			this.setState({currentPage: newpage});
 		}
 	},
 	onNewTransaction: function() {
-		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
+		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	onUpdatedTransaction: function() {
-		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
+		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	onDeletedTransaction: function() {
-		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
+		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	createNewTransaction: function(transaction) {
 		$.ajax({
@@ -829,7 +781,7 @@ module.exports = React.createClass({
 	},
 	handleImportComplete: function() {
 		this.setState({importingTransactions: false});
-		this.getTransactionPage(this.props.accounts[this.props.selectedAccount], this.state.currentPage);
+		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	handleDeleteTransaction: function(transaction) {
 		this.setState({
@@ -851,11 +803,7 @@ module.exports = React.createClass({
 		if (nextProps.selectedAccount != this.props.selectedAccount) {
 			this.setState({
 				selectedTransaction: new Transaction(),
-				transactions: [],
-				currentPage: 0
 			});
-			if (nextProps.selectedAccount != -1)
-				this.getTransactionPage(nextProps.accounts[nextProps.selectedAccount], 0);
 		}
 	},
 	render: function() {
@@ -866,8 +814,8 @@ module.exports = React.createClass({
 			name = this.props.accounts[this.props.selectedAccount].Name;
 
 			var transactionRows = [];
-			for (var i = 0; i < this.state.transactions.length; i++) {
-				var t = this.state.transactions[i];
+			for (var i = 0; i < this.props.transactionPage.transactions.length; i++) {
+				var t = this.props.transactionPage.transactions[i];
 				transactionRows.push((
 					<TransactionRow
 						key={t.TransactionId}
@@ -926,9 +874,9 @@ module.exports = React.createClass({
 					<Pagination
 						className="skinny-pagination"
 						prev next first last ellipsis
-						items={this.state.numPages}
-						maxButtons={Math.min(5, this.state.numPages)}
-						activePage={this.state.currentPage+1}
+						items={this.props.transactionPage.numPages}
+						maxButtons={Math.min(5, this.props.transactionPage.numPages)}
+						activePage={this.props.transactionPage.page + 1}
 						onSelect={this.handleSelectPage} />
 					</ButtonGroup>
 					<ButtonGroup>

@@ -425,6 +425,7 @@ module.exports = React.createClass({
 	},
 	handleAccountSelected: function(account) {
 		this.props.onSelectAccount(account.AccountId);
+		this.props.onFetchTransactionPage(account, 20, 0);
 	},
 	render: function() {
 		var disabled = (this.props.selectedAccount == -1) ? true : false;
@@ -476,10 +477,13 @@ module.exports = React.createClass({
 					</ButtonGroup>
 				</Col><Col xs={10} className="fullheight transactions-column">
 					<AccountRegister
+						pageSize={20}
 						selectedAccount={this.props.selectedAccount}
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
-						securities={this.props.securities} />
+						securities={this.props.securities}
+						transactionPage={this.props.transactionPage}
+						onFetchTransactionPage={this.props.onFetchTransactionPage}/>
 				</Col>
 			</Row></Grid>
 		);
