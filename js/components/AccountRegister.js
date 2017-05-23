@@ -628,7 +628,7 @@ const ImportTransactionsModal = React.createClass({
 							disabled={inputDisabled}
 							value={this.state.importFile}
 							onChange={this.handleImportChange} />
-						<HelpBlock>Select an OFX/QFX file to upload.</HelpBlock>
+						<HelpBlock>Select a file to upload.</HelpBlock>
 					</FormGroup>
 				</form>
 				{progressBar}
