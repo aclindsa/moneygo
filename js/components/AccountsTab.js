@@ -482,7 +482,13 @@ module.exports = React.createClass({
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
 						securities={this.props.securities}
+						transactions={this.props.transactions}
 						transactionPage={this.props.transactionPage}
+						onCreateTransaction={this.props.onCreateTransaction}
+						onUpdateTransaction={this.props.onUpdateTransaction}
+						onDeleteTransaction={this.props.onDeleteTransaction}
+						onSelectTransaction={this.props.onSelectTransaction}
+						onUnselectTransaction={this.props.onUnselectTransaction}
 						onFetchTransactionPage={this.props.onFetchTransactionPage}/>
 				</Col>
 			</Row></Grid>

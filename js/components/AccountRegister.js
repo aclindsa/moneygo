@@ -51,7 +51,7 @@ const TransactionRow = React.createClass({
 		const refs = ["date", "number", "description", "account", "status", "amount"];
 		for (var ref in refs) {
 			if (this.refs[refs[ref]] == e.target) {
-				this.props.onEdit(this.props.transaction, refs[ref]);
+				this.props.onSelect(this.props.transaction.TransactionId, refs[ref]);
 				return;
 			}
 		}
@@ -63,6 +63,7 @@ const TransactionRow = React.createClass({
 		var accountName = "";
 		var status = "";
 		var security = this.props.securities[this.props.account.SecurityId];
+		var balance = security.Symbol + " " + "?"
 
 		if (this.props.transaction.isTransaction()) {
 			var thisAccountSplit;
@@ -86,12 +87,12 @@ const TransactionRow = React.createClass({
 			}
 
 			var amount = security.Symbol + " " + thisAccountSplit.Amount.toFixed(security.Precision);
-			var balance = security.Symbol + " " + this.props.transaction.Balance.toFixed(security.Precision);
+			if (this.props.transaction.hasOwnProperty("Balance"))
+				balance = security.Symbol + " " + this.props.transaction.Balance.toFixed(security.Precision);
 			status = TransactionStatusMap[this.props.transaction.Status];
 			number = thisAccountSplit.Number;
 		} else {
 			var amount = security.Symbol + " " + (new Big(0.0)).toFixed(security.Precision);
-			var balance = security.Symbol + " " + (new Big(0.0)).toFixed(security.Precision);
 		}
 
 		return (
@@ -650,8 +651,7 @@ module.exports = React.createClass({
 	getInitialState: function() {
 		return {
 			importingTransactions: false,
-			editingTransaction: false,
-			selectedTransaction: new Transaction(),
+			newTransaction: null,
 			height: 0
 		};
 	},
@@ -659,21 +659,24 @@ module.exports = React.createClass({
 		var div = ReactDOM.findDOMNode(this);
 		this.setState({height: div.parentElement.clientHeight - 64});
 	},
+	componentWillReceiveProps: function(nextProps) {
+		if (!nextProps.transactionPage.upToDate && nextProps.selectedAccount != -1) {
+			nextProps.onFetchTransactionPage(nextProps.accounts[nextProps.selectedAccount], nextProps.transactionPage.pageSize, nextProps.transactionPage.page);
+		}
+	},
 	componentDidMount: function() {
 		this.resize();
 		var self = this;
 		$(window).resize(function() {self.resize();});
 	},
 	handleEditTransaction: function(transaction) {
-		this.setState({
-			selectedTransaction: transaction,
-			editingTransaction: true
-		});
+		this.props.onSelectTransaction(transaction.TransactionId);
 	},
 	handleEditingCancel: function() {
 		this.setState({
-			editingTransaction: false
+			newTransaction: null
 		});
+		this.props.onUnselectTransaction();
 	},
 	handleNewTransactionClicked: function() {
 		var newTransaction = new Transaction();
@@ -684,8 +687,7 @@ module.exports = React.createClass({
 		newTransaction.Splits[0].AccountId = this.props.accounts[this.props.selectedAccount].AccountId;
 
 		this.setState({
-			editingTransaction: true,
-			selectedTransaction: newTransaction
+			newTransaction: newTransaction
 		});
 	},
 	handleImportClicked: function() {
@@ -717,94 +719,24 @@ module.exports = React.createClass({
 			}
 		}
 	},
-	onNewTransaction: function() {
-		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
-	},
-	onUpdatedTransaction: function() {
-		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
-	},
-	onDeletedTransaction: function() {
-		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
-	},
-	createNewTransaction: function(transaction) {
-		$.ajax({
-			type: "POST",
-			dataType: "json",
-			url: "transaction/",
-			data: {transaction: transaction.toJSON()},
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-				} else {
-					this.onNewTransaction();
-				}
-			}.bind(this),
-			error: this.ajaxError
-		});
-	},
-	updateTransaction: function(transaction) {
-		$.ajax({
-			type: "PUT",
-			dataType: "json",
-			url: "transaction/"+transaction.TransactionId+"/",
-			data: {transaction: transaction.toJSON()},
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-				} else {
-					this.onUpdatedTransaction();
-				}
-			}.bind(this),
-			error: this.ajaxError
-		});
-	},
-	deleteTransaction: function(transaction) {
-		$.ajax({
-			type: "DELETE",
-			dataType: "json",
-			url: "transaction/"+transaction.TransactionId+"/",
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					this.setState({error: e});
-				} else {
-					this.onDeletedTransaction();
-				}
-			}.bind(this),
-			error: this.ajaxError
-		});
-	},
 	handleImportComplete: function() {
 		this.setState({importingTransactions: false});
 		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	handleDeleteTransaction: function(transaction) {
-		this.setState({
-			editingTransaction: false
-		});
-		this.deleteTransaction(transaction);
+		this.props.onDeleteTransaction(transaction);
+		this.props.onUnselectTransaction();
 	},
 	handleUpdateTransaction: function(transaction) {
-		this.setState({
-			editingTransaction: false
-		});
 		if (transaction.TransactionId != -1) {
-			this.updateTransaction(transaction);
+			this.props.onUpdateTransaction(transaction);
 		} else {
-			this.createNewTransaction(transaction);
+			this.props.onCreateTransaction(transaction);
 		}
-	},
-	componentWillReceiveProps: function(nextProps) {
-		if (nextProps.selectedAccount != this.props.selectedAccount) {
-			this.setState({
-				selectedTransaction: new Transaction(),
-			});
-		}
+		this.props.onUnselectTransaction();
+		this.setState({
+			newTransaction: null
+		});
 	},
 	render: function() {
 		var name = "Please select an account";
@@ -815,15 +747,16 @@ module.exports = React.createClass({
 
 			var transactionRows = [];
 			for (var i = 0; i < this.props.transactionPage.transactions.length; i++) {
-				var t = this.props.transactionPage.transactions[i];
+				var transactionId = this.props.transactionPage.transactions[i];
+				var transaction = this.props.transactions[transactionId];
 				transactionRows.push((
 					<TransactionRow
-						key={t.TransactionId}
-						transaction={t}
+						key={transactionId}
+						transaction={transaction}
 						account={this.props.accounts[this.props.selectedAccount]}
 						accounts={this.props.accounts}
 						securities={this.props.securities}
-						onEdit={this.handleEditTransaction}/>
+						onSelect={this.props.onSelectTransaction}/>
 				));
 			}
 
@@ -850,11 +783,21 @@ module.exports = React.createClass({
 
 		var disabled = (this.props.selectedAccount == -1) ? true : false;
 
+		var transactionSelected = false;
+		var selectedTransaction = new Transaction();
+		if (this.state.newTransaction != null) {
+			selectedTransaction = this.state.newTransaction;
+			transactionSelected = true;
+		} else if (this.props.transactionPage.selection != -1) {
+			selectedTransaction = this.props.transactions[this.props.transactionPage.selection];
+			transactionSelected = true;
+		}
+
 		return (
 			<div className="transactions-container">
 				<AddEditTransactionModal
-					show={this.state.editingTransaction}
-					transaction={this.state.selectedTransaction}
+					show={transactionSelected}
+					transaction={selectedTransaction}
 					accounts={this.props.accounts}
 					accountChildren={this.props.accountChildren}
 					onCancel={this.handleEditingCancel}

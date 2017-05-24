@@ -1,0 +1,15 @@
+var keyMirror = require('keymirror');
+
+module.exports = keyMirror({
+	FETCH_TRANSACTION_PAGE: null,
+	TRANSACTION_PAGE_FETCHED: null,
+	CREATE_TRANSACTION: null,
+	TRANSACTION_CREATED: null,
+	UPDATE_TRANSACTION: null,
+	TRANSACTION_UPDATED: null,
+	REMOVE_TRANSACTION: null,
+	SELECT_TRANSACTION: null,
+	TRANSACTION_REMOVED: null,
+	TRANSACTION_SELECTED: null,
+	SELECTION_CLEARED: null
+});

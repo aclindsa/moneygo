@@ -508,7 +508,12 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		WriteSuccess(w)
+		err = transaction.Write(w)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 	} else if r.Method == "GET" {
 		transactionid, err := GetURLID(r.URL.Path)
 
@@ -590,7 +595,12 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			WriteSuccess(w)
+			err = transaction.Write(w)
+			if err != nil {
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
 		} else if r.Method == "DELETE" {
 			transactionid, err := GetURLID(r.URL.Path)
 			if err != nil {
