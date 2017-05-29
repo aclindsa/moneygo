@@ -36,6 +36,7 @@ module.exports = React.createClass({
 				ref="account"
 				disabled={this.props.disabled}
 				suggest
+				filter='contains'
 				className={className} />
 	   );
 	}
