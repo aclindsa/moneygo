@@ -580,7 +580,6 @@ func TransactionHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			for i := range transaction.Splits {
-				transaction.Splits[i].SplitId = -1
 				_, err := GetAccount(transaction.Splits[i].AccountId, user.UserId)
 				if err != nil {
 					WriteError(w, 3 /*Invalid Request*/)
