@@ -325,6 +325,14 @@ module.exports = React.createClass({
 			deletionFailedModal: false
 		};
 	},
+	componentWillReceiveProps: function(nextProps) {
+		if (nextProps.selectedSecurity == -1 && nextProps.security_list.length > 0) {
+			nextProps.onSelectSecurity(nextProps.security_list[0].SecurityId);
+		}
+	},
+	handleSelectSecurity: function(security) {
+		this.props.onSelectSecurity(security.SecurityId);
+	},
 	handleNewSecurity: function() {
 		this.setState({creatingNewSecurity: true});
 	},
@@ -357,43 +365,50 @@ module.exports = React.createClass({
 	render: function() {
 		var noSecuritySelected = this.props.selectedSecurity == -1;
 
-		var selectedSecurity = null;
+		var selectedSecurity = -1;
 		if (this.props.securities.hasOwnProperty(this.props.selectedSecurity))
 			selectedSecurity = this.props.securities[this.props.selectedSecurity];
 
 		return (
-			<Grid fluid className="fullheight"><Row className="fullheight">
-				<Col xs={3} className="fullheight securitylist-column">
-				<AddEditSecurityModal
-					show={this.state.creatingNewSecurity}
-					onCancel={this.handleCreationCancel}
-					onSubmit={this.handleCreationSubmit}
-					onSearchTemplates={this.props.onSearchTemplates}
-					securityTemplates={this.props.securityTemplates} />
-				<AddEditSecurityModal
-					show={this.state.editingSecurity}
-					editSecurity={selectedSecurity}
-					onCancel={this.handleEditingCancel}
-					onSubmit={this.handleEditingSubmit}
-					onSearchTemplates={this.props.onSearchTemplates}
-					securityTemplates={this.props.securityTemplates} />
-				<DeletionFailedModal
-					show={this.state.deletionFailedModal}
-					deletingSecurity={selectedSecurity}
-					onClose={this.closeDeletionFailedModal}
-					securityAccounts={this.props.selectedSecurityAccounts} />
-				<SecurityList
-					selectedSecurity={this.props.selectedSecurity}
-					securities={this.props.securities}
-					onSelectSecurity={this.props.onSelectSecurity} />
-				</Col><Col xs={9} className="fullheight securities-column">
-					<ButtonToolbar className="pull-right"><ButtonGroup>
-						<Button onClick={this.handleNewSecurity} bsStyle="success"><Glyphicon glyph='plus-sign'/> New Security</Button>
-						<Button onClick={this.handleEditSecurity} bsStyle="primary" disabled={noSecuritySelected}><Glyphicon glyph='cog'/> Edit Security</Button>
-						<Button onClick={this.handleDeleteSecurity} bsStyle="danger" disabled={noSecuritySelected}><Glyphicon glyph='trash'/> Delete Security</Button>
-					</ButtonGroup></ButtonToolbar>
-				</Col>
-			</Row></Grid>
+			<div>
+			<AddEditSecurityModal
+				show={this.state.creatingNewSecurity}
+				onCancel={this.handleCreationCancel}
+				onSubmit={this.handleCreationSubmit}
+				onSearchTemplates={this.props.onSearchTemplates}
+				securityTemplates={this.props.securityTemplates} />
+			<AddEditSecurityModal
+				show={this.state.editingSecurity}
+				editSecurity={selectedSecurity}
+				onCancel={this.handleEditingCancel}
+				onSubmit={this.handleEditingSubmit}
+				onSearchTemplates={this.props.onSearchTemplates}
+				securityTemplates={this.props.securityTemplates} />
+			<DeletionFailedModal
+				show={this.state.deletionFailedModal}
+				deletingSecurity={selectedSecurity}
+				onClose={this.closeDeletionFailedModal}
+				securityAccounts={this.props.selectedSecurityAccounts} />
+			<ButtonToolbar>
+			<ButtonGroup>
+				<Button onClick={this.handleNewSecurity} bsStyle="success"><Glyphicon glyph='plus-sign'/> New Security</Button>
+			</ButtonGroup>
+			<ButtonGroup>
+				<Combobox
+					data={this.props.security_list}
+					valueField='SecurityId'
+					textField={item => typeof item === 'string' ? item : item.Name + " - " + item.Description}
+					value={selectedSecurity}
+					onChange={this.handleSelectSecurity}
+					suggest
+					filter='contains'
+					ref="security" />
+			</ButtonGroup>
+			<ButtonGroup>
+				<Button onClick={this.handleEditSecurity} bsStyle="primary" disabled={noSecuritySelected}><Glyphicon glyph='cog'/> Edit Security</Button>
+				<Button onClick={this.handleDeleteSecurity} bsStyle="danger" disabled={noSecuritySelected}><Glyphicon glyph='trash'/> Delete Security</Button>
+			</ButtonGroup></ButtonToolbar>
+			</div>
 		);
 	}
 });

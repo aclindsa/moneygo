@@ -11,8 +11,14 @@ function mapStateToProps(state) {
 				&& state.accounts.map[accountId].SecurityId == state.selectedSecurity)
 			selectedSecurityAccounts.push(state.accounts.map[accountId]);
 	}
+	var security_list = [];
+	for (var securityId in state.securities) {
+		if (state.securities.hasOwnProperty(securityId))
+			security_list.push(state.securities[securityId]);
+	}
 	return {
 		securities: state.securities,
+		security_list: security_list,
 		selectedSecurityAccounts: selectedSecurityAccounts,
 		selectedSecurity: state.selectedSecurity,
 		securityTemplates: state.securityTemplates
