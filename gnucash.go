@@ -92,6 +92,7 @@ type GnucashTransaction struct {
 
 type GnucashSplit struct {
 	SplitId   string `xml:"http://www.gnucash.org/XML/split id"`
+	Status    string `xml:"http://www.gnucash.org/XML/split reconciled-state"`
 	AccountId string `xml:"http://www.gnucash.org/XML/split account"`
 	Memo      string `xml:"http://www.gnucash.org/XML/split memo"`
 	Amount    string `xml:"http://www.gnucash.org/XML/split quantity"`
@@ -211,11 +212,20 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		t := new(Transaction)
 		t.Description = gt.Description
 		t.Date = gt.DatePosted.Date.Time
-		t.Status = Imported
 		for j := range gt.Splits {
 			gs := gt.Splits[j]
 			s := new(Split)
 			s.Memo = gs.Memo
+
+			switch gs.Status {
+			default: // 'n', or not present
+				s.Status = Imported
+			case "c":
+				s.Status = Cleared
+			case "y":
+				s.Status = Reconciled
+			}
+
 			account, ok := accountMap[gs.AccountId]
 			if !ok {
 				return nil, fmt.Errorf("Unable to find account: %s", gs.AccountId)

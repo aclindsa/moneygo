@@ -43,7 +43,6 @@ func (i *OFXImport) GetAddCurrency(isoname string) (*Security, error) {
 func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) error {
 	var t Transaction
 
-	t.Status = Imported
 	t.Date = tran.DtPosted.UTC()
 	t.RemoteId = tran.FiTID.String()
 	// TODO CorrectFiTID/CorrectAction?
@@ -84,6 +83,9 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 	security := i.Securities[account.SecurityId-1]
 	s1.Amount = amt.FloatString(security.Precision)
 	s2.Amount = amt.Neg(amt).FloatString(security.Precision)
+
+	s1.Status = Imported
+	s2.Status = Imported
 
 	s1.AccountId = account.AccountId
 	s2.AccountId = -1

@@ -14,9 +14,18 @@ import (
 	"time"
 )
 
+const (
+	Imported   int64 = 1
+	Entered          = 2
+	Cleared          = 3
+	Reconciled       = 4
+	Voided           = 5
+)
+
 type Split struct {
 	SplitId       int64
 	TransactionId int64
+	Status        int64
 
 	// One of AccountId and SecurityId must be -1
 	// In normal splits, AccountId will be valid and SecurityId will be -1. The
@@ -51,20 +60,11 @@ func (s *Split) Valid() bool {
 	return err == nil
 }
 
-const (
-	Imported   int64 = 1
-	Entered          = 2
-	Cleared          = 3
-	Reconciled       = 4
-	Voided           = 5
-)
-
 type Transaction struct {
 	TransactionId int64
 	UserId        int64
 	RemoteId      string // unique ID from server, for detecting duplicates
 	Description   string
-	Status        int64
 	Date          time.Time
 	Splits        []*Split `db:"-"`
 }

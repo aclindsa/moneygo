@@ -109,7 +109,6 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 	var transactions []Transaction
 	for _, transaction := range itl.Transactions {
 		transaction.UserId = user.UserId
-		transaction.Status = Imported
 
 		if !transaction.Valid() {
 			sqltransaction.Rollback()
@@ -122,6 +121,7 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 		// and fixup the SecurityId to be a valid one for this user's actual
 		// securities instead of a placeholder from the import
 		for _, split := range transaction.Splits {
+			split.Status = Imported
 			if split.AccountId != -1 {
 				if split.AccountId != importedAccount.AccountId {
 					sqltransaction.Rollback()

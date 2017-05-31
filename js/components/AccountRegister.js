@@ -35,11 +35,11 @@ var Big = require('big.js');
 var models = require('../models');
 var Security = models.Security;
 var Account = models.Account;
+var SplitStatus = models.SplitStatus;
+var SplitStatusList = models.SplitStatusList;
+var SplitStatusMap = models.SplitStatusMap;
 var Split = models.Split;
 var Transaction = models.Transaction;
-var TransactionStatus = models.TransactionStatus;
-var TransactionStatusList = models.TransactionStatusList;
-var TransactionStatusMap = models.TransactionStatusMap;
 var Error = models.Error;
 
 var getAccountDisplayName = require('../utils').getAccountDisplayName;
@@ -70,6 +70,7 @@ const TransactionRow = React.createClass({
 			for (var i = 0; i < this.props.transaction.Splits.length; i++) {
 				if (this.props.transaction.Splits[i].AccountId == this.props.account.AccountId) {
 					thisAccountSplit = this.props.transaction.Splits[i];
+					status = SplitStatusMap[this.props.transaction.Splits[i].Status];
 					break;
 				}
 			}
@@ -89,7 +90,6 @@ const TransactionRow = React.createClass({
 			var amount = security.Symbol + " " + thisAccountSplit.Amount.toFixed(security.Precision);
 			if (this.props.transaction.hasOwnProperty("Balance"))
 				balance = security.Symbol + " " + this.props.transaction.Balance.toFixed(security.Precision);
-			status = TransactionStatusMap[this.props.transaction.Status];
 			number = thisAccountSplit.Number;
 		} else {
 			var amount = security.Symbol + " " + (new Big(0.0)).toFixed(security.Precision);
@@ -216,19 +216,12 @@ const AddEditTransactionModal = React.createClass({
 			})
 		});
 	},
-	handleStatusChange: function(status) {
-		if (status.hasOwnProperty('StatusId')) {
-			this.setState({
-				transaction: react_update(this.state.transaction, {
-					Status: {$set: status.StatusId}
-				})
-			});
-		}
-	},
 	handleAddSplit: function() {
+		var split = new Split();
+		split.Status = SplitStatus.Entered;
 		this.setState({
 			transaction: react_update(this.state.transaction, {
-				Splits: {$push: [new Split()]}
+				Splits: {$push: [split]}
 			})
 		});
 	},
@@ -243,6 +236,15 @@ const AddEditTransactionModal = React.createClass({
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Number: {$set: ReactDOM.findDOMNode(this.refs['number-'+split]).value}
+		});
+		this.setState({
+			transaction: transaction
+		});
+	},
+	handleUpdateStatus: function(status, split) {
+		var transaction = this.state.transaction;
+		transaction.Splits[split] = react_update(transaction.Splits[split], {
+			Status: {$set: status.StatusId}
 		});
 		this.setState({
 			transaction: transaction
@@ -345,6 +347,10 @@ const AddEditTransactionModal = React.createClass({
 				var j = i;
 				return function() {self.handleUpdateNumber(j);};
 			})();
+			var updateStatusFn = (function() {
+				var j = i;
+				return function(status) {self.handleUpdateStatus(status, j);};
+			})();
 			var updateMemoFn = (function() {
 				var j = i;
 				return function() {self.handleUpdateMemo(j);};
@@ -374,7 +380,17 @@ const AddEditTransactionModal = React.createClass({
 					value={s.Number}
 					onChange={updateNumberFn}
 					ref={"number-"+i} /></Col>
-				<Col xs={5}><FormControl
+				<Col xs={1}>
+					<Combobox
+						suggest
+						data={SplitStatusList}
+						valueField='StatusId'
+						textField='Name'
+						defaultValue={s.Status}
+						onSelect={updateStatusFn}
+						ref={"status-"+i} />
+					</Col>
+				<Col xs={4}><FormControl
 					type="text"
 					value={s.Memo}
 					onChange={updateMemoFn}
@@ -424,23 +440,11 @@ const AddEditTransactionModal = React.createClass({
 							ref="description"/>
 						</Col>
 					</FormGroup>
-					<FormGroup>
-						<Col componentClass={ControlLabel} xs={2}>Status</Col>
-						<Col xs={10}>
-						<Combobox
-							suggest
-							data={TransactionStatusList}
-							valueField='StatusId'
-							textField='Name'
-							defaultValue={this.state.transaction.Status}
-							onSelect={this.handleStatusChange}
-							ref="status" />
-						</Col>
-					</FormGroup>
 
 					<Grid fluid={true}><Row>
 					<span className="split-header col-xs-1">#</span>
-					<span className="split-header col-xs-5">Memo</span>
+					<span className="split-header col-xs-1">Status</span>
+					<span className="split-header col-xs-4">Memo</span>
 					<span className="split-header col-xs-3">Account</span>
 					<span className="split-header col-xs-2">Amount</span>
 					</Row>
@@ -680,10 +684,11 @@ module.exports = React.createClass({
 	},
 	handleNewTransactionClicked: function() {
 		var newTransaction = new Transaction();
-		newTransaction.Status = TransactionStatus.Entered;
 		newTransaction.Date = new Date();
 		newTransaction.Splits.push(new Split());
 		newTransaction.Splits.push(new Split());
+		newTransaction.Splits[0].Status = SplitStatus.Entered;
+		newTransaction.Splits[1].Status = SplitStatus.Entered;
 		newTransaction.Splits[0].AccountId = this.props.accounts[this.props.selectedAccount].AccountId;
 
 		this.setState({

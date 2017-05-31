@@ -202,11 +202,32 @@ Account.prototype.isRootAccount = function() {
 	return this.ParentAccountId == empty_account.ParentAccountId;
 }
 
+const SplitStatus = {
+	Imported: 1,
+	Entered: 2,
+	Cleared: 3,
+	Reconciled: 4,
+	Voided: 5
+}
+var SplitStatusList = [];
+for (var type in SplitStatus) {
+	if (SplitStatus.hasOwnProperty(type)) {
+		SplitStatusList.push({'StatusId': SplitStatus[type], 'Name': type});
+   }
+}
+var SplitStatusMap = {};
+for (var status in SplitStatus) {
+	if (SplitStatus.hasOwnProperty(status)) {
+		SplitStatusMap[SplitStatus[status]] = status;
+   }
+}
+
 function Split() {
 	this.SplitId = -1;
 	this.TransactionId = -1;
 	this.AccountId = -1;
 	this.SecurityId = -1;
+	this.Status = -1;
 	this.Number = "";
 	this.Memo = "";
 	this.Amount = new Big(0.0);
@@ -219,6 +240,7 @@ Split.prototype.toJSONobj = function() {
 	json_obj.TransactionId = this.TransactionId;
 	json_obj.AccountId = this.AccountId;
 	json_obj.SecurityId = this.SecurityId;
+	json_obj.Status = this.Status;
 	json_obj.Number = this.Number;
 	json_obj.Memo = this.Memo;
 	json_obj.Amount = this.Amount.toFixed();
@@ -235,6 +257,8 @@ Split.prototype.fromJSONobj = function(json_obj) {
 		this.AccountId = json_obj.AccountId;
 	if (json_obj.hasOwnProperty("SecurityId"))
 		this.SecurityId = json_obj.SecurityId;
+	if (json_obj.hasOwnProperty("Status"))
+		this.Status = json_obj.Status;
 	if (json_obj.hasOwnProperty("Number"))
 		this.Number = json_obj.Number;
 	if (json_obj.hasOwnProperty("Memo"))
@@ -253,31 +277,10 @@ Split.prototype.isSplit = function() {
 		this.SecurityId != empty_split.SecurityId;
 }
 
-const TransactionStatus = {
-	Imported: 1,
-	Entered: 2,
-	Cleared: 3,
-	Reconciled: 4,
-	Voided: 5
-}
-var TransactionStatusList = [];
-for (var type in TransactionStatus) {
-	if (TransactionStatus.hasOwnProperty(type)) {
-		TransactionStatusList.push({'StatusId': TransactionStatus[type], 'Name': type});
-   }
-}
-var TransactionStatusMap = {};
-for (var status in TransactionStatus) {
-	if (TransactionStatus.hasOwnProperty(status)) {
-		TransactionStatusMap[TransactionStatus[status]] = status;
-   }
-}
-
 function Transaction() {
 	this.TransactionId = -1;
 	this.UserId = -1;
 	this.Description = "";
-	this.Status = -1;
 	this.Date = new Date();
 	this.Splits = [];
 }
@@ -287,7 +290,6 @@ Transaction.prototype.toJSON = function() {
 	json_obj.TransactionId = this.TransactionId;
 	json_obj.UserId = this.UserId;
 	json_obj.Description = this.Description;
-	json_obj.Status = this.Status;
 	json_obj.Date = this.Date.toJSON();
 	json_obj.Splits = [];
 	for (var i = 0; i < this.Splits.length; i++)
@@ -304,8 +306,6 @@ Transaction.prototype.fromJSON = function(json_input) {
 		this.UserId = json_obj.UserId;
 	if (json_obj.hasOwnProperty("Description"))
 		this.Description = json_obj.Description;
-	if (json_obj.hasOwnProperty("Status"))
-		this.Status = json_obj.Status;
 	if (json_obj.hasOwnProperty("Date")) {
 		this.Date = json_obj.Date
 		if (typeof this.Date === 'string') {
@@ -541,9 +541,9 @@ module.exports = models = {
 	AccountTypeList: AccountTypeList,
 	SecurityType: SecurityType,
 	SecurityTypeList: SecurityTypeList,
-	TransactionStatus: TransactionStatus,
-	TransactionStatusList: TransactionStatusList,
-	TransactionStatusMap: TransactionStatusMap,
+	SplitStatus: SplitStatus,
+	SplitStatusList: SplitStatusList,
+	SplitStatusMap: SplitStatusMap,
 
 	// Constants
 	BogusPassword: "password"
