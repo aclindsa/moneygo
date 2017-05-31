@@ -352,6 +352,7 @@ func UpdateTransaction(t *Transaction, user *User) error {
 				transaction.Rollback()
 				return errors.New("Updated more than one transaction split")
 			}
+			delete(s_map, t.Splits[i].SplitId)
 		} else {
 			t.Splits[i].SplitId = -1
 			err := transaction.Insert(t.Splits[i])
