@@ -33,6 +33,14 @@ div#content {
 	flex: auto;
 }
 
+/* Tabs */
+.nav-tabs {
+	margin-bottom: 15px;
+}
+#mainNavigationTabs .nav-tabs {
+	margin-bottom: 0px;
+}
+
 /* Style the account tree */
 div.accounttree-root-nochildren {
 	position: relative;

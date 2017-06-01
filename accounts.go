@@ -81,6 +81,20 @@ type Account struct {
 	// allowing a client to ensure they have a consistent version when paging
 	// through transactions.
 	AccountVersion int64 `json:"Version"`
+
+	// Optional fields specifying how to fetch transactions from a bank via OFX
+	OFXURL       string
+	OFXORG       string
+	OFXFID       string
+	OFXUser      string
+	OFXBankID    string // OFX BankID (BrokerID if AcctType == Investment)
+	OFXAcctID    string
+	OFXAcctType  string // ofxgo.acctType
+	OFXClientUID string
+	OFXAppID     string
+	OFXAppVer    string
+	OFXVersion   string
+	OFXNoIndent  bool
 }
 
 type AccountList struct {

@@ -161,6 +161,19 @@ function Account() {
 	this.ParentAccountId = -1;
 	this.Type = -1;
 	this.Name = "";
+
+	this.OFXURL = "";
+	this.OFXORG = "";
+	this.OFXFID = "";
+	this.OFXUser = "";
+	this.OFXBankID = "";
+	this.OFXAcctID = "";
+	this.OFXAcctType = "";
+	this.OFXClientUID = "";
+	this.OFXAppID = "";
+	this.OFXAppVer = "";
+	this.OFXVersion = "";
+	this.OFXNoIndent = false
 }
 
 Account.prototype.toJSON = function() {
@@ -171,6 +184,18 @@ Account.prototype.toJSON = function() {
 	json_obj.ParentAccountId = this.ParentAccountId;
 	json_obj.Type = this.Type;
 	json_obj.Name = this.Name;
+	json_obj.OFXURL = this.OFXURL;
+	json_obj.OFXORG = this.OFXORG;
+	json_obj.OFXFID = this.OFXFID;
+	json_obj.OFXUser = this.OFXUser;
+	json_obj.OFXBankID = this.OFXBankID;
+	json_obj.OFXAcctID = this.OFXAcctID;
+	json_obj.OFXAcctType = this.OFXAcctType;
+	json_obj.OFXClientUID = this.OFXClientUID;
+	json_obj.OFXAppID = this.OFXAppID;
+	json_obj.OFXAppVer = this.OFXAppVer;
+	json_obj.OFXVersion = this.OFXVersion;
+	json_obj.OFXNoIndent = this.OFXNoIndent;
 	return JSON.stringify(json_obj);
 }
 
@@ -189,6 +214,30 @@ Account.prototype.fromJSON = function(json_input) {
 		this.Type = json_obj.Type;
 	if (json_obj.hasOwnProperty("Name"))
 		this.Name = json_obj.Name;
+	if (json_obj.hasOwnProperty("OFXURL"))
+		this.OFXURL = json_obj.OFXURL;
+	if (json_obj.hasOwnProperty("OFXORG"))
+		this.OFXORG = json_obj.OFXORG;
+	if (json_obj.hasOwnProperty("OFXFID"))
+		this.OFXFID = json_obj.OFXFID;
+	if (json_obj.hasOwnProperty("OFXUser"))
+		this.OFXUser = json_obj.OFXUser;
+	if (json_obj.hasOwnProperty("OFXBankID"))
+		this.OFXBankID = json_obj.OFXBankID;
+	if (json_obj.hasOwnProperty("OFXAcctID"))
+		this.OFXAcctID = json_obj.OFXAcctID;
+	if (json_obj.hasOwnProperty("OFXAcctType"))
+		this.OFXAcctType = json_obj.OFXAcctType;
+	if (json_obj.hasOwnProperty("OFXClientUID"))
+		this.OFXClientUID = json_obj.OFXClientUID;
+	if (json_obj.hasOwnProperty("OFXAppID"))
+		this.OFXAppID = json_obj.OFXAppID;
+	if (json_obj.hasOwnProperty("OFXAppVer"))
+		this.OFXAppVer = json_obj.OFXAppVer;
+	if (json_obj.hasOwnProperty("OFXVersion"))
+		this.OFXVersion = json_obj.OFXVersion;
+	if (json_obj.hasOwnProperty("OFXNoIndent"))
+		this.OFXNoIndent = json_obj.OFXNoIndent;
 }
 
 Account.prototype.isAccount = function() {

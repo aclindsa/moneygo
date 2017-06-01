@@ -18,12 +18,16 @@ var ListGroupItem = ReactBootstrap.ListGroupItem;
 var Alert = ReactBootstrap.Alert;
 var Modal = ReactBootstrap.Modal;
 var Collapse = ReactBootstrap.Collapse;
+var Tabs = ReactBootstrap.Tabs;
+var Tab = ReactBootstrap.Tab;
+var Panel = ReactBootstrap.Panel;
 
 var Combobox = require('react-widgets').Combobox;
 
 var models = require('../models');
 var Security = models.Security;
 var Account = models.Account;
+var AccountType = models.AccountType;
 var AccountTypeList = models.AccountTypeList;
 
 var AccountCombobox = require('./AccountCombobox');
@@ -36,7 +40,19 @@ const AddEditAccountModal = React.createClass({
 			security: 1,
 			parentaccountid: -1,
 			type: 1,
-			name: ""
+			name: "",
+			ofxurl: "",
+			ofxorg: "",
+			ofxfid: "",
+			ofxuser: "",
+			ofxbankid: "",
+			ofxacctid: "",
+			ofxaccttype: "CHECKING",
+			ofxclientuid: "",
+			ofxappid: "",
+			ofxappver: "",
+			ofxversion: "",
+			ofxnoindent: false,
 		};
 		if (this.props.editAccount != null) {
 			s.accountid = this.props.editAccount.AccountId;
@@ -44,6 +60,18 @@ const AddEditAccountModal = React.createClass({
 			s.security = this.props.editAccount.SecurityId;
 			s.parentaccountid = this.props.editAccount.ParentAccountId;
 			s.type = this.props.editAccount.Type;
+			s.ofxurl = this.props.editAccount.OFXURL;
+			s.ofxorg = this.props.editAccount.OFXORG;
+			s.ofxfid = this.props.editAccount.OFXFID;
+			s.ofxuser = this.props.editAccount.OFXUser;
+			s.ofxbankid = this.props.editAccount.OFXBankID;
+			s.ofxacctid = this.props.editAccount.OFXAcctID;
+			s.ofxaccttype = this.props.editAccount.OFXAcctType;
+			s.ofxclientuid = this.props.editAccount.OFXClientUID;
+			s.ofxappid = this.props.editAccount.OFXAppID;
+			s.ofxappver = this.props.editAccount.OFXAppVer;
+			s.ofxversion = this.props.editAccount.OFXVersion;
+			s.ofxnoindent = this.props.editAccount.OFXNoIndent;
 		} else if (this.props.initialParentAccount != null) {
 			s.security = this.props.initialParentAccount.SecurityId;
 			s.parentaccountid = this.props.initialParentAccount.AccountId;
@@ -58,7 +86,22 @@ const AddEditAccountModal = React.createClass({
 	handleChange: function() {
 		this.setState({
 			name: ReactDOM.findDOMNode(this.refs.name).value,
+			ofxurl: ReactDOM.findDOMNode(this.refs.ofxurl).value,
+			ofxorg: ReactDOM.findDOMNode(this.refs.ofxorg).value,
+			ofxfid: ReactDOM.findDOMNode(this.refs.ofxfid).value,
+			ofxuser: ReactDOM.findDOMNode(this.refs.ofxuser).value,
+			ofxbankid: ReactDOM.findDOMNode(this.refs.ofxbankid).value,
+			ofxacctid: ReactDOM.findDOMNode(this.refs.ofxacctid).value,
+			ofxaccttype: ReactDOM.findDOMNode(this.refs.ofxaccttype).value,
+			ofxclientuid: ReactDOM.findDOMNode(this.refs.ofxclientuid).value,
+			ofxappid: ReactDOM.findDOMNode(this.refs.ofxappid).value,
+			ofxappver: ReactDOM.findDOMNode(this.refs.ofxappver).value,
+			ofxversion: ReactDOM.findDOMNode(this.refs.ofxversion).value,
 		});
+	},
+
+	handleNoIndentClick: function() {
+		this.setState({ofxnoindent: !this.state.ofxnoindent});
 	},
 	handleSecurityChange: function(security) {
 		if (security.hasOwnProperty('SecurityId'))
@@ -85,6 +128,19 @@ const AddEditAccountModal = React.createClass({
 		a.SecurityId = this.state.security;
 		a.Type = this.state.type;
 
+		a.OFXURL = this.state.ofxurl;
+		a.OFXORG = this.state.ofxorg;
+		a.OFXFID = this.state.ofxfid;
+		a.OFXUser = this.state.ofxuser;
+		a.OFXBankID = this.state.ofxbankid;
+		a.OFXAcctID = this.state.ofxacctid;
+		a.OFXAcctType = this.state.ofxaccttype;
+		a.OFXClientUID = this.state.ofxclientuid;
+		a.OFXAppID = this.state.ofxappid;
+		a.OFXAppVer = this.state.ofxappver;
+		a.OFXVersion = this.state.ofxversion;
+		a.OFXNoIndent = this.state.ofxNoIndent;
+
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(a);
 	},
@@ -97,13 +153,39 @@ const AddEditAccountModal = React.createClass({
 		var headerText = (this.props.editAccount != null) ? "Edit" : "Create New";
 		var buttonText = (this.props.editAccount != null) ? "Save Changes" : "Create Account";
 		var rootName = (this.props.editAccount != null) ? "Top-level Account" : "New Top-level Account";
+		var ofxBankIdName = "Broker ID";
+		var ofxAcctType = [];
+		if (this.state.type != AccountType.Investment) {
+			ofxBankIdName = "Bank ID";
+			ofxAcctType = (
+				<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>Account Type</Col>
+					<Col xs={10}>
+					<FormControl
+							componentClass="select"
+							placeholder="select"
+							value={this.state.ofxaccttype}
+							onChange={this.handleChange}
+							ref="ofxaccttype">
+						<option value="CHECKING">Checking</option>
+						<option value="SAVINGS">Savings</option>
+						<option value="MONEYMRKT">Money Market</option>
+						<option value="CREDITLINE">Credit Line</option>
+						<option value="CD">CD</option>
+					</FormControl>
+					</Col>
+				</FormGroup>
+			);
+		}
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
 				<Modal.Header closeButton>
 					<Modal.Title>{headerText} Account</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<Form horizontal onSubmit={this.handleSubmit}>
+				<Tabs defaultActiveKey={1} id="editAccountTabs">
+					<Tab eventKey={1} title="General">
+					<Form horizontal onSubmit={this.handleSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Name</Col>
 						<Col xs={10}>
@@ -151,7 +233,115 @@ const AddEditAccountModal = React.createClass({
 							ref="type" />
 						</Col>
 					</FormGroup>
-				</Form>
+					</Form>
+					</Tab>
+					<Tab eventKey={2} title="Sync (OFX)">
+					<Form horizontal onSubmit={this.handleSubmit}>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>OFX URL</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxurl}
+							onChange={this.handleChange}
+							ref="ofxurl"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>ORG</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxorg}
+							onChange={this.handleChange}
+							ref="ofxorg"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>FID</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxfid}
+							onChange={this.handleChange}
+							ref="ofxfid"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Username</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxuser}
+							onChange={this.handleChange}
+							ref="ofxuser"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>{ofxBankIdName}</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxbankid}
+							onChange={this.handleChange}
+							ref="ofxbankid"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Account ID</Col>
+						<Col xs={10}>
+						<FormControl type="text"
+							value={this.state.ofxacctid}
+							onChange={this.handleChange}
+							ref="ofxacctid"/>
+						</Col>
+					</FormGroup>
+					{ofxAcctType}
+					<Panel collapsible header="Advanced Settings">
+						<FormGroup>
+							<Col componentClass={ControlLabel} xs={2}>Client UID</Col>
+							<Col xs={10}>
+							<FormControl type="text"
+								value={this.state.ofxclientuid}
+								onChange={this.handleChange}
+								ref="ofxclientuid"/>
+							</Col>
+						</FormGroup>
+						<FormGroup>
+							<Col componentClass={ControlLabel} xs={2}>App ID</Col>
+							<Col xs={10}>
+							<FormControl type="text"
+								value={this.state.ofxappid}
+								onChange={this.handleChange}
+								ref="ofxappid"/>
+							</Col>
+						</FormGroup>
+						<FormGroup>
+							<Col componentClass={ControlLabel} xs={2}>App Version</Col>
+							<Col xs={10}>
+							<FormControl type="text"
+								value={this.state.ofxappver}
+								onChange={this.handleChange}
+								ref="ofxappver"/>
+							</Col>
+						</FormGroup>
+						<FormGroup>
+							<Col componentClass={ControlLabel} xs={2}>OFX Version</Col>
+							<Col xs={10}>
+							<FormControl type="text"
+								value={this.state.ofxversion}
+								onChange={this.handleChange}
+								ref="ofxversion"/>
+							</Col>
+						</FormGroup>
+						<FormGroup>
+							<Col xsOffset={2} xs={10}>
+							<Checkbox
+								checked={this.state.ofxnoindent ? "checked" : ""}
+								onClick={this.handleNoIndentClick}>
+									Don't indent OFX request files
+							</Checkbox>
+							</Col>
+						</FormGroup>
+					</Panel>
+					</Form>
+					</Tab>
+				</Tabs>
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
