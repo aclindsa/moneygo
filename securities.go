@@ -96,6 +96,16 @@ func GetSecurity(securityid int64, userid int64) (*Security, error) {
 	return &s, nil
 }
 
+func GetSecurityTx(transaction *gorp.Transaction, securityid int64, userid int64) (*Security, error) {
+	var s Security
+
+	err := transaction.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
+	if err != nil {
+		return nil, err
+	}
+	return &s, nil
+}
+
 func GetSecurities(userid int64) (*[]*Security, error) {
 	var securities []*Security
 
@@ -180,8 +190,8 @@ func DeleteSecurity(s *Security) error {
 	return nil
 }
 
-func ImportGetCreateSecurity(transaction *gorp.Transaction, user *User, security *Security) (*Security, error) {
-	security.UserId = user.UserId
+func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, security *Security) (*Security, error) {
+	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId
 		err := InsertSecurityTx(transaction, security)
@@ -193,7 +203,7 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, user *User, security
 
 	var securities []*Security
 
-	_, err := transaction.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", user.UserId, security.Type, security.AlternateId, security.Precision)
+	_, err := transaction.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", userid, security.Type, security.AlternateId, security.Precision)
 	if err != nil {
 		return nil, err
 	}

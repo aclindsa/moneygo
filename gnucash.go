@@ -302,7 +302,7 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 	securityMap := make(map[int64]int64)
 	for _, security := range gnucashImport.Securities {
 		securityId := security.SecurityId // save off because it could be updated
-		s, err := ImportGetCreateSecurity(sqltransaction, user, &security)
+		s, err := ImportGetCreateSecurity(sqltransaction, user.UserId, &security)
 		if err != nil {
 			sqltransaction.Rollback()
 			WriteError(w, 6 /*Import Error*/)

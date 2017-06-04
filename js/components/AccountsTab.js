@@ -139,7 +139,7 @@ const AddEditAccountModal = React.createClass({
 		a.OFXAppID = this.state.ofxappid;
 		a.OFXAppVer = this.state.ofxappver;
 		a.OFXVersion = this.state.ofxversion;
-		a.OFXNoIndent = this.state.ofxNoIndent;
+		a.OFXNoIndent = this.state.ofxnoindent;
 
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(a);
@@ -169,6 +169,7 @@ const AddEditAccountModal = React.createClass({
 							ref="ofxaccttype">
 						<option value="CHECKING">Checking</option>
 						<option value="SAVINGS">Savings</option>
+						<option value="CC">Credit Card</option>
 						<option value="MONEYMRKT">Money Market</option>
 						<option value="CREDITLINE">Credit Line</option>
 						<option value="CD">CD</option>
@@ -674,12 +675,19 @@ module.exports = React.createClass({
 						securities={this.props.securities}
 						transactions={this.props.transactions}
 						transactionPage={this.props.transactionPage}
+						imports={this.props.imports}
+						onFetchAllAccounts={this.props.onFetchAllAccounts}
 						onCreateTransaction={this.props.onCreateTransaction}
 						onUpdateTransaction={this.props.onUpdateTransaction}
 						onDeleteTransaction={this.props.onDeleteTransaction}
 						onSelectTransaction={this.props.onSelectTransaction}
 						onUnselectTransaction={this.props.onUnselectTransaction}
-						onFetchTransactionPage={this.props.onFetchTransactionPage}/>
+						onFetchTransactionPage={this.props.onFetchTransactionPage}
+						onOpenImportModal={this.props.onOpenImportModal}
+						onCloseImportModal={this.props.onCloseImportModal}
+						onImportOFX={this.props.onImportOFX}
+						onImportOFXFile={this.props.onImportOFXFile}
+						onImportGnucash={this.props.onImportGnucash} />
 				</Col>
 			</Row></Grid>
 		);

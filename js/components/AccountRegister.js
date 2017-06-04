@@ -473,25 +473,29 @@ const AddEditTransactionModal = React.createClass({
 
 const ImportType = {
 	OFX: 1,
-	Gnucash: 2
+	OFXFile: 2,
+	Gnucash: 3
 };
 var ImportTypeList = [];
 for (var type in ImportType) {
 	if (ImportType.hasOwnProperty(type)) {
-		var name = ImportType[type] == ImportType.OFX ? "OFX/QFX" : type; //QFX is a special snowflake
+		var name = ImportType[type] == ImportType.OFX ? "Direct OFX" : type;
+		var name = ImportType[type] == ImportType.OFXFile ? "OFX/QFX File" : type; //QFX is a special snowflake
 		ImportTypeList.push({'TypeId': ImportType[type], 'Name': name});
    }
 }
 
 const ImportTransactionsModal = React.createClass({
 	getInitialState: function() {
-		 return {
-			importing: false,
-			imported: false,
+		var startDate = new Date();
+		startDate.setMonth(startDate.getMonth() - 1);
+		return {
 			importFile: "",
 			importType: ImportType.Gnucash,
-			uploadProgress: -1,
-			error: null};
+			startDate: startDate,
+			endDate: new Date(),
+			password: "",
+		};
 	},
 	handleCancel: function() {
 		this.setState(this.getInitialState());
@@ -504,73 +508,36 @@ const ImportTransactionsModal = React.createClass({
 	handleTypeChange: function(type) {
 		this.setState({importType: type.TypeId});
 	},
+	handlePasswordChange: function() {
+		this.setState({password: ReactDOM.findDOMNode(this.refs.password).value});
+	},
+	handleStartDateChange: function(date, string) {
+		if (date == null)
+			return;
+		this.setState({
+			startDate: date
+		});
+	},
+	handleEndDateChange: function(date, string) {
+		if (date == null)
+			return;
+		this.setState({
+			endDate: date
+		});
+	},
 	handleSubmit: function() {
+		this.setState(this.getInitialState());
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(this.props.account);
 	},
-	handleSetProgress: function(e) {
-		if (e.lengthComputable) {
-			var pct = Math.round(e.loaded/e.total*100);
-			this.setState({uploadProgress: pct});
-		} else {
-			this.setState({uploadProgress: 50});
-		}
-	},
 	handleImportTransactions: function() {
-		var file = ReactDOM.findDOMNode(this.refs.importfile).files[0];
-		var formData = new FormData();
-		formData.append('importfile', file, this.state.importFile);
-		var url = ""
-		if (this.state.importType == ImportType.OFX)
-			url = "account/"+this.props.account.AccountId+"/import/ofx";
-		else if (this.state.importType == ImportType.Gnucash)
-			url = "import/gnucash";
-
-		this.setState({importing: true});
-
-		$.ajax({
-			type: "POST",
-			url: url,
-			data: formData,
-			xhr: function() {
-				var xhrObject = $.ajaxSettings.xhr();
-				if (xhrObject.upload) {
-					xhrObject.upload.addEventListener('progress', this.handleSetProgress, false);
-				} else {
-					console.log("File upload failed because !xhr.upload")
-				}
-				return xhrObject;
-			}.bind(this),
-			success: function(data, status, jqXHR) {
-				var e = new Error();
-				e.fromJSON(data);
-				if (e.isError()) {
-					var errString = e.ErrorString;
-					if (e.ErrorId == 3 /* Invalid Request */) {
-						errString = "Please check that the file you uploaded is valid and try again.";
-					}
-					this.setState({
-						importing: false,
-						error: errString
-					});
-					return;
-				}
-
-				this.setState({
-					uploadProgress: 100,
-					importing: false,
-					imported: true
-				});
-			}.bind(this),
-			error: function(e) {
-				this.setState({importing: false});
-				console.log("error handler", e);
-			}.bind(this),
-			// So jQuery doesn't try to process teh data or content-type
-			cache: false,
-			contentType: false,
-			processData: false
-		});
+		if (this.state.importType == ImportType.OFX) {
+			this.props.onImportOFX(this.props.account, this.state.password, this.state.startDate, this.state.endDate);
+		} else if (this.state.importType == ImportType.OFXFile) {
+			this.props.onImportOFXFile(ReactDOM.findDOMNode(this.refs.importfile), this.props.account);
+		} else if (this.state.importType == ImportType.Gnucash) {
+			this.props.onImportGnucash(ReactDOM.findDOMNode(this.refs.importfile));
+		}
 	},
 	render: function() {
 		var accountNameLabel = "Performing global import:"
@@ -579,45 +546,104 @@ const ImportTransactionsModal = React.createClass({
 
 		// Display the progress bar if an upload/import is in progress
 		var progressBar = [];
-		if (this.state.importing && this.state.uploadProgress == 100) {
-			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Importing transactions..." />);
-		} else if (this.state.importing && this.state.uploadProgress != -1) {
-			progressBar = (<ProgressBar now={this.state.uploadProgress} active label="Uploading... %(percent)s%" />);
+		if (this.props.imports.importing && this.props.imports.uploadProgress == 100) {
+			progressBar = (<ProgressBar now={this.props.imports.uploadProgress} active label="Importing transactions..." />);
+		} else if (this.props.imports.importing) {
+			progressBar = (<ProgressBar now={this.props.imports.uploadProgress} active label={`Uploading... ${this.props.imports.uploadProgress}%`} />);
 		}
 
 		// Create panel, possibly displaying error or success messages
 		var panel = [];
-		if (this.state.error != null) {
-			panel = (<Panel header="Error Importing Transactions" bsStyle="danger">{this.state.error}</Panel>);
-		} else if (this.state.imported) {
+		if (this.props.imports.importFailed) {
+			panel = (<Panel header="Error Importing Transactions" bsStyle="danger">{this.props.imports.errorMessage}</Panel>);
+		} else if (this.props.imports.importFinished) {
 			panel = (<Panel header="Successfully Imported Transactions" bsStyle="success">Your import is now complete.</Panel>);
 		}
 
 		// Display proper buttons, possibly disabling them if an import is in progress
 		var button1 = [];
 		var button2 = [];
-		if (!this.state.imported && this.state.error == null) {
-			button1 = (<Button onClick={this.handleCancel} disabled={this.state.importing} bsStyle="warning">Cancel</Button>);
-			button2 = (<Button onClick={this.handleImportTransactions} disabled={this.state.importing || this.state.importFile == ""} bsStyle="success">Import</Button>);
+		if (!this.props.imports.importFinished && !this.props.imports.importFailed) {
+			var importingDisabled = this.props.imports.importing || (this.state.importType != ImportType.OFX && this.state.importFile == "") || (this.state.importType == ImportType.OFX && this.state.password == "");
+			button1 = (<Button onClick={this.handleCancel} disabled={this.props.imports.importing} bsStyle="warning">Cancel</Button>);
+			button2 = (<Button onClick={this.handleImportTransactions} disabled={importingDisabled} bsStyle="success">Import</Button>);
 		} else {
-			button1 = (<Button onClick={this.handleCancel} disabled={this.state.importing} bsStyle="success">OK</Button>);
+			button1 = (<Button onClick={this.handleSubmit} disabled={this.props.imports.importing} bsStyle="success">OK</Button>);
 		}
-		var inputDisabled = (this.state.importing || this.state.error != null || this.state.imported) ? true : false;
+		var inputDisabled = (this.props.imports.importing || this.props.imports.importFailed || this.props.imports.importFinished) ? true : false;
 
 		// Disable OFX/QFX imports if no account is selected
 		var disabledTypes = false;
 		if (this.props.account == null)
-			disabledTypes = [ImportTypeList[ImportType.OFX - 1]];
+			disabledTypes = [ImportTypeList[ImportType.OFX - 1], ImportTypeList[ImportType.OFXFile - 1]];
+
+		var importForm = [];
+		if (this.state.importType == ImportType.OFX) {
+			importForm = (
+				<div>
+				<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>OFX Password</Col>
+					<Col xs={10}>
+						<FormControl type="password"
+							value={this.state.password}
+							placeholder="Password..."
+							ref="password"
+							onChange={this.handlePasswordChange} />
+					</Col>
+				</FormGroup>
+				<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>Start Date</Col>
+					<Col xs={10}>
+					<DateTimePicker
+						time={false}
+						defaultValue={this.state.startDate}
+						onChange={this.handleStartDateChange} />
+					</Col>
+				</FormGroup>
+				<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>End Date</Col>
+					<Col xs={10}>
+					<DateTimePicker
+						time={false}
+						defaultValue={this.state.endDate}
+						onChange={this.handleEndDateChange} />
+					</Col>
+				</FormGroup>
+				</div>
+			);
+		} else {
+			importForm = (
+				<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>File</Col>
+					<Col xs={10}>
+					<FormControl type="file"
+						ref="importfile"
+						disabled={inputDisabled}
+						value={this.state.importFile}
+						onChange={this.handleImportChange} />
+					<HelpBlock>Select a file to upload.</HelpBlock>
+					</Col>
+				</FormGroup>
+			);
+		}
 
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="small">
+			<Modal show={this.props.show} onHide={this.handleCancel}>
 				<Modal.Header closeButton>
 					<Modal.Title>Import Transactions</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<form onSubmit={this.handleImportTransactions}
+				<Form horizontal onSubmit={this.handleImportTransactions}
 						encType="multipart/form-data"
 						ref="importform">
+					<FormGroup>
+					<Col xs={12}>
+						<ControlLabel>{accountNameLabel}</ControlLabel>
+					</Col>
+					</FormGroup>
+					<FormGroup>
+					<Col componentClass={ControlLabel} xs={2}>Import Type</Col>
+					<Col xs={10}>
 					<DropdownList
 						data={ImportTypeList}
 						valueField='TypeId'
@@ -626,16 +652,10 @@ const ImportTransactionsModal = React.createClass({
 						defaultValue={this.state.importType}
 						disabled={disabledTypes}
 						ref="importtype" />
-					<FormGroup>
-						<ControlLabel>{accountNameLabel}</ControlLabel>
-						<FormControl type="file"
-							ref="importfile"
-							disabled={inputDisabled}
-							value={this.state.importFile}
-							onChange={this.handleImportChange} />
-						<HelpBlock>Select a file to upload.</HelpBlock>
+					</Col>
 					</FormGroup>
-				</form>
+					{importForm}
+				</Form>
 				{progressBar}
 				{panel}
 				</Modal.Body>
@@ -654,7 +674,6 @@ module.exports = React.createClass({
 	displayName: "AccountRegister",
 	getInitialState: function() {
 		return {
-			importingTransactions: false,
 			newTransaction: null,
 			height: 0
 		};
@@ -695,16 +714,6 @@ module.exports = React.createClass({
 			newTransaction: newTransaction
 		});
 	},
-	handleImportClicked: function() {
-		this.setState({
-			importingTransactions: true
-		});
-	},
-	handleImportingCancel: function() {
-		this.setState({
-			importingTransactions: false
-		});
-	},
 	ajaxError: function(jqXHR, status, error) {
 		var e = new Error();
 		e.ErrorId = 5;
@@ -725,7 +734,8 @@ module.exports = React.createClass({
 		}
 	},
 	handleImportComplete: function() {
-		this.setState({importingTransactions: false});
+		this.props.onCloseImportModal();
+		this.props.onFetchAllAccounts();
 		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
 	},
 	handleDeleteTransaction: function(transaction) {
@@ -810,11 +820,16 @@ module.exports = React.createClass({
 					onDelete={this.handleDeleteTransaction}
 					securities={this.props.securities} />
 				<ImportTransactionsModal
-					show={this.state.importingTransactions}
+					imports={this.props.imports}
+					show={this.props.imports.showModal}
 					account={this.props.accounts[this.props.selectedAccount]}
 					accounts={this.props.accounts}
-					onCancel={this.handleImportingCancel}
-					onSubmit={this.handleImportComplete}/>
+					onCancel={this.props.onCloseImportModal}
+					onHide={this.props.onCloseImportModal}
+					onSubmit={this.handleImportComplete}
+					onImportOFX={this.props.onImportOFX}
+					onImportOFXFile={this.props.onImportOFXFile}
+					onImportGnucash={this.props.onImportGnucash} />
 				<div className="transactions-register-toolbar">
 				Transactions for '{name}'
 				<ButtonToolbar className="pull-right">
@@ -835,7 +850,7 @@ module.exports = React.createClass({
 						<Glyphicon glyph='plus-sign' /> New Transaction
 					</Button>
 					<Button
-							onClick={this.handleImportClicked}
+							onClick={this.props.onOpenImportModal}
 							bsStyle="primary">
 						<Glyphicon glyph='import' /> Import
 					</Button>

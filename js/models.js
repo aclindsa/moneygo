@@ -573,6 +573,20 @@ Report.prototype.mapReduceSeries = function(mapFn, reduceFn) {
 	return this.mapReduceChildren(mapFn, reduceFn);
 }
 
+function OFXDownload() {
+	this.OFXPassword = "";
+	this.StartDate = new Date();
+	this.EndDate = new Date();
+}
+
+OFXDownload.prototype.toJSON = function() {
+	var json_obj = {};
+	json_obj.OFXPassword = this.OFXPassword;
+	json_obj.StartDate = this.StartDate.toJSON();
+	json_obj.EndDate = this.EndDate.toJSON();
+	return JSON.stringify(json_obj);
+}
+
 module.exports = models = {
 
 	// Classes
@@ -583,6 +597,7 @@ module.exports = models = {
 	Split: Split,
 	Transaction: Transaction,
 	Report: Report,
+	OFXDownload: OFXDownload,
 	Error: Error,
 
 	// Enums, Lists

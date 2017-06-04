@@ -113,9 +113,11 @@ func (i *OFXImport) importOFXBank(stmt *ofxgo.StatementResponse) error {
 		Type:              Bank,
 	}
 
-	for _, tran := range stmt.BankTranList.Transactions {
-		if err := i.AddTransaction(&tran, &account); err != nil {
-			return err
+	if stmt.BankTranList != nil {
+		for _, tran := range stmt.BankTranList.Transactions {
+			if err := i.AddTransaction(&tran, &account); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -139,9 +141,11 @@ func (i *OFXImport) importOFXCC(stmt *ofxgo.CCStatementResponse) error {
 	}
 	i.Accounts = append(i.Accounts, account)
 
-	for _, tran := range stmt.BankTranList.Transactions {
-		if err := i.AddTransaction(&tran, &account); err != nil {
-			return err
+	if stmt.BankTranList != nil {
+		for _, tran := range stmt.BankTranList.Transactions {
+			if err := i.AddTransaction(&tran, &account); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -2,6 +2,7 @@ var connect = require('react-redux').connect;
 
 var AccountActions = require('../actions/AccountActions');
 var TransactionActions = require('../actions/TransactionActions');
+var ImportActions = require('../actions/ImportActions');
 
 var AccountsTab = require('../components/AccountsTab');
 
@@ -18,12 +19,14 @@ function mapStateToProps(state) {
 		security_list: security_list,
 		selectedAccount: state.selectedAccount,
 		transactions: state.transactions,
-		transactionPage: state.transactionPage
+		transactionPage: state.transactionPage,
+		imports: state.imports
 	}
 }
 
 function mapDispatchToProps(dispatch) {
 	return {
+		onFetchAllAccounts: function() {dispatch(AccountActions.fetchAll())},
 		onCreateAccount: function(account) {dispatch(AccountActions.create(account))},
 		onUpdateAccount: function(account) {dispatch(AccountActions.update(account))},
 		onDeleteAccount: function(account) {dispatch(AccountActions.remove(account))},
@@ -34,6 +37,11 @@ function mapDispatchToProps(dispatch) {
 		onSelectTransaction: function(transactionId) {dispatch(TransactionActions.select(transactionId))},
 		onUnselectTransaction: function() {dispatch(TransactionActions.unselect())},
 		onFetchTransactionPage: function(account, pageSize, page) {dispatch(TransactionActions.fetchPage(account, pageSize, page))},
+		onOpenImportModal: function() {dispatch(ImportActions.openModal())},
+		onCloseImportModal: function() {dispatch(ImportActions.closeModal())},
+		onImportOFX: function(account, password, startDate, endDate) {dispatch(ImportActions.importOFX(account, password, startDate, endDate))},
+		onImportOFXFile: function(inputElement, account) {dispatch(ImportActions.importOFXFile(inputElement, account))},
+		onImportGnucash: function(inputElement) {dispatch(ImportActions.importGnucash(inputElement))},
 	}
 }
 

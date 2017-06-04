@@ -225,11 +225,19 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid int64) (*Account, error) {
 	var imbalanceAccount Account
 	var account Account
+	xxxtemplate := FindSecurityTemplate("XXX", Currency)
+	if xxxtemplate == nil {
+		return nil, errors.New("Couldn't find XXX security template")
+	}
+	xxxsecurity, err := ImportGetCreateSecurity(transaction, userid, xxxtemplate)
+	if err != nil {
+		return nil, errors.New("Couldn't create XXX security")
+	}
 
 	imbalanceAccount.UserId = userid
 	imbalanceAccount.Name = "Imbalances"
 	imbalanceAccount.ParentAccountId = -1
-	imbalanceAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level imbalance account, but maybe we should grab the user's default
+	imbalanceAccount.SecurityId = xxxsecurity.SecurityId
 	imbalanceAccount.Type = Bank
 
 	// Find/create the top-level trading account
@@ -238,7 +246,7 @@ func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid
 		return nil, err
 	}
 
-	security, err := GetSecurity(securityid, userid)
+	security, err := GetSecurityTx(transaction, securityid, userid)
 	if err != nil {
 		return nil, err
 	}

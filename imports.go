@@ -1,37 +1,29 @@
 package main
 
 import (
+	"encoding/json"
+	"github.com/aclindsa/ofxgo"
 	"io"
 	"log"
 	"math/big"
 	"net/http"
+	"strings"
+	"time"
 )
 
-/*
- * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
- */
-func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64, importtype string) {
-	//TODO branch off for different importtype's
+type OFXDownload struct {
+	OFXPassword string
+	StartDate   time.Time
+	EndDate     time.Time
+}
 
-	multipartReader, err := r.MultipartReader()
-	if err != nil {
-		WriteError(w, 3 /*Invalid Request*/)
-		return
-	}
+func (od *OFXDownload) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(od)
+}
 
-	// assume there is only one 'part'
-	part, err := multipartReader.NextPart()
-	if err != nil {
-		if err == io.EOF {
-			WriteError(w, 3 /*Invalid Request*/)
-		} else {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-		}
-		return
-	}
-
-	itl, err := ImportOFX(part)
+func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid int64) {
+	itl, err := ImportOFX(r)
 
 	if err != nil {
 		//TODO is this necessarily an invalid request (what if it was an error on our end)?
@@ -86,14 +78,17 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 	// SecurityIds to the actual SecurityIDs
 	var securitymap = make(map[int64]*Security)
 	for _, ofxsecurity := range itl.Securities {
-		security, err := ImportGetCreateSecurity(sqltransaction, user, &ofxsecurity)
+		// save off since ImportGetCreateSecurity overwrites SecurityId on
+		// ofxsecurity
+		oldsecurityid := ofxsecurity.SecurityId
+		security, err := ImportGetCreateSecurity(sqltransaction, user.UserId, &ofxsecurity)
 		if err != nil {
 			sqltransaction.Rollback()
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
 			return
 		}
-		securitymap[ofxsecurity.SecurityId] = security
+		securitymap[oldsecurityid] = security
 	}
 
 	if account.SecurityId != securitymap[importedAccount.SecurityId].SecurityId {
@@ -235,4 +230,152 @@ func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 	}
 
 	WriteSuccess(w)
+}
+
+func OFXImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
+	download_json := r.PostFormValue("ofxdownload")
+	if download_json == "" {
+		log.Print("download_json")
+		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+
+	var ofxdownload OFXDownload
+	err := ofxdownload.Read(download_json)
+	if err != nil {
+		log.Print("ofxdownload.Read")
+		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+
+	account, err := GetAccount(accountid, user.UserId)
+	if err != nil {
+		log.Print("GetAccount")
+		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+
+	ofxver := ofxgo.OfxVersion203
+	if len(account.OFXVersion) != 0 {
+		ofxver, err = ofxgo.NewOfxVersion(account.OFXVersion)
+		if err != nil {
+			log.Print("NewOfxVersion")
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+	}
+
+	var client = ofxgo.Client{
+		AppID:       account.OFXAppID,
+		AppVer:      account.OFXAppVer,
+		SpecVersion: ofxver,
+		NoIndent:    account.OFXNoIndent,
+	}
+
+	var query ofxgo.Request
+	query.URL = account.OFXURL
+	query.Signon.ClientUID = ofxgo.UID(account.OFXClientUID)
+	query.Signon.UserID = ofxgo.String(account.OFXUser)
+	query.Signon.UserPass = ofxgo.String(ofxdownload.OFXPassword)
+	query.Signon.Org = ofxgo.String(account.OFXORG)
+	query.Signon.Fid = ofxgo.String(account.OFXFID)
+
+	transactionuid, err := ofxgo.RandomUID()
+	if err != nil {
+		WriteError(w, 999 /*Internal Error*/)
+		log.Println("Error creating uid for transaction:", err)
+		return
+	}
+
+	if account.Type == Investment {
+		// Investment account
+		statementRequest := ofxgo.InvStatementRequest{
+			TrnUID: *transactionuid,
+			InvAcctFrom: ofxgo.InvAcct{
+				BrokerID: ofxgo.String(account.OFXBankID),
+				AcctID:   ofxgo.String(account.OFXAcctID),
+			},
+			Include:        true,
+			IncludeOO:      true,
+			IncludePos:     true,
+			IncludeBalance: true,
+			Include401K:    true,
+			Include401KBal: true,
+		}
+		query.InvStmt = append(query.InvStmt, &statementRequest)
+	} else if account.OFXAcctType == "CC" {
+		// Import credit card transactions
+		statementRequest := ofxgo.CCStatementRequest{
+			TrnUID: *transactionuid,
+			CCAcctFrom: ofxgo.CCAcct{
+				AcctID: ofxgo.String(account.OFXAcctID),
+			},
+			Include: true,
+		}
+		query.CreditCard = append(query.CreditCard, &statementRequest)
+	} else {
+		// Import generic bank transactions
+		acctTypeEnum, err := ofxgo.NewAcctType(account.OFXAcctType)
+		if err != nil {
+			WriteError(w, 3 /*Invalid Request*/)
+			return
+		}
+		statementRequest := ofxgo.StatementRequest{
+			TrnUID: *transactionuid,
+			BankAcctFrom: ofxgo.BankAcct{
+				BankID:   ofxgo.String(account.OFXBankID),
+				AcctID:   ofxgo.String(account.OFXAcctID),
+				AcctType: acctTypeEnum,
+			},
+			Include: true,
+		}
+		query.Bank = append(query.Bank, &statementRequest)
+	}
+
+	response, err := client.RequestNoParse(&query)
+	if err != nil {
+		// TODO this could be an error talking with the OFX server...
+		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+	defer response.Body.Close()
+
+	ofxImportHelper(response.Body, w, user, accountid)
+}
+
+func OFXFileImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
+	multipartReader, err := r.MultipartReader()
+	if err != nil {
+		WriteError(w, 3 /*Invalid Request*/)
+		return
+	}
+
+	// assume there is only one 'part'
+	part, err := multipartReader.NextPart()
+	if err != nil {
+		if err == io.EOF {
+			WriteError(w, 3 /*Invalid Request*/)
+		} else {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+		}
+		return
+	}
+
+	ofxImportHelper(part, w, user, accountid)
+}
+
+/*
+ * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
+ */
+func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64, importtype string) {
+
+	switch importtype {
+	case "ofx":
+		OFXImportHandler(w, r, user, accountid)
+	case "ofxfile":
+		OFXFileImportHandler(w, r, user, accountid)
+	default:
+		WriteError(w, 3 /*Invalid Request*/)
+	}
 }

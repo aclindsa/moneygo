@@ -11,6 +11,7 @@ var ReportReducer = require('./ReportReducer');
 var SelectedReportReducer = require('./SelectedReportReducer');
 var TransactionReducer = require('./TransactionReducer');
 var TransactionPageReducer = require('./TransactionPageReducer');
+var ImportReducer = require('./ImportReducer');
 var ErrorReducer = require('./ErrorReducer');
 
 module.exports = Redux.combineReducers({
@@ -25,5 +26,6 @@ module.exports = Redux.combineReducers({
 	selectedReport: SelectedReportReducer,
 	transactions: TransactionReducer,
 	transactionPage: TransactionPageReducer,
+	imports: ImportReducer,
 	error: ErrorReducer
 });
