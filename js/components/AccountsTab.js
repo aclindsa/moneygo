@@ -178,6 +178,7 @@ const AddEditAccountModal = React.createClass({
 				</FormGroup>
 			);
 		}
+		var bankIdDisabled = (this.state.ofxaccttype == "CC") ? true : false;
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
 				<Modal.Header closeButton>
@@ -278,6 +279,7 @@ const AddEditAccountModal = React.createClass({
 						<Col componentClass={ControlLabel} xs={2}>{ofxBankIdName}</Col>
 						<Col xs={10}>
 						<FormControl type="text"
+							disabled={bankIdDisabled}
 							value={this.state.ofxbankid}
 							onChange={this.handleChange}
 							ref="ofxbankid"/>
