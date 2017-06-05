@@ -178,7 +178,7 @@ const AddEditAccountModal = React.createClass({
 				</FormGroup>
 			);
 		}
-		var bankIdDisabled = (this.state.ofxaccttype == "CC") ? true : false;
+		var bankIdDisabled = (this.state.type != AccountType.Investment && this.state.ofxaccttype == "CC") ? true : false;
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel}>
 				<Modal.Header closeButton>
