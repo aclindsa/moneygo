@@ -1,5 +1,5 @@
 #!/bin/bash
-QUARTER=2016q3
+QUARTER=2017q1
 
 function get_ticker() {
 	local cusip=$1
