@@ -491,7 +491,7 @@ const ImportTransactionsModal = React.createClass({
 		startDate.setMonth(startDate.getMonth() - 1);
 		return {
 			importFile: "",
-			importType: ImportType.Gnucash,
+			importType: ImportType.OFX,
 			startDate: startDate,
 			endDate: new Date(),
 			password: "",
