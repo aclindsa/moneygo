@@ -1,5 +1,14 @@
 # MoneyGo
 
+**MoneyGo** is a personal finance web application written in JavaScript and
+Golang. It adheres to [double-entry
+accounting](https://en.wikipedia.org/wiki/Double-entry_bookkeeping_system)
+principles and allows for importing directly from financial institutions using
+OFX (via [ofxgo](https://github.com/aclindsa/ofxgo)).
+
+This project is in active development and is not yet ready to be relied upon as
+your primary accounting software.
+
 ## Installation
 
 First, install npm in your distribution:
@@ -29,7 +38,7 @@ the `go generate ...` command.
 
 ## Running
 
-Assuming you're in the same directory you ran the above installation comands
+Assuming you're in the same directory you ran the above installation commands
 from, running MoneyGo is then as easy as:
 
 	$ ./bin/moneygo \
