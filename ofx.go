@@ -137,7 +137,7 @@ func (i *OFXImport) importOFXCC(stmt *ofxgo.CCStatementResponse) error {
 		ExternalAccountId: stmt.CCAcctFrom.AcctID.String(),
 		SecurityId:        security.SecurityId,
 		ParentAccountId:   -1,
-		Type:              Bank,
+		Type:              Liability,
 	}
 	i.Accounts = append(i.Accounts, account)
 

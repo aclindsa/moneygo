@@ -66,13 +66,6 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 		return
 	}
 
-	if account.Type != importedAccount.Type {
-		sqltransaction.Rollback()
-		WriteError(w, 3 /*Invalid Request*/)
-		log.Printf("Expected %s account, found %s in OFX file", account.Type.String(), importedAccount.Type.String())
-		return
-	}
-
 	// Find matching existing securities or create new ones for those
 	// referenced by the OFX import. Also create a map from placeholder import
 	// SecurityIds to the actual SecurityIDs
