@@ -2,9 +2,9 @@
 
 ## Installation
 
-First, install npm and libofx in your distribution:
+First, install npm in your distribution:
 
-	$ sudo pacman -S npm libofx
+	$ sudo pacman -S npm
 
 Install browserify globally using npm:
 
@@ -18,6 +18,15 @@ something like:
 	$ go generate -v github.com/aclindsa/moneygo
 	$ go install -v github.com/aclindsa/moneygo
 
+This may take quite a while the first time you build the project since it is
+auto-generating a list of currencies and securities by querying multiple
+websites and services. To avoid this step, you can `touch
+src/github.com/aclindsa/moneygo/cusip_list.csv` before executing the `go
+generate ...` command above. Note that this will mean that no security templates
+are available to easily populate securities in your installation. If you would
+like to later generate these, simply remove the cusip_list.csv file and re-run
+the `go generate ...` command.
+
 ## Running
 
 Assuming you're in the same directory you ran the above installation comands
@@ -26,3 +35,6 @@ from, running MoneyGo is then as easy as:
 	$ ./bin/moneygo \
 	  -port 8080 \
 	  -base src/github.com/aclindsa/moneygo/
+
+You should then be able to explore MoneyGo by visiting http://localhost:8080 in
+your browser.
