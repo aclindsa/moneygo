@@ -3,21 +3,23 @@ var React = require('react');
 
 class Slice extends React.Component {
 	render() {
+		var center = this.props.cx + " " + this.props.cy;
+		var rotateDegrees = this.props.startAngle * 180 / Math.PI;
+
 		if (this.props.angle > Math.PI*2 - 0.00001) {
 			var slice = (<circle cx={this.props.cx} cy={this.props.cy} r={this.props.radius}
 				className={this.props.className}
 				onClick={this.props.onClick} />);
 		} else {
-			var center = this.props.cx + " " + this.props.cy;
 			var dx = Math.cos(this.props.angle)*this.props.radius - this.props.radius;
 			var dy = Math.sin(this.props.angle)*this.props.radius - 0.00001;
 			var large_arc_flag = this.props.angle > Math.PI ? 1 : 0;
-			var rotateDegrees = this.props.startAngle * 180 / Math.PI;
 
 			var slice = (<path d={"M" + center + " l " + this.props.radius + " 0 a " + this.props.radius + " " + this.props.radius + ", 0, " + large_arc_flag + ", 1, " + dx + " " + dy + " Z"}
 						className={this.props.className}
 						onClick={this.props.onClick} />);
 		}
+
 		return (
 			<g className="chart-series" transform={"rotate(" + rotateDegrees + " " + center + ")"}>
 				<title>{this.props.title}</title>
