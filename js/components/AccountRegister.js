@@ -46,8 +46,12 @@ var getAccountDisplayName = require('../utils').getAccountDisplayName;
 
 var AccountCombobox = require('./AccountCombobox');
 
-const TransactionRow = React.createClass({
-	handleClick: function(e) {
+class TransactionRow extends React.Component {
+	constructor() {
+		super();
+		this.onClick = this.handleClick.bind(this);
+	}
+	handleClick(e) {
 		const refs = ["date", "number", "description", "account", "status", "amount"];
 		for (var ref in refs) {
 			if (this.refs[refs[ref]] == e.target) {
@@ -55,8 +59,8 @@ const TransactionRow = React.createClass({
 				return;
 			}
 		}
-	},
-	render: function() {
+	}
+	render() {
 		var date = this.props.transaction.Date;
 		var dateString = date.getFullYear() + "/" + (date.getMonth()+1) + "/" + date.getDate();
 		var number = ""
@@ -97,19 +101,25 @@ const TransactionRow = React.createClass({
 
 		return (
 			<tr>
-				<td ref="date" onClick={this.handleClick}>{dateString}</td>
-				<td ref="number" onClick={this.handleClick}>{number}</td>
-				<td ref="description" onClick={this.handleClick}>{this.props.transaction.Description}</td>
-				<td ref="account" onClick={this.handleClick}>{accountName}</td>
-				<td ref="status" onClick={this.handleClick}>{status}</td>
-				<td ref="amount" onClick={this.handleClick}>{amount}</td>
+				<td ref="date" onClick={this.onClick}>{dateString}</td>
+				<td ref="number" onClick={this.onClick}>{number}</td>
+				<td ref="description" onClick={this.onClick}>{this.props.transaction.Description}</td>
+				<td ref="account" onClick={this.onClick}>{accountName}</td>
+				<td ref="status" onClick={this.onClick}>{status}</td>
+				<td ref="amount" onClick={this.onClick}>{amount}</td>
 				<td>{balance}</td>
 			</tr>);
 	}
-});
+}
 
-const AmountInput = React.createClass({
-	_getInitialState: function(props) {
+class AmountInput extends React.Component {
+	getInitialState(props) {
+		if (!props)
+			return {
+				LastGoodAmount: "0",
+				Amount: "0"
+			}
+
 		// Ensure we can edit this without screwing up other copies of it
 		var a;
 		if (props.security)
@@ -121,21 +131,23 @@ const AmountInput = React.createClass({
 			LastGoodAmount: a,
 			Amount: a
 		};
-	},
-	getInitialState: function() {
-		 return this._getInitialState(this.props);
-	},
-	componentWillReceiveProps: function(nextProps) {
+	}
+	constructor() {
+		super();
+		this.onChange = this.handleChange.bind(this);
+		this.state = this.getInitialState();
+	}
+	componentWillReceiveProps(nextProps) {
 		if ((!nextProps.value.eq(this.props.value) &&
 				!nextProps.value.eq(this.getValue())) ||
 				nextProps.security !== this.props.security) {
-			this.setState(this._getInitialState(nextProps));
+			this.setState(this.getInitialState(nextProps));
 		}
-	},
-	componentDidMount: function() {
-		ReactDOM.findDOMNode(this.refs.amount).onblur = this.onBlur;
-	},
-	onBlur: function() {
+	}
+	componentDidMount() {
+		ReactDOM.findDOMNode(this.refs.amount).onblur = this.handleBlur.bind(this);
+	}
+	handleBlur() {
 		var a;
 		if (this.props.security)
 			a = (new Big(this.getValue())).toFixed(this.props.security.Precision);
@@ -144,13 +156,13 @@ const AmountInput = React.createClass({
 		this.setState({
 			Amount: a
 		});
-	},
-	onChange: function() {
+	}
+	handleChange() {
 		this.setState({Amount: ReactDOM.findDOMNode(this.refs.amount).value});
 		if (this.props.onChange)
 			this.props.onChange();
-	},
-	getValue: function() {
+	}
+	getValue() {
 		try {
 			var value = ReactDOM.findDOMNode(this.refs.amount).value;
 			var ret = new Big(value);
@@ -159,8 +171,8 @@ const AmountInput = React.createClass({
 		} catch(err) {
 			return new Big(this.state.LastGoodAmount);
 		}
-	},
-	render: function() {
+	}
+	render() {
 		var symbol = "?";
 		if (this.props.security)
 			symbol = this.props.security.Symbol;
@@ -177,37 +189,54 @@ const AmountInput = React.createClass({
 			</FormGroup>
 		);
 	}
-});
+}
 
-const AddEditTransactionModal = React.createClass({
-	_getInitialState: function(props) {
+class AddEditTransactionModal extends React.Component {
+	getInitialState(props) {
 		// Ensure we can edit this without screwing up other copies of it
-		var t = props.transaction.deepCopy();
+		if (props)
+			var t = props.transaction.deepCopy();
+		else
+			var t = new Transaction();
+
 		return {
 			errorAlert: [],
 			transaction: t
 		};
-	},
-	getInitialState: function() {
-		 return this._getInitialState(this.props);
-	},
-	componentWillReceiveProps: function(nextProps) {
+	}
+	constructor() {
+		super();
+		this.state = this.getInitialState();
+		this.onCancel = this.handleCancel.bind(this);
+		this.onDescriptionChange = this.handleDescriptionChange.bind(this);
+		this.onDateChange = this.handleDateChange.bind(this);
+		this.onAddSplit = this.handleAddSplit.bind(this);
+		this.onDeleteSplit = this.handleDeleteSplit.bind(this);
+		this.onUpdateNumber = this.handleUpdateNumber.bind(this);
+		this.onUpdateStatus = this.handleUpdateStatus.bind(this);
+		this.onUpdateMemo = this.handleUpdateMemo.bind(this);
+		this.onUpdateAccount = this.handleUpdateAccount.bind(this);
+		this.onUpdateAmount = this.handleUpdateAmount.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+		this.onDelete = this.handleDelete.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
 		if (nextProps.show && !this.props.show) {
-			this.setState(this._getInitialState(nextProps));
+			this.setState(this.getInitialState(nextProps));
 		}
-	},
-	handleCancel: function() {
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleDescriptionChange: function() {
+	}
+	handleDescriptionChange() {
 		this.setState({
 			transaction: react_update(this.state.transaction, {
 				Description: {$set: ReactDOM.findDOMNode(this.refs.description).value}
 			})
 		});
-	},
-	handleDateChange: function(date, string) {
+	}
+	handleDateChange(date, string) {
 		if (date == null)
 			return;
 		this.setState({
@@ -215,8 +244,8 @@ const AddEditTransactionModal = React.createClass({
 				Date: {$set: date}
 			})
 		});
-	},
-	handleAddSplit: function() {
+	}
+	handleAddSplit() {
 		var split = new Split();
 		split.Status = SplitStatus.Entered;
 		this.setState({
@@ -224,15 +253,15 @@ const AddEditTransactionModal = React.createClass({
 				Splits: {$push: [split]}
 			})
 		});
-	},
-	handleDeleteSplit: function(split) {
+	}
+	handleDeleteSplit(split) {
 		this.setState({
 			transaction: react_update(this.state.transaction, {
 				Splits: {$splice: [[split, 1]]}
 			})
 		});
-	},
-	handleUpdateNumber: function(split) {
+	}
+	handleUpdateNumber(split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Number: {$set: ReactDOM.findDOMNode(this.refs['number-'+split]).value}
@@ -240,8 +269,8 @@ const AddEditTransactionModal = React.createClass({
 		this.setState({
 			transaction: transaction
 		});
-	},
-	handleUpdateStatus: function(status, split) {
+	}
+	handleUpdateStatus(status, split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Status: {$set: status.StatusId}
@@ -249,8 +278,8 @@ const AddEditTransactionModal = React.createClass({
 		this.setState({
 			transaction: transaction
 		});
-	},
-	handleUpdateMemo: function(split) {
+	}
+	handleUpdateMemo(split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Memo: {$set: ReactDOM.findDOMNode(this.refs['memo-'+split]).value}
@@ -258,8 +287,8 @@ const AddEditTransactionModal = React.createClass({
 		this.setState({
 			transaction: transaction
 		});
-	},
-	handleUpdateAccount: function(account, split) {
+	}
+	handleUpdateAccount(account, split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			SecurityId: {$set: -1},
@@ -268,8 +297,8 @@ const AddEditTransactionModal = React.createClass({
 		this.setState({
 			transaction: transaction
 		});
-	},
-	handleUpdateAmount: function(split) {
+	}
+	handleUpdateAmount(split) {
 		var transaction = this.state.transaction;
 		transaction.Splits[split] = react_update(transaction.Splits[split], {
 			Amount: {$set: new Big(this.refs['amount-'+split].getValue())}
@@ -277,8 +306,8 @@ const AddEditTransactionModal = React.createClass({
 		this.setState({
 			transaction: transaction
 		});
-	},
-	handleSubmit: function() {
+	}
+	handleSubmit() {
 		var errorString = ""
 		var imbalancedSecurityList = this.state.transaction.imbalancedSplitSecurities(this.props.accounts);
 		if (imbalancedSecurityList.length > 0)
@@ -299,19 +328,19 @@ const AddEditTransactionModal = React.createClass({
 
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(this.state.transaction);
-	},
-	handleDelete: function() {
+	}
+	handleDelete() {
 		if (this.props.onDelete != null)
 			this.props.onDelete(this.state.transaction);
-	},
-	render: function() {
+	}
+	render() {
 		var editing = this.props.transaction != null && this.props.transaction.isTransaction();
 		var headerText = editing ? "Edit" : "Create New";
 		var buttonText = editing ? "Save Changes" : "Create Transaction";
 		var deleteButton = [];
 		if (editing) {
 			deleteButton = (
-				<Button key={1} onClick={this.handleDelete} bsStyle="danger">Delete Transaction</Button>
+				<Button key={1} onClick={this.onDelete} bsStyle="danger">Delete Transaction</Button>
 		   );
 		}
 
@@ -320,7 +349,7 @@ const AddEditTransactionModal = React.createClass({
 		for (i = 0; i < imbalancedSecurityList.length; i++)
 			imbalancedSecurityMap[imbalancedSecurityList[i]] = i;
 
-		splits = [];
+		var splits = [];
 		for (var i = 0; i < this.state.transaction.Splits.length; i++) {
 			var self = this;
 			var s = this.state.transaction.Splits[i];
@@ -341,27 +370,27 @@ const AddEditTransactionModal = React.createClass({
 			// Define all closures for calling split-updating functions
 			var deleteSplitFn = (function() {
 				var j = i;
-				return function() {self.handleDeleteSplit(j);};
+				return function() {self.onDeleteSplit(j);};
 			})();
 			var updateNumberFn = (function() {
 				var j = i;
-				return function() {self.handleUpdateNumber(j);};
+				return function() {self.onUpdateNumber(j);};
 			})();
 			var updateStatusFn = (function() {
 				var j = i;
-				return function(status) {self.handleUpdateStatus(status, j);};
+				return function(status) {self.onUpdateStatus(status, j);};
 			})();
 			var updateMemoFn = (function() {
 				var j = i;
-				return function() {self.handleUpdateMemo(j);};
+				return function() {self.onUpdateMemo(j);};
 			})();
 			var updateAccountFn = (function() {
 				var j = i;
-				return function(account) {self.handleUpdateAccount(account, j);};
+				return function(account) {self.onUpdateAccount(account, j);};
 			})();
 			var updateAmountFn = (function() {
 				var j = i;
-				return function() {self.handleUpdateAmount(j);};
+				return function() {self.onUpdateAmount(j);};
 			})();
 
 			var deleteSplitButton = [];
@@ -415,20 +444,20 @@ const AddEditTransactionModal = React.createClass({
 		}
 
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
+			<Modal show={this.props.show} onHide={this.onCancel} bsSize="large">
 				<Modal.Header closeButton>
 					<Modal.Title>{headerText} Transaction</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				<Form horizontal
-						onSubmit={this.handleSubmit}>
+						onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Date</Col>
 						<Col xs={10}>
 						<DateTimePicker
 							time={false}
 							defaultValue={this.state.transaction.Date}
-							onChange={this.handleDateChange} />
+							onChange={this.onDateChange} />
 						</Col>
 					</FormGroup>
 					<FormGroup>
@@ -436,7 +465,7 @@ const AddEditTransactionModal = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.transaction.Description}
-							onChange={this.handleDescriptionChange}
+							onChange={this.onDescriptionChange}
 							ref="description"/>
 						</Col>
 					</FormGroup>
@@ -451,7 +480,7 @@ const AddEditTransactionModal = React.createClass({
 					{splits}
 					<Row>
 						<span className="col-xs-11"></span>
-						<Col xs={1}><Button onClick={this.handleAddSplit}
+						<Col xs={1}><Button onClick={this.onAddSplit}
 								bsStyle="success">
 								<Glyphicon glyph='plus-sign' /></Button></Col>
 					</Row>
@@ -461,15 +490,15 @@ const AddEditTransactionModal = React.createClass({
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup>
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.onCancel} bsStyle="warning">Cancel</Button>
 						{deleteButton}
-						<Button onClick={this.handleSubmit} bsStyle="success">{buttonText}</Button>
+						<Button onClick={this.onSubmit} bsStyle="success">{buttonText}</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
-});
+}
 
 const ImportType = {
 	OFX: 1,
@@ -485,8 +514,8 @@ for (var type in ImportType) {
    }
 }
 
-const ImportTransactionsModal = React.createClass({
-	getInitialState: function() {
+class ImportTransactionsModal extends React.Component {
+	getInitialState() {
 		var startDate = new Date();
 		startDate.setMonth(startDate.getMonth() - 1);
 		return {
@@ -496,41 +525,56 @@ const ImportTransactionsModal = React.createClass({
 			endDate: new Date(),
 			password: "",
 		};
-	},
-	handleCancel: function() {
-		this.setState(this.getInitialState());
+	}
+	constructor() {
+		super();
+		this.state = this.getInitialState();
+		this.onCancel = this.handleCancel.bind(this);
+		this.onImportChange = this.handleImportChange.bind(this);
+		this.onTypeChange = this.handleTypeChange.bind(this);
+		this.onPasswordChange = this.handlePasswordChange.bind(this);
+		this.onStartDateChange = this.handleStartDateChange.bind(this);
+		this.onEndDateChange = this.handleEndDateChange.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+		this.onImportTransactions = this.handleImportTransactions.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState());
+		}
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleImportChange: function() {
+	}
+	handleImportChange() {
 		this.setState({importFile: ReactDOM.findDOMNode(this.refs.importfile).value});
-	},
-	handleTypeChange: function(type) {
+	}
+	handleTypeChange(type) {
 		this.setState({importType: type.TypeId});
-	},
-	handlePasswordChange: function() {
+	}
+	handlePasswordChange() {
 		this.setState({password: ReactDOM.findDOMNode(this.refs.password).value});
-	},
-	handleStartDateChange: function(date, string) {
+	}
+	handleStartDateChange(date, string) {
 		if (date == null)
 			return;
 		this.setState({
 			startDate: date
 		});
-	},
-	handleEndDateChange: function(date, string) {
+	}
+	handleEndDateChange(date, string) {
 		if (date == null)
 			return;
 		this.setState({
 			endDate: date
 		});
-	},
-	handleSubmit: function() {
-		this.setState(this.getInitialState());
+	}
+	handleSubmit() {
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(this.props.account);
-	},
-	handleImportTransactions: function() {
+	}
+	handleImportTransactions() {
 		if (this.state.importType == ImportType.OFX) {
 			this.props.onImportOFX(this.props.account, this.state.password, this.state.startDate, this.state.endDate);
 		} else if (this.state.importType == ImportType.OFXFile) {
@@ -538,8 +582,8 @@ const ImportTransactionsModal = React.createClass({
 		} else if (this.state.importType == ImportType.Gnucash) {
 			this.props.onImportGnucash(ReactDOM.findDOMNode(this.refs.importfile));
 		}
-	},
-	render: function() {
+	}
+	render() {
 		var accountNameLabel = "Performing global import:"
 		if (this.props.account != null && this.state.importType != ImportType.Gnucash)
 			accountNameLabel = "Importing to '" + getAccountDisplayName(this.props.account, this.props.accounts) + "' account:";
@@ -565,10 +609,10 @@ const ImportTransactionsModal = React.createClass({
 		var button2 = [];
 		if (!this.props.imports.importFinished && !this.props.imports.importFailed) {
 			var importingDisabled = this.props.imports.importing || (this.state.importType != ImportType.OFX && this.state.importFile == "") || (this.state.importType == ImportType.OFX && this.state.password == "");
-			button1 = (<Button onClick={this.handleCancel} disabled={this.props.imports.importing} bsStyle="warning">Cancel</Button>);
-			button2 = (<Button onClick={this.handleImportTransactions} disabled={importingDisabled} bsStyle="success">Import</Button>);
+			button1 = (<Button onClick={this.onCancel} disabled={this.props.imports.importing} bsStyle="warning">Cancel</Button>);
+			button2 = (<Button onClick={this.onImportTransactions} disabled={importingDisabled} bsStyle="success">Import</Button>);
 		} else {
-			button1 = (<Button onClick={this.handleSubmit} disabled={this.props.imports.importing} bsStyle="success">OK</Button>);
+			button1 = (<Button onClick={this.onSubmit} disabled={this.props.imports.importing} bsStyle="success">OK</Button>);
 		}
 		var inputDisabled = (this.props.imports.importing || this.props.imports.importFailed || this.props.imports.importFinished) ? true : false;
 
@@ -588,7 +632,7 @@ const ImportTransactionsModal = React.createClass({
 							value={this.state.password}
 							placeholder="Password..."
 							ref="password"
-							onChange={this.handlePasswordChange} />
+							onChange={this.onPasswordChange} />
 					</Col>
 				</FormGroup>
 				<FormGroup>
@@ -597,7 +641,7 @@ const ImportTransactionsModal = React.createClass({
 					<DateTimePicker
 						time={false}
 						defaultValue={this.state.startDate}
-						onChange={this.handleStartDateChange} />
+						onChange={this.onStartDateChange} />
 					</Col>
 				</FormGroup>
 				<FormGroup>
@@ -606,7 +650,7 @@ const ImportTransactionsModal = React.createClass({
 					<DateTimePicker
 						time={false}
 						defaultValue={this.state.endDate}
-						onChange={this.handleEndDateChange} />
+						onChange={this.onEndDateChange} />
 					</Col>
 				</FormGroup>
 				</div>
@@ -620,7 +664,7 @@ const ImportTransactionsModal = React.createClass({
 						ref="importfile"
 						disabled={inputDisabled}
 						value={this.state.importFile}
-						onChange={this.handleImportChange} />
+						onChange={this.onImportChange} />
 					<HelpBlock>Select a file to upload.</HelpBlock>
 					</Col>
 				</FormGroup>
@@ -628,12 +672,12 @@ const ImportTransactionsModal = React.createClass({
 		}
 
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel}>
+			<Modal show={this.props.show} onHide={this.onCancel}>
 				<Modal.Header closeButton>
 					<Modal.Title>Import Transactions</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-				<Form horizontal onSubmit={this.handleImportTransactions}
+				<Form horizontal onSubmit={this.onImportTransactions}
 						encType="multipart/form-data"
 						ref="importform">
 					<FormGroup>
@@ -648,7 +692,7 @@ const ImportTransactionsModal = React.createClass({
 						data={ImportTypeList}
 						valueField='TypeId'
 						textField='Name'
-						onSelect={this.handleTypeChange}
+						onSelect={this.onTypeChange}
 						defaultValue={this.state.importType}
 						disabled={disabledTypes}
 						ref="importtype" />
@@ -668,40 +712,47 @@ const ImportTransactionsModal = React.createClass({
 			</Modal>
 		);
 	}
-});
+}
 
-module.exports = React.createClass({
-	displayName: "AccountRegister",
-	getInitialState: function() {
-		return {
+class AccountRegister extends React.Component {
+	constructor() {
+		super();
+		this.state = {
 			newTransaction: null,
 			height: 0
 		};
-	},
-	resize: function() {
+		this.onEditTransaction = this.handleEditTransaction.bind(this);
+		this.onEditingCancel = this.handleEditingCancel.bind(this);
+		this.onNewTransactionClicked = this.handleNewTransactionClicked.bind(this);
+		this.onSelectPage = this.handleSelectPage.bind(this);
+		this.onImportComplete = this.handleImportComplete.bind(this);
+		this.onUpdateTransaction = this.handleUpdateTransaction.bind(this);
+		this.onDeleteTransaction = this.handleDeleteTransaction.bind(this);
+	}
+	resize() {
 		var div = ReactDOM.findDOMNode(this);
 		this.setState({height: div.parentElement.clientHeight - 64});
-	},
-	componentWillReceiveProps: function(nextProps) {
+	}
+	componentWillReceiveProps(nextProps) {
 		if (!nextProps.transactionPage.upToDate && nextProps.selectedAccount != -1) {
 			nextProps.onFetchTransactionPage(nextProps.accounts[nextProps.selectedAccount], nextProps.transactionPage.pageSize, nextProps.transactionPage.page);
 		}
-	},
-	componentDidMount: function() {
+	}
+	componentDidMount() {
 		this.resize();
 		var self = this;
 		$(window).resize(function() {self.resize();});
-	},
-	handleEditTransaction: function(transaction) {
+	}
+	handleEditTransaction(transaction) {
 		this.props.onSelectTransaction(transaction.TransactionId);
-	},
-	handleEditingCancel: function() {
+	}
+	handleEditingCancel() {
 		this.setState({
 			newTransaction: null
 		});
 		this.props.onUnselectTransaction();
-	},
-	handleNewTransactionClicked: function() {
+	}
+	handleNewTransactionClicked() {
 		var newTransaction = new Transaction();
 		newTransaction.Date = new Date();
 		newTransaction.Splits.push(new Split());
@@ -713,14 +764,8 @@ module.exports = React.createClass({
 		this.setState({
 			newTransaction: newTransaction
 		});
-	},
-	ajaxError: function(jqXHR, status, error) {
-		var e = new Error();
-		e.ErrorId = 5;
-		e.ErrorString = "Request Failed: " + status + error;
-		this.setState({error: e});
-	},
-	handleSelectPage: function(eventKey) {
+	}
+	handleSelectPage(eventKey) {
 		var newpage = eventKey - 1;
 		// Don't do pages that don't make sense
 		if (newpage < 0)
@@ -732,17 +777,17 @@ module.exports = React.createClass({
 				this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, newpage);
 			}
 		}
-	},
-	handleImportComplete: function() {
+	}
+	handleImportComplete() {
 		this.props.onCloseImportModal();
 		this.props.onFetchAllAccounts();
 		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
-	},
-	handleDeleteTransaction: function(transaction) {
+	}
+	handleDeleteTransaction(transaction) {
 		this.props.onDeleteTransaction(transaction);
 		this.props.onUnselectTransaction();
-	},
-	handleUpdateTransaction: function(transaction) {
+	}
+	handleUpdateTransaction(transaction) {
 		if (transaction.TransactionId != -1) {
 			this.props.onUpdateTransaction(transaction);
 		} else {
@@ -752,10 +797,10 @@ module.exports = React.createClass({
 		this.setState({
 			newTransaction: null
 		});
-	},
-	render: function() {
+	}
+	render() {
 		var name = "Please select an account";
-		register = [];
+		var register = [];
 
 		if (this.props.selectedAccount != -1) {
 			name = this.props.accounts[this.props.selectedAccount].Name;
@@ -815,9 +860,9 @@ module.exports = React.createClass({
 					transaction={selectedTransaction}
 					accounts={this.props.accounts}
 					accountChildren={this.props.accountChildren}
-					onCancel={this.handleEditingCancel}
-					onSubmit={this.handleUpdateTransaction}
-					onDelete={this.handleDeleteTransaction}
+					onCancel={this.onEditingCancel}
+					onSubmit={this.onUpdateTransaction}
+					onDelete={this.onDeleteTransaction}
 					securities={this.props.securities} />
 				<ImportTransactionsModal
 					imports={this.props.imports}
@@ -826,7 +871,7 @@ module.exports = React.createClass({
 					accounts={this.props.accounts}
 					onCancel={this.props.onCloseImportModal}
 					onHide={this.props.onCloseImportModal}
-					onSubmit={this.handleImportComplete}
+					onSubmit={this.onImportComplete}
 					onImportOFX={this.props.onImportOFX}
 					onImportOFXFile={this.props.onImportOFXFile}
 					onImportGnucash={this.props.onImportGnucash} />
@@ -840,11 +885,11 @@ module.exports = React.createClass({
 						items={this.props.transactionPage.numPages}
 						maxButtons={Math.min(5, this.props.transactionPage.numPages)}
 						activePage={this.props.transactionPage.page + 1}
-						onSelect={this.handleSelectPage} />
+						onSelect={this.onSelectPage} />
 					</ButtonGroup>
 					<ButtonGroup>
 					<Button
-							onClick={this.handleNewTransactionClicked}
+							onClick={this.onNewTransactionClicked}
 							bsStyle="success"
 							disabled={disabled}>
 						<Glyphicon glyph='plus-sign' /> New Transaction
@@ -861,4 +906,6 @@ module.exports = React.createClass({
 			</div>
 		);
 	}
-});
+}
+
+module.exports = AccountRegister;

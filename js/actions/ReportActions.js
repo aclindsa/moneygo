@@ -87,7 +87,7 @@ function select(report, seriesTraversal) {
 
 		// Add back in any values from the current level
 		if (series.hasOwnProperty('Values'))
-			flattenedSeries[report.topLevelAccountName] = series.Values;
+			flattenedSeries[Report.topLevelAccountName()] = series.Values;
 
 		var flattenedReport = new Report();
 

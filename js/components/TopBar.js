@@ -14,36 +14,39 @@ var ReactDOM = require('react-dom');
 
 var User = require('../models').User;
 
-const LoginBar = React.createClass({
-	getInitialState: function() {
-		return {username: '', password: ''};
-	},
-	onUsernameChange: function(e) {
+class LoginBar extends React.Component {
+	constructor() {
+		super();
+		this.state = {username: '', password: ''};
+		this.onSubmit = this.handleSubmit.bind(this);
+		this.onNewUserSubmit = this.handleNewUserSubmit.bind(this);
+	}
+	onUsernameChange(e) {
 		this.setState({username: e.target.value});
-	},
-	onPasswordChange: function(e) {
+	}
+	onPasswordChange(e) {
 		this.setState({password: e.target.value});
-	},
-	handleSubmit: function(e) {
+	}
+	handleSubmit(e) {
 		var user = new User();
 		e.preventDefault();
 		user.Username = ReactDOM.findDOMNode(this.refs.username).value;
 		user.Password = ReactDOM.findDOMNode(this.refs.password).value;
 		this.props.onLogin(user);
-	},
-	handleNewUserSubmit: function(e) {
+	}
+	handleNewUserSubmit(e) {
 		e.preventDefault();
 		this.props.onCreateNewUser();
-	},
-	render: function() {
+	}
+	render() {
 		return (
-			<form onSubmit={this.handleSubmit}>
+			<form onSubmit={this.onSubmit}>
 			<FormGroup>
 				<Row>
 					<Col xs={4}></Col>
 					<Col xs={2}>
 						<Button bsStyle="link"
-							onClick={this.handleNewUserSubmit}>Create New User</Button>
+							onClick={this.onNewUserSubmit}>Create New User</Button>
 					</Col>
 					<Col xs={2}>
 						<FormControl type="text"
@@ -64,18 +67,22 @@ const LoginBar = React.createClass({
 			</form>
 		);
 	}
-});
+}
 
-const LogoutBar = React.createClass({
-	handleOnSelect: function(key) {
+class LogoutBar extends React.Component {
+	constructor() {
+		super();
+		this.onSelect = this.handleOnSelect.bind(this);
+	}
+	handleOnSelect(key) {
 		if (key == 1) {
 			if (this.props.onAccountSettings != null)
 				this.props.onAccountSettings();
 		} else if (key == 2) {
 			this.props.onLogout();
 		}
-	},
-	render: function() {
+	}
+	render() {
 		var signedInString = "Signed in as "+this.props.user.Name;
 		return (
 			<FormGroup>
@@ -84,7 +91,7 @@ const LogoutBar = React.createClass({
 					<Col xs={6}></Col>
 					<Col xs={4}>
 						<div className="pull-right">
-						<DropdownButton id="logout-settings-dropdown" title={signedInString} onSelect={this.handleOnSelect} bsStyle="info">
+						<DropdownButton id="logout-settings-dropdown" title={signedInString} onSelect={this.onSelect} bsStyle="info">
 							<MenuItem eventKey={1}>Account Settings</MenuItem>
 							<MenuItem eventKey={2}>Logout</MenuItem>
 						</DropdownButton>
@@ -94,11 +101,10 @@ const LogoutBar = React.createClass({
 			</FormGroup>
 		);
 	}
-});
+}
 
-module.exports = React.createClass({
-	displayName: "TopBar",
-	render: function() {
+class TopBar extends React.Component {
+	render() {
 		var barContents;
 		var errorAlert;
 		if (!this.props.user.isUser())
@@ -120,4 +126,6 @@ module.exports = React.createClass({
 			</div>
 		);
 	}
-});
+}
+
+module.exports = TopBar;

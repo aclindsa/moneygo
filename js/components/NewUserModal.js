@@ -14,19 +14,21 @@ var ButtonGroup = ReactBootstrap.ButtonGroup;
 var models = require('../models');
 var User = models.User;
 
-module.exports = React.createClass({
-	displayName: "NewUserModal",
-	getInitialState: function() {
-		return {error: "",
+class NewUserModal extends React.Component {
+	constructor() {
+		super();
+		this.state = {
+			error: "",
 			name: "",
 			username: "",
 			email: "",
 			password: "",
 			confirm_password: "",
 			passwordChanged: false,
-			initial_password: ""};
-	},
-	passwordValidationState: function() {
+			initial_password: ""
+		};
+	}
+	passwordValidationState() {
 		if (this.state.passwordChanged) {
 			if (this.state.password.length >= 10)
 				return "success";
@@ -35,20 +37,20 @@ module.exports = React.createClass({
 			else
 				return "error";
 		}
-	},
-	confirmPasswordValidationState: function() {
+	}
+	confirmPasswordValidationState() {
 		if (this.state.confirm_password.length > 0) {
 			if (this.state.confirm_password == this.state.password)
 				return "success";
 			else
 				return "error";
 		}
-	},
-	handleCancel: function() {
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleChange: function() {
+	}
+	handleChange() {
 		if (ReactDOM.findDOMNode(this.refs.password).value != this.state.initial_password)
 			this.setState({passwordChanged: true});
 		this.setState({
@@ -58,8 +60,8 @@ module.exports = React.createClass({
 			password: ReactDOM.findDOMNode(this.refs.password).value,
 			confirm_password: ReactDOM.findDOMNode(this.refs.confirm_password).value
 		});
-	},
-	handleSubmit: function(e) {
+	}
+	handleSubmit(e) {
 		var u = new User();
 		var error = "";
 		e.preventDefault();
@@ -76,8 +78,8 @@ module.exports = React.createClass({
 		this.props.createNewUser(u);
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(u);
-	},
-	render: function() {
+	}
+	render() {
 		return (
 			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
 				<Modal.Header closeButton>
@@ -146,4 +148,6 @@ module.exports = React.createClass({
 			</Modal>
 		);
 	}
-});
+}
+
+module.exports = NewUserModal;

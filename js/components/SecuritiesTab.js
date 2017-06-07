@@ -25,11 +25,15 @@ var Security = models.Security;
 var SecurityType = models.SecurityType;
 var SecurityTypeList = models.SecurityTypeList;
 
-const SecurityTemplatePanel = React.createClass({
-	handleSearchChange: function(){
+class SecurityTemplatePanel extends React.Component {
+	constructor() {
+		super();
+		this.onSearchChange = this.handleSearchChange.bind(this);
+	}
+	handleSearchChange() {
 		this.props.onSearchTemplates(ReactDOM.findDOMNode(this.refs.search).value, 0, this.props.maxResults + 1);
-	},
-	renderTemplateList: function() {
+	}
+	renderTemplateList() {
 		var templates = this.props.securityTemplates;
 		if (this.props.search != "") {
 			var items = [];
@@ -70,23 +74,23 @@ const SecurityTemplatePanel = React.createClass({
 				</div>
 			);
 		}
-	},
-	render: function() {
+	}
+	render() {
 		return (
 			<Panel collapsible header="Populate Security from Template...">
 				<FormControl type="text"
 					placeholder="Search..."
 					value={this.props.search}
-					onChange={this.handleSearchChange}
+					onChange={this.onSearchChange}
 					ref="search"/>
 				{this.renderTemplateList()}
 			</Panel>
 		);
 	}
-});
+}
 
-const AddEditSecurityModal = React.createClass({
-	getInitialState: function() {
+class AddEditSecurityModal extends React.Component {
+	getInitialState(props) {
 		var s = {
 			securityid: -1,
 			name: "",
@@ -96,18 +100,36 @@ const AddEditSecurityModal = React.createClass({
 			type: 1,
 			alternateid: ""
 		};
-		if (this.props.editSecurity != null) {
-			s.securityid = this.props.editSecurity.SecurityId;
-			s.name = this.props.editSecurity.Name;
-			s.description = this.props.editSecurity.Description;
-			s.symbol = this.props.editSecurity.Symbol;
-			s.precision = this.props.editSecurity.Precision;
-			s.type = this.props.editSecurity.Type;
-			s.alternateid = this.props.editSecurity.AlternateId;
+		if (props && props.editSecurity != null) {
+			s.securityid = props.editSecurity.SecurityId;
+			s.name = props.editSecurity.Name;
+			s.description = props.editSecurity.Description;
+			s.symbol = props.editSecurity.Symbol;
+			s.precision = props.editSecurity.Precision;
+			s.type = props.editSecurity.Type;
+			s.alternateid = props.editSecurity.AlternateId;
 		}
 		return s;
-	},
-	onSelectTemplate: function(template) {
+	}
+	constructor() {
+		super();
+		this.state = this.getInitialState();
+		this.onSelectTemplate = this.handleSelectTemplate.bind(this);
+		this.onCancel = this.handleCancel.bind(this);
+		this.onNameChange = this.handleNameChange.bind(this);
+		this.onDescriptionChange = this.handleDescriptionChange.bind(this);
+		this.onSymbolChange = this.handleSymbolChange.bind(this);
+		this.onPrecisionChange = this.handlePrecisionChange.bind(this);
+		this.onTypeChange = this.handleTypeChange.bind(this);
+		this.onAlternateIdChange = this.handleAlternateIdChange.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState(nextProps));
+		}
+	}
+	handleSelectTemplate(template) {
 		this.setState({
 			name: template.Name,
 			description: template.Description,
@@ -116,43 +138,43 @@ const AddEditSecurityModal = React.createClass({
 			type: template.Type,
 			alternateid: template.AlternateId 
 		});
-	},
-	handleCancel: function() {
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleNameChange: function() {
+	}
+	handleNameChange() {
 		this.setState({
 			name: ReactDOM.findDOMNode(this.refs.name).value,
 		});
-	},
-	handleDescriptionChange: function() {
+	}
+	handleDescriptionChange() {
 		this.setState({
 			description: ReactDOM.findDOMNode(this.refs.description).value,
 		});
-	},
-	handleSymbolChange: function() {
+	}
+	handleSymbolChange() {
 		this.setState({
 			symbol: ReactDOM.findDOMNode(this.refs.symbol).value,
 		});
-	},
-	handlePrecisionChange: function() {
+	}
+	handlePrecisionChange() {
 		this.setState({
 			precision: +ReactDOM.findDOMNode(this.refs.precision).value,
 		});
-	},
-	handleTypeChange: function(type) {
+	}
+	handleTypeChange(type) {
 		if (type.hasOwnProperty('TypeId'))
 			this.setState({
 				type: type.TypeId
 			});
-	},
-	handleAlternateIdChange: function() {
+	}
+	handleAlternateIdChange() {
 		this.setState({
 			alternateid: ReactDOM.findDOMNode(this.refs.alternateid).value,
 		});
-	},
-	handleSubmit: function() {
+	}
+	handleSubmit() {
 		var s = new Security();
 
 		if (this.props.editSecurity != null)
@@ -166,18 +188,13 @@ const AddEditSecurityModal = React.createClass({
 
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(s);
-	},
-	componentWillReceiveProps: function(nextProps) {
-		if (nextProps.show && !this.props.show) {
-			this.setState(this.getInitialState());
-		}
-	},
-	render: function() {
+	}
+	render() {
 		var headerText = (this.props.editSecurity != null) ? "Edit" : "Create New";
 		var buttonText = (this.props.editSecurity != null) ? "Save Changes" : "Create Security";
 		var alternateidname = (this.state.type == SecurityType.Currency) ? "ISO 4217 Code" : "CUSIP";
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel}>
+			<Modal show={this.props.show} onHide={this.onCancel}>
 				<Modal.Header closeButton>
 					<Modal.Title>{headerText} Security</Modal.Title>
 				</Modal.Header>
@@ -188,13 +205,13 @@ const AddEditSecurityModal = React.createClass({
 					onSearchTemplates={this.props.onSearchTemplates}
 					maxResults={15}
 					onSelectTemplate={this.onSelectTemplate} />
-				<Form horizontal onSubmit={this.handleSubmit}>
+				<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={3}>Name</Col>
 						<Col xs={9}>
 						<FormControl type="text"
 							value={this.state.name}
-							onChange={this.handleNameChange}
+							onChange={this.onNameChange}
 							ref="name"/>
 						</Col>
 					</FormGroup>
@@ -203,7 +220,7 @@ const AddEditSecurityModal = React.createClass({
 						<Col xs={9}>
 						<FormControl type="text"
 							value={this.state.description}
-							onChange={this.handleDescriptionChange}
+							onChange={this.onDescriptionChange}
 							ref="description"/>
 						</Col>
 					</FormGroup>
@@ -212,7 +229,7 @@ const AddEditSecurityModal = React.createClass({
 						<Col xs={9}>
 						<FormControl type="text"
 							value={this.state.symbol}
-							onChange={this.handleSymbolChange}
+							onChange={this.onSymbolChange}
 							ref="symbol"/>
 						</Col>
 					</FormGroup>
@@ -222,7 +239,7 @@ const AddEditSecurityModal = React.createClass({
 						<FormControl componentClass="select"
 							placeholder={this.state.precision}
 							value={this.state.precision}
-							onChange={this.handlePrecisionChange}
+							onChange={this.onPrecisionChange}
 							ref="precision">
 								<option value={0}>1</option>
 								<option value={1}>0.1 (1/10)</option>
@@ -242,7 +259,7 @@ const AddEditSecurityModal = React.createClass({
 							valueField='TypeId'
 							textField='Name'
 							value={this.state.type}
-							onChange={this.handleTypeChange}
+							onChange={this.onTypeChange}
 							ref="type" />
 						</Col>
 					</FormGroup>
@@ -251,7 +268,7 @@ const AddEditSecurityModal = React.createClass({
 						<Col xs={9}>
 						<FormControl type="text"
 							value={this.state.alternateid}
-							onChange={this.handleAlternateIdChange}
+							onChange={this.onAlternateIdChange}
 							ref="alternateid"/>
 						</Col>
 					</FormGroup>
@@ -259,17 +276,17 @@ const AddEditSecurityModal = React.createClass({
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit} bsStyle="success">{buttonText}</Button>
+						<Button onClick={this.onCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.onSubmit} bsStyle="success">{buttonText}</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
-});
+}
 
-const DeletionFailedModal = React.createClass({
-	render: function() {
+class DeletionFailedModal extends React.Component {
+	render() {
 		return (
 			<Modal show={this.props.show} onHide={this.props.onClose}>
 				<Modal.Header closeButton>
@@ -286,10 +303,10 @@ const DeletionFailedModal = React.createClass({
 			</Modal>
 		);
 	}
-});
+}
 
-const SecurityList = React.createClass({
-	render: function() {
+class SecurityList extends React.Component {
+	render() {
 		var children = [];
 		var self = this;
 		for (var securityId in this.props.securities) {
@@ -314,55 +331,64 @@ const SecurityList = React.createClass({
 			</div>
 		);
 	}
-});
+}
 
-module.exports = React.createClass({
-	displayName: "SecuritiesTab",
-	getInitialState: function() {
-		return {
+class SecuritiesTab extends React.Component {
+	constructor() {
+		super();
+		this.state = {
 			creatingNewSecurity: false,
 			editingSecurity: false,
 			deletionFailedModal: false
 		};
-	},
-	componentWillReceiveProps: function(nextProps) {
+		this.onSelectSecurity = this.handleSelectSecurity.bind(this);
+		this.onNewSecurity = this.handleNewSecurity.bind(this);
+		this.onEditSecurity = this.handleEditSecurity.bind(this);
+		this.onDeleteSecurity = this.handleDeleteSecurity.bind(this);
+		this.onCreationCancel = this.handleCreationCancel.bind(this);
+		this.onCreationSubmit = this.handleCreationSubmit.bind(this);
+		this.onEditingCancel = this.handleEditingCancel.bind(this);
+		this.onEditingSubmit = this.handleEditingSubmit.bind(this);
+		this.onCloseDeletionFailed = this.handleCloseDeletionFailed.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
 		if (nextProps.selectedSecurity == -1 && nextProps.security_list.length > 0) {
 			nextProps.onSelectSecurity(nextProps.security_list[0].SecurityId);
 		}
-	},
-	handleSelectSecurity: function(security) {
+	}
+	handleSelectSecurity(security) {
 		this.props.onSelectSecurity(security.SecurityId);
-	},
-	handleNewSecurity: function() {
+	}
+	handleNewSecurity() {
 		this.setState({creatingNewSecurity: true});
-	},
-	handleEditSecurity: function() {
+	}
+	handleEditSecurity() {
 		this.setState({editingSecurity: true});
-	},
-	handleDeleteSecurity: function() {
+	}
+	handleDeleteSecurity() {
 		if (this.props.selectedSecurityAccounts.length == 0)
 			this.props.onDeleteSecurity(this.props.securities[this.props.selectedSecurity]);
 		else
 			this.setState({deletionFailedModal: true});
-	},
-	handleCreationCancel: function() {
+	}
+	handleCreationCancel() {
 		this.setState({creatingNewSecurity: false});
-	},
-	handleCreationSubmit: function(security) {
+	}
+	handleCreationSubmit(security) {
 		this.setState({creatingNewSecurity: false});
 		this.props.onCreateSecurity(security);
-	},
-	handleEditingCancel: function() {
+	}
+	handleEditingCancel() {
 		this.setState({editingSecurity: false});
-	},
-	handleEditingSubmit: function(security) {
+	}
+	handleEditingSubmit(security) {
 		this.setState({editingSecurity: false});
 		this.props.onUpdateSecurity(security);
-	},
-	closeDeletionFailedModal: function() {
+	}
+	handleCloseDeletionFailed() {
 		this.setState({deletionFailedModal: false});
-	},
-	render: function() {
+	}
+	render() {
 		var noSecuritySelected = this.props.selectedSecurity == -1;
 
 		var selectedSecurity = -1;
@@ -373,25 +399,25 @@ module.exports = React.createClass({
 			<div>
 			<AddEditSecurityModal
 				show={this.state.creatingNewSecurity}
-				onCancel={this.handleCreationCancel}
-				onSubmit={this.handleCreationSubmit}
+				onCancel={this.onCreationCancel}
+				onSubmit={this.onCreationSubmit}
 				onSearchTemplates={this.props.onSearchTemplates}
 				securityTemplates={this.props.securityTemplates} />
 			<AddEditSecurityModal
 				show={this.state.editingSecurity}
 				editSecurity={selectedSecurity}
-				onCancel={this.handleEditingCancel}
-				onSubmit={this.handleEditingSubmit}
+				onCancel={this.onEditingCancel}
+				onSubmit={this.onEditingSubmit}
 				onSearchTemplates={this.props.onSearchTemplates}
 				securityTemplates={this.props.securityTemplates} />
 			<DeletionFailedModal
 				show={this.state.deletionFailedModal}
 				deletingSecurity={selectedSecurity}
-				onClose={this.closeDeletionFailedModal}
+				onClose={this.onCloseDeletionFailed}
 				securityAccounts={this.props.selectedSecurityAccounts} />
 			<ButtonToolbar>
 			<ButtonGroup>
-				<Button onClick={this.handleNewSecurity} bsStyle="success"><Glyphicon glyph='plus-sign'/> New Security</Button>
+				<Button onClick={this.onNewSecurity} bsStyle="success"><Glyphicon glyph='plus-sign'/> New Security</Button>
 			</ButtonGroup>
 			<ButtonGroup>
 				<Combobox
@@ -399,16 +425,18 @@ module.exports = React.createClass({
 					valueField='SecurityId'
 					textField={item => typeof item === 'string' ? item : item.Name + " - " + item.Description}
 					value={selectedSecurity}
-					onChange={this.handleSelectSecurity}
+					onChange={this.onSelectSecurity}
 					suggest
 					filter='contains'
 					ref="security" />
 			</ButtonGroup>
 			<ButtonGroup>
-				<Button onClick={this.handleEditSecurity} bsStyle="primary" disabled={noSecuritySelected}><Glyphicon glyph='cog'/> Edit Security</Button>
-				<Button onClick={this.handleDeleteSecurity} bsStyle="danger" disabled={noSecuritySelected}><Glyphicon glyph='trash'/> Delete Security</Button>
+				<Button onClick={this.onEditSecurity} bsStyle="primary" disabled={noSecuritySelected}><Glyphicon glyph='cog'/> Edit Security</Button>
+				<Button onClick={this.onDeleteSecurity} bsStyle="danger" disabled={noSecuritySelected}><Glyphicon glyph='trash'/> Delete Security</Button>
 			</ButtonGroup></ButtonToolbar>
 			</div>
 		);
 	}
-});
+}
+
+module.exports = SecuritiesTab;

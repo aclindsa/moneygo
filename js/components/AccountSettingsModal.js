@@ -14,27 +14,32 @@ var Col = ReactBootstrap.Col;
 
 var User = require('../models').User;
 
-module.exports = React.createClass({
-	displayName: "AccountSettingsModal",
-	_getInitialState: function(props) {
-		return {error: "",
-			name: props.user.Name,
-			username: props.user.Username,
-			email: props.user.Email,
+class AccountSettingsModal extends React.Component {
+	_getInitialState(props) {
+		return {
+			error: "",
+			name: props ? props.user.Name: "",
+			username: props ? props.user.Username : "",
+			email: props ? props.user.Email : "",
 			password: models.BogusPassword,
 			confirm_password: models.BogusPassword,
 			passwordChanged: false,
-			initial_password: models.BogusPassword};
-	},
-	getInitialState: function() {
-		 return this._getInitialState(this.props);
-	},
-	componentWillReceiveProps: function(nextProps) {
+			initial_password: models.BogusPassword
+		};
+	}
+	constructor() {
+		super();
+		this.state = this._getInitialState();
+		this.onCancel = this.handleCancel.bind(this);
+		this.onChange = this.handleChange.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
 		if (nextProps.show && !this.props.show) {
 			this.setState(this._getInitialState(nextProps));
 		}
-	},
-	passwordValidationState: function() {
+	}
+	passwordValidationState() {
 		if (this.state.passwordChanged) {
 			if (this.state.password.length >= 10)
 				return "success";
@@ -43,20 +48,20 @@ module.exports = React.createClass({
 			else
 				return "error";
 		}
-	},
-	confirmPasswordValidationState: function() {
+	}
+	confirmPasswordValidationState() {
 		if (this.state.confirm_password.length > 0) {
 			if (this.state.confirm_password == this.state.password)
 				return "success";
 			else
 				return "error";
 		}
-	},
-	handleCancel: function() {
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleChange: function() {
+	}
+	handleChange() {
 		if (ReactDOM.findDOMNode(this.refs.password).value != this.state.initial_password)
 			this.setState({passwordChanged: true});
 		this.setState({
@@ -66,8 +71,8 @@ module.exports = React.createClass({
 			password: ReactDOM.findDOMNode(this.refs.password).value,
 			confirm_password: ReactDOM.findDOMNode(this.refs.confirm_password).value
 		});
-	},
-	handleSubmit: function(e) {
+	}
+	handleSubmit(e) {
 		var u = new User();
 		e.preventDefault();
 
@@ -87,22 +92,22 @@ module.exports = React.createClass({
 
 		this.props.onUpdateUser(u);
 		this.props.onSubmit();
-	},
-	render: function() {
+	}
+	render() {
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
+			<Modal show={this.props.show} onHide={this.onCancel} bsSize="large">
 				<Modal.Header closeButton>
 					<Modal.Title>Edit Account Settings</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				<span color="red">{this.state.error}</span>
-				<Form horizontal onSubmit={this.handleSubmit}>
+				<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Name</Col>
 						<Col xs={10}>
 						<FormControl type="text"
 								value={this.state.name}
-								onChange={this.handleChange}
+								onChange={this.onChange}
 								ref="name"/>
 						</Col>
 					</FormGroup>
@@ -111,7 +116,7 @@ module.exports = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.username}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="username"/>
 						</Col>
 					</FormGroup>
@@ -120,7 +125,7 @@ module.exports = React.createClass({
 						<Col xs={10}>
 						<FormControl type="email"
 							value={this.state.email}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="email"/>
 						</Col>
 					</FormGroup>
@@ -129,7 +134,7 @@ module.exports = React.createClass({
 						<Col xs={10}>
 						<FormControl type="password"
 							value={this.state.password}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="password"/>
 						<FormControl.Feedback/>
 						</Col>
@@ -139,7 +144,7 @@ module.exports = React.createClass({
 						<Col xs={10}>
 						<FormControl type="password"
 							value={this.state.confirm_password}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="confirm_password"/>
 						<FormControl.Feedback/>
 						</Col>
@@ -148,11 +153,13 @@ module.exports = React.createClass({
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup>
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit} bsStyle="success">Save Settings</Button>
+						<Button onClick={this.onCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.onSubmit} bsStyle="success">Save Settings</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
-});
+}
+
+module.exports = AccountSettingsModal;

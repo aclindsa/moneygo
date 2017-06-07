@@ -33,8 +33,8 @@ var AccountTypeList = models.AccountTypeList;
 var AccountCombobox = require('./AccountCombobox');
 var AccountRegister = require('./AccountRegister');
 
-const AddEditAccountModal = React.createClass({
-	getInitialState: function() {
+class AddEditAccountModal extends React.Component {
+	getInitialState(props) {
 		var s = {
 			accountid: -1,
 			security: 1,
@@ -54,36 +54,54 @@ const AddEditAccountModal = React.createClass({
 			ofxversion: "",
 			ofxnoindent: false,
 		};
-		if (this.props.editAccount != null) {
-			s.accountid = this.props.editAccount.AccountId;
-			s.name = this.props.editAccount.Name;
-			s.security = this.props.editAccount.SecurityId;
-			s.parentaccountid = this.props.editAccount.ParentAccountId;
-			s.type = this.props.editAccount.Type;
-			s.ofxurl = this.props.editAccount.OFXURL;
-			s.ofxorg = this.props.editAccount.OFXORG;
-			s.ofxfid = this.props.editAccount.OFXFID;
-			s.ofxuser = this.props.editAccount.OFXUser;
-			s.ofxbankid = this.props.editAccount.OFXBankID;
-			s.ofxacctid = this.props.editAccount.OFXAcctID;
-			s.ofxaccttype = this.props.editAccount.OFXAcctType;
-			s.ofxclientuid = this.props.editAccount.OFXClientUID;
-			s.ofxappid = this.props.editAccount.OFXAppID;
-			s.ofxappver = this.props.editAccount.OFXAppVer;
-			s.ofxversion = this.props.editAccount.OFXVersion;
-			s.ofxnoindent = this.props.editAccount.OFXNoIndent;
-		} else if (this.props.initialParentAccount != null) {
-			s.security = this.props.initialParentAccount.SecurityId;
-			s.parentaccountid = this.props.initialParentAccount.AccountId;
-			s.type = this.props.initialParentAccount.Type;
+		if (!props) {
+			return s;
+		} else if (props.editAccount != null) {
+			s.accountid = props.editAccount.AccountId;
+			s.name = props.editAccount.Name;
+			s.security = props.editAccount.SecurityId;
+			s.parentaccountid = props.editAccount.ParentAccountId;
+			s.type = props.editAccount.Type;
+			s.ofxurl = props.editAccount.OFXURL;
+			s.ofxorg = props.editAccount.OFXORG;
+			s.ofxfid = props.editAccount.OFXFID;
+			s.ofxuser = props.editAccount.OFXUser;
+			s.ofxbankid = props.editAccount.OFXBankID;
+			s.ofxacctid = props.editAccount.OFXAcctID;
+			s.ofxaccttype = props.editAccount.OFXAcctType;
+			s.ofxclientuid = props.editAccount.OFXClientUID;
+			s.ofxappid = props.editAccount.OFXAppID;
+			s.ofxappver = props.editAccount.OFXAppVer;
+			s.ofxversion = props.editAccount.OFXVersion;
+			s.ofxnoindent = props.editAccount.OFXNoIndent;
+		} else if (props.initialParentAccount != null) {
+			s.security = props.initialParentAccount.SecurityId;
+			s.parentaccountid = props.initialParentAccount.AccountId;
+			s.type = props.initialParentAccount.Type;
 		}
 		return s;
-	},
-	handleCancel: function() {
+	}
+	constructor() {
+		super();
+		this.state = this.getInitialState();
+		this.onCancel = this.handleCancel.bind(this);
+		this.onChange = this.handleChange.bind(this);
+		this.onNoIndentClick = this.handleNoIndentClick.bind(this);
+		this.onSecurityChange = this.handleSecurityChange.bind(this);
+		this.onTypeChange = this.handleTypeChange.bind(this);
+		this.onParentChange = this.handleParentChange.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState(nextProps));
+		}
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleChange: function() {
+	}
+	handleChange() {
 		this.setState({
 			name: ReactDOM.findDOMNode(this.refs.name).value,
 			ofxurl: ReactDOM.findDOMNode(this.refs.ofxurl).value,
@@ -98,27 +116,27 @@ const AddEditAccountModal = React.createClass({
 			ofxappver: ReactDOM.findDOMNode(this.refs.ofxappver).value,
 			ofxversion: ReactDOM.findDOMNode(this.refs.ofxversion).value,
 		});
-	},
+	}
 
-	handleNoIndentClick: function() {
+	handleNoIndentClick() {
 		this.setState({ofxnoindent: !this.state.ofxnoindent});
-	},
-	handleSecurityChange: function(security) {
+	}
+	handleSecurityChange(security) {
 		if (security.hasOwnProperty('SecurityId'))
 			this.setState({
 				security: security.SecurityId
 			});
-	},
-	handleTypeChange: function(type) {
+	}
+	handleTypeChange(type) {
 		if (type.hasOwnProperty('TypeId'))
 			this.setState({
 				type: type.TypeId
 			});
-	},
-	handleParentChange: function(parentAccount) {
+	}
+	handleParentChange(parentAccount) {
 		this.setState({parentaccountid: parentAccount.AccountId});
-	},
-	handleSubmit: function() {
+	}
+	handleSubmit() {
 		var a = new Account();
 
 		if (this.props.editAccount != null)
@@ -143,13 +161,8 @@ const AddEditAccountModal = React.createClass({
 
 		if (this.props.onSubmit != null)
 			this.props.onSubmit(a);
-	},
-	componentWillReceiveProps: function(nextProps) {
-		if (nextProps.show && !this.props.show) {
-			this.setState(this.getInitialState());
-		}
-	},
-	render: function() {
+	}
+	render() {
 		var headerText = (this.props.editAccount != null) ? "Edit" : "Create New";
 		var buttonText = (this.props.editAccount != null) ? "Save Changes" : "Create Account";
 		var rootName = (this.props.editAccount != null) ? "Top-level Account" : "New Top-level Account";
@@ -165,7 +178,7 @@ const AddEditAccountModal = React.createClass({
 							componentClass="select"
 							placeholder="select"
 							value={this.state.ofxaccttype}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxaccttype">
 						<option value="CHECKING">Checking</option>
 						<option value="SAVINGS">Savings</option>
@@ -180,20 +193,20 @@ const AddEditAccountModal = React.createClass({
 		}
 		var bankIdDisabled = (this.state.type != AccountType.Investment && this.state.ofxaccttype == "CC") ? true : false;
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel}>
+			<Modal show={this.props.show} onHide={this.onCancel}>
 				<Modal.Header closeButton>
 					<Modal.Title>{headerText} Account</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				<Tabs defaultActiveKey={1} id="editAccountTabs">
 					<Tab eventKey={1} title="General">
-					<Form horizontal onSubmit={this.handleSubmit}>
+					<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Name</Col>
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.name}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="name"/>
 						</Col>
 					</FormGroup>
@@ -205,7 +218,7 @@ const AddEditAccountModal = React.createClass({
 							accountChildren={this.props.accountChildren}
 							value={this.state.parentaccountid}
 							rootName={rootName}
-							onChange={this.handleParentChange}
+							onChange={this.onParentChange}
 							ref="parent" />
 						</Col>
 					</FormGroup>
@@ -218,7 +231,7 @@ const AddEditAccountModal = React.createClass({
 							valueField='SecurityId'
 							textField={item => typeof item === 'string' ? item : item.Name + " - " + item.Description}
 							defaultValue={this.state.security}
-							onChange={this.handleSecurityChange}
+							onChange={this.onSecurityChange}
 							ref="security" />
 						</Col>
 					</FormGroup>
@@ -231,20 +244,20 @@ const AddEditAccountModal = React.createClass({
 							valueField='TypeId'
 							textField='Name'
 							defaultValue={this.state.type}
-							onChange={this.handleTypeChange}
+							onChange={this.onTypeChange}
 							ref="type" />
 						</Col>
 					</FormGroup>
 					</Form>
 					</Tab>
 					<Tab eventKey={2} title="Sync (OFX)">
-					<Form horizontal onSubmit={this.handleSubmit}>
+					<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>OFX URL</Col>
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.ofxurl}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxurl"/>
 						</Col>
 					</FormGroup>
@@ -253,7 +266,7 @@ const AddEditAccountModal = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.ofxorg}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxorg"/>
 						</Col>
 					</FormGroup>
@@ -262,7 +275,7 @@ const AddEditAccountModal = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.ofxfid}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxfid"/>
 						</Col>
 					</FormGroup>
@@ -271,7 +284,7 @@ const AddEditAccountModal = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.ofxuser}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxuser"/>
 						</Col>
 					</FormGroup>
@@ -281,7 +294,7 @@ const AddEditAccountModal = React.createClass({
 						<FormControl type="text"
 							disabled={bankIdDisabled}
 							value={this.state.ofxbankid}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxbankid"/>
 						</Col>
 					</FormGroup>
@@ -290,7 +303,7 @@ const AddEditAccountModal = React.createClass({
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.ofxacctid}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="ofxacctid"/>
 						</Col>
 					</FormGroup>
@@ -301,7 +314,7 @@ const AddEditAccountModal = React.createClass({
 							<Col xs={10}>
 							<FormControl type="text"
 								value={this.state.ofxclientuid}
-								onChange={this.handleChange}
+								onChange={this.onChange}
 								ref="ofxclientuid"/>
 							</Col>
 						</FormGroup>
@@ -310,7 +323,7 @@ const AddEditAccountModal = React.createClass({
 							<Col xs={10}>
 							<FormControl type="text"
 								value={this.state.ofxappid}
-								onChange={this.handleChange}
+								onChange={this.onChange}
 								ref="ofxappid"/>
 							</Col>
 						</FormGroup>
@@ -319,7 +332,7 @@ const AddEditAccountModal = React.createClass({
 							<Col xs={10}>
 							<FormControl type="text"
 								value={this.state.ofxappver}
-								onChange={this.handleChange}
+								onChange={this.onChange}
 								ref="ofxappver"/>
 							</Col>
 						</FormGroup>
@@ -328,7 +341,7 @@ const AddEditAccountModal = React.createClass({
 							<Col xs={10}>
 							<FormControl type="text"
 								value={this.state.ofxversion}
-								onChange={this.handleChange}
+								onChange={this.onChange}
 								ref="ofxversion"/>
 							</Col>
 						</FormGroup>
@@ -336,7 +349,7 @@ const AddEditAccountModal = React.createClass({
 							<Col xsOffset={2} xs={10}>
 							<Checkbox
 								checked={this.state.ofxnoindent ? "checked" : ""}
-								onClick={this.handleNoIndentClick}>
+								onClick={this.onNoIndentClick}>
 									Don't indent OFX request files
 							</Checkbox>
 							</Col>
@@ -348,40 +361,58 @@ const AddEditAccountModal = React.createClass({
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit} bsStyle="success">{buttonText}</Button>
+						<Button onClick={this.onCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.onSubmit} bsStyle="success">{buttonText}</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
-});
+}
 
 
-const DeleteAccountModal = React.createClass({
-	getInitialState: function() {
-		if (this.props.initialAccount != null)
-			var accountid = this.props.initialAccount.AccountId;
-		else if (this.props.accounts.length > 0)
-			var accountid = this.props.accounts[0].AccountId;
+class DeleteAccountModal extends React.Component {
+	getInitialState(props) {
+		if (!props)
+			var accountid = -1;
+		else if (props.initialAccount != null)
+			var accountid = props.initialAccount.AccountId;
+		else if (props.accounts.length > 0)
+			var accountid = props.accounts[0].AccountId;
 		else
 			var accountid = -1;
-		return {error: "",
+
+		return {
+			error: "",
 			accountid: accountid,
 			checked: false,
-			show: false};
-	},
-	handleCancel: function() {
+			show: false
+		};
+	}
+	constructor() {
+		super();
+		this.state = this.getInitialState();
+		this.onCancel = this.handleCancel.bind(this);
+		this.onChange = this.handleChange.bind(this);
+		this.onCheckboxClick = this.handleCheckboxClick.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
+	}
+	componentWillReceiveProps(nextProps) {
+		if (nextProps.show && !this.props.show) {
+			this.setState(this.getInitialState(nextProps));
+		}
+	}
+	handleCancel() {
 		if (this.props.onCancel != null)
 			this.props.onCancel();
-	},
-	handleChange: function(account) {
+	}
+	handleChange(account) {
 		this.setState({accountid: account.AccountId});
-	},
-	handleCheckboxClick: function() {
+	}
+	handleCheckboxClick() {
 		this.setState({checked: !this.state.checked});
-	},
-	handleSubmit: function() {
+	}
+	handleSubmit() {
 		if (this.props.accounts.hasOwnProperty(this.state.accountid)) {
 			if (this.state.checked) {
 				if (this.props.onSubmit != null)
@@ -392,13 +423,8 @@ const DeleteAccountModal = React.createClass({
 		} else {
 			this.setState({error: "You must select an account."});
 		}
-	},
-	componentWillReceiveProps: function(nextProps) {
-		if (nextProps.show && !this.props.show) {
-			this.setState(this.getInitialState());
-		}
-	},
-	render: function() {
+	}
+	render() {
 		var checkbox = [];
 		if (this.props.accounts.hasOwnProperty(this.state.accountid)) {
 			var parentAccountId = this.props.accounts[this.state.accountid].ParentAccountId;
@@ -412,7 +438,7 @@ const DeleteAccountModal = React.createClass({
 				<Col xsOffset={2} sm={10}>
 				<Checkbox
 					checked={this.state.checked ? "checked" : ""}
-					onClick={this.handleCheckboxClick}>
+					onClick={this.onCheckboxClick}>
 					{warningString}
 				</Checkbox>
 				</Col>
@@ -428,14 +454,14 @@ const DeleteAccountModal = React.createClass({
 		return (
 			<Modal
 				show={this.props.show}
-				onHide={this.handleCancel}
+				onHide={this.onCancel}
 				ref="modal">
 				<Modal.Header closeButton>
 					<Modal.Title>Delete Account</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				{warning}
-				<Form horizontal onSubmit={this.handleSubmit}>
+				<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Delete Account</Col>
 						<Col xs={10}>
@@ -444,7 +470,7 @@ const DeleteAccountModal = React.createClass({
 							accounts={this.props.accounts}
 							accountChildren={this.props.accountChildren}
 							value={this.state.accountid}
-							onChange={this.handleChange}/>
+							onChange={this.onChange}/>
 						</Col>
 					</FormGroup>
 					{checkbox}
@@ -452,32 +478,36 @@ const DeleteAccountModal = React.createClass({
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
-						<Button onClick={this.handleCancel} bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit} bsStyle="success">Delete Account</Button>
+						<Button onClick={this.onCancel} bsStyle="warning">Cancel</Button>
+						<Button onClick={this.onSubmit} bsStyle="success">Delete Account</Button>
 					</ButtonGroup>
 				</Modal.Footer>
 			</Modal>
 		);
 	}
-});
+}
 
-const AccountTreeNode = React.createClass({
-	getInitialState: function() {
-		return {expanded: false};
-	},
-	handleToggle: function(e) {
+class AccountTreeNode extends React.Component {
+	constructor() {
+		super();
+		this.state = {expanded: false};
+		this.onToggle = this.handleToggle.bind(this);
+		this.onChildSelect = this.handleChildSelect.bind(this);
+		this.onSelect = this.handleSelect.bind(this);
+	}
+	handleToggle(e) {
 		e.preventDefault();
 		this.setState({expanded:!this.state.expanded});
-	},
-	handleChildSelect: function(account) {
+	}
+	handleChildSelect(account) {
 		if (this.props.onSelect != null)
 			this.props.onSelect(account);
-	},
-	handleSelect: function() {
+	}
+	handleSelect() {
 		if (this.props.onSelect != null)
 			this.props.onSelect(this.props.account);
-	},
-	render: function() {
+	}
+	render() {
 		var glyph = this.state.expanded ? 'minus' : 'plus';
 		var active = (this.props.selectedAccount != -1 &&
 			this.props.account.AccountId == this.props.selectedAccount);
@@ -493,14 +523,14 @@ const AccountTreeNode = React.createClass({
 					selectedAccount={self.props.selectedAccount}
 					accounts={self.props.accounts}
 					accountChildren={self.props.accountChildren}
-					onSelect={self.handleChildSelect}/>
+					onSelect={self.onChildSelect}/>
 		   );
 		});
 		var accounttreeClasses = "accounttree"
 		var expandButton = [];
 		if (children.length > 0) {
 			expandButton.push((
-				<Button onClick={this.handleToggle}
+				<Button onClick={this.onToggle}
 						key={1}
 						bsSize="xsmall"
 						bsStyle="link"
@@ -514,7 +544,7 @@ const AccountTreeNode = React.createClass({
 		return (
 			<div className={accounttreeClasses}>
 				{expandButton}
-				<Button onClick={this.handleSelect}
+				<Button onClick={this.onSelect}
 						bsStyle={buttonStyle}
 						className="accounttree-name">
 					{this.props.account.Name}
@@ -527,27 +557,29 @@ const AccountTreeNode = React.createClass({
 			</div>
 		);
 	}
-});
+}
 
-const AccountTree = React.createClass({
-	getInitialState: function() {
-		return {height: 0};
-	},
-	handleSelect: function(account) {
+class AccountTree extends React.Component {
+	constructor() {
+		super();
+		this.state = {height: 0};
+		this.onSelect = this.handleSelect.bind(this);
+	}
+	handleSelect(account) {
 		if (this.props.onSelect != null) {
 			this.props.onSelect(account);
 		}
-	},
-	resize: function() {
+	}
+	resize() {
 		var div = ReactDOM.findDOMNode(this);
 		this.setState({height: div.parentElement.clientHeight - 73});
-	},
-	componentDidMount: function() {
+	}
+	componentDidMount() {
 		this.resize();
 		var self = this;
 		$(window).resize(function() {self.resize();});
-	},
-	render: function() {
+	}
+	render() {
 		var accounts = this.props.accounts;
 
 		var children = [];
@@ -560,7 +592,7 @@ const AccountTree = React.createClass({
 					selectedAccount={this.props.selectedAccount}
 					accounts={this.props.accounts}
 					accountChildren={this.props.accountChildren}
-					onSelect={this.handleSelect}/>));
+					onSelect={this.onSelect}/>));
 			}
 		}
 
@@ -572,55 +604,65 @@ const AccountTree = React.createClass({
 			</div>
 		);
 	}
-});
+}
 
-module.exports = React.createClass({
-	displayName: "AccountsTab",
-	getInitialState: function() {
-		return {
+class AccountsTab extends React.Component {
+	constructor() {
+		super();
+		this.state = {
 			creatingNewAccount: false,
 			editingAccount: false,
 			deletingAccount: false
 		};
-	},
-	handleNewAccount: function() {
+		this.onNewAccount = this.handleNewAccount.bind(this);
+		this.onEditAccount = this.handleEditAccount.bind(this);
+		this.onDeleteAccount = this.handleDeleteAccount.bind(this);
+		this.onCreationCancel = this.handleCreationCancel.bind(this);
+		this.onEditingCancel = this.handleEditingCancel.bind(this);
+		this.onDeletionCancel = this.handleDeletionCancel.bind(this);
+		this.onCreateAccount = this.handleCreateAccount.bind(this);
+		this.onUpdateAccount = this.handleUpdateAccount.bind(this);
+		this.onRemoveAccount = this.handleRemoveAccount.bind(this);
+		this.onAccountSelected = this.handleAccountSelected.bind(this);
+	}
+	handleNewAccount() {
 		this.setState({creatingNewAccount: true});
-	},
-	handleEditAccount: function() {
+	}
+	handleEditAccount() {
 		this.setState({editingAccount: true});
-	},
-	handleDeleteAccount: function() {
+	}
+	handleDeleteAccount() {
 		this.setState({deletingAccount: true});
-	},
-	handleCreationCancel: function() {
+	}
+	handleCreationCancel() {
 		this.setState({creatingNewAccount: false});
-	},
-	handleEditingCancel: function() {
+	}
+	handleEditingCancel() {
 		this.setState({editingAccount: false});
-	},
-	handleDeletionCancel: function() {
+	}
+	handleDeletionCancel() {
 		this.setState({deletingAccount: false});
-	},
-	handleCreateAccount: function(account) {
+	}
+	handleCreateAccount(account) {
 		if (this.props.onCreateAccount != null)
 			this.props.onCreateAccount(account);
 		this.setState({creatingNewAccount: false});
-	},
-	handleUpdateAccount: function(account) {
+	}
+	handleUpdateAccount(account) {
 		if (this.props.onUpdateAccount != null)
 			this.props.onUpdateAccount(account);
 		this.setState({editingAccount: false});
-	},
-	handleRemoveAccount: function(account) {
+	}
+	handleRemoveAccount(account) {
 		if (this.props.onDeleteAccount != null)
 			this.props.onDeleteAccount(account);
 		this.setState({deletingAccount: false});
-	},
-	handleAccountSelected: function(account) {
+	}
+	handleAccountSelected(account) {
 		this.props.onSelectAccount(account.AccountId);
 		this.props.onFetchTransactionPage(account, 20, 0);
-	},
-	render: function() {
+	}
+	render() {
 		var disabled = (this.props.selectedAccount == -1) ? true : false;
 
 		var selectedAccount = null;
@@ -635,36 +677,36 @@ module.exports = React.createClass({
 						initialParentAccount={selectedAccount}
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
-						onCancel={this.handleCreationCancel}
-						onSubmit={this.handleCreateAccount}
+						onCancel={this.onCreationCancel}
+						onSubmit={this.onCreateAccount}
 						security_list={this.props.security_list}/>
 					<AddEditAccountModal
 						show={this.state.editingAccount}
 						editAccount={selectedAccount}
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
-						onCancel={this.handleEditingCancel}
-						onSubmit={this.handleUpdateAccount}
+						onCancel={this.onEditingCancel}
+						onSubmit={this.onUpdateAccount}
 						security_list={this.props.security_list}/>
 					<DeleteAccountModal
 						show={this.state.deletingAccount}
 						initialAccount={selectedAccount}
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
-						onCancel={this.handleDeletionCancel}
-						onSubmit={this.handleRemoveAccount}/>
+						onCancel={this.onDeletionCancel}
+						onSubmit={this.onRemoveAccount}/>
 					<AccountTree
 						accounts={this.props.accounts}
 						accountChildren={this.props.accountChildren}
 						selectedAccount={this.props.selectedAccount}
-						onSelect={this.handleAccountSelected}/>
+						onSelect={this.onAccountSelected}/>
 					<ButtonGroup className="account-buttongroup">
-						<Button onClick={this.handleNewAccount} bsStyle="success">
+						<Button onClick={this.onNewAccount} bsStyle="success">
 							<Glyphicon glyph='plus-sign' /></Button>
-						<Button onClick={this.handleEditAccount}
+						<Button onClick={this.onEditAccount}
 								bsStyle="primary" disabled={disabled}>
 							<Glyphicon glyph='cog' /></Button>
-						<Button onClick={this.handleDeleteAccount}
+						<Button onClick={this.onDeleteAccount}
 								bsStyle="danger" disabled={disabled}>
 							<Glyphicon glyph='trash' /></Button>
 					</ButtonGroup>
@@ -694,4 +736,6 @@ module.exports = React.createClass({
 			</Row></Grid>
 		);
 	}
-});
+}
+
+module.exports = AccountsTab;

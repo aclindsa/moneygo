@@ -1,9 +1,8 @@
 var d3 = require('d3');
 var React = require('react');
 
-module.exports = React.createClass({
-	displayName: "StackedBarChart",
-	calcMinMax: function(series) {
+class StackedBarChart extends React.Component {
+	calcMinMax(series) {
 		var children = [];
 		for (var child in series) {
 			if (series.hasOwnProperty(child))
@@ -28,8 +27,8 @@ module.exports = React.createClass({
 		}
 
 		return [Math.min.apply(Math, negativeValues), Math.max.apply(Math, positiveValues)];
-	},
-	sortedSeries: function(series) {
+	}
+	sortedSeries(series) {
 		// Return an array of the series names, from highest to lowest sums (in
 		// absolute terms)
 
@@ -48,21 +47,21 @@ module.exports = React.createClass({
 		});
 
 		return seriesNames;
-	},
-	calcAxisMarkSeparation: function(minMax, height, ticksPerHeight) {
+	}
+	calcAxisMarkSeparation(minMax, height, ticksPerHeight) {
 		var targetTicks = height / ticksPerHeight;
 		var range = minMax[1]-minMax[0];
 		var rangePerTick = range/targetTicks;
 		var roundOrder = Math.floor(Math.log(rangePerTick) / Math.LN10);
 		var roundTo = Math.pow(10, roundOrder);
 		return Math.ceil(rangePerTick/roundTo)*roundTo;
-	},
-	render: function() {
-		height = 400;
-		width = 600;
-		legendWidth = 100;
-		xMargin = 70;
-		yMargin = 70;
+	}
+	render() {
+		var height = 400;
+		var width = 1000;
+		var legendWidth = 100;
+		var xMargin = 70;
+		var yMargin = 70;
 		height -= yMargin*2;
 		width -= xMargin*2;
 
@@ -189,4 +188,6 @@ module.exports = React.createClass({
 			</svg>
 		);
 	}
-});
+}
+
+module.exports =  StackedBarChart;

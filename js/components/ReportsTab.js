@@ -7,27 +7,30 @@ var Panel = ReactBootstrap.Panel;
 
 var StackedBarChart = require('../components/StackedBarChart');
 
-module.exports = React.createClass({
-	displayName: "ReportsTab",
-	getInitialState: function() {
-		return { };
-	},
-	componentWillMount: function() {
+var models = require('../models')
+var Report = models.Report;
+
+class ReportsTab extends React.Component {
+	constructor() {
+		super();
+		this.onSelectSeries = this.handleSelectSeries.bind(this);
+	}
+	componentWillMount() {
 		this.props.onFetchReport("monthly_expenses");
-	},
-	componentWillReceiveProps: function(nextProps) {
+	}
+	componentWillReceiveProps(nextProps) {
 		if (nextProps.reports['monthly_expenses'] && !nextProps.selectedReport.report) {
 			this.props.onSelectReport(nextProps.reports['monthly_expenses'], []);
 		}
-	},
-	onSelectSeries: function(series) {
-		if (series == this.props.selectedReport.report.topLevelAccountName)
+	}
+	handleSelectSeries(series) {
+		if (series == Report.topLevelAccountName())
 			return;
 		var seriesTraversal = this.props.selectedReport.seriesTraversal.slice();
 		seriesTraversal.push(series);
 		this.props.onSelectReport(this.props.reports[this.props.selectedReport.report.ReportId], seriesTraversal);
-	},
-	render: function() {
+	}
+	render() {
 		var report = [];
 		if (this.props.selectedReport.report) {
 			var titleTracks = [];
@@ -86,4 +89,6 @@ module.exports = React.createClass({
 			</div>
 		);
 	}
-});
+}
+
+module.exports = ReportsTab;

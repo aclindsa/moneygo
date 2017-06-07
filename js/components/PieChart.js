@@ -1,9 +1,8 @@
 var d3 = require('d3');
 var React = require('react');
 
-var Slice = React.createClass({
-	displayName: "Slice",
-	render: function() {
+class Slice extends React.Component {
+	render() {
 		if (this.props.angle > Math.PI*2 - 0.00001) {
 			var slice = (<circle cx={this.props.cx} cy={this.props.cy} r={this.props.radius}
 				className={this.props.className}
@@ -15,7 +14,7 @@ var Slice = React.createClass({
 			var large_arc_flag = this.props.angle > Math.PI ? 1 : 0;
 			var rotateDegrees = this.props.startAngle * 180 / Math.PI;
 
-			slice = (<path d={"M" + center + " l " + this.props.radius + " 0 a " + this.props.radius + " " + this.props.radius + ", 0, " + large_arc_flag + ", 1, " + dx + " " + dy + " Z"}
+			var slice = (<path d={"M" + center + " l " + this.props.radius + " 0 a " + this.props.radius + " " + this.props.radius + ", 0, " + large_arc_flag + ", 1, " + dx + " " + dy + " Z"}
 						className={this.props.className}
 						onClick={this.props.onClick} />);
 		}
@@ -26,11 +25,10 @@ var Slice = React.createClass({
 			</g>
 		);
 	}
-});
+}
 
-module.exports = React.createClass({
-	displayName: "PieChart",
-	sortedSeries: function(series) {
+class PieChart extends React.Component {
+	sortedSeries(series) {
 		// Return an array of the series names, from highest to lowest sums (in
 		// absolute terms)
 
@@ -49,13 +47,13 @@ module.exports = React.createClass({
 		});
 
 		return [seriesNames, seriesValues];
-	},
-	render: function() {
-		height = 400;
-		width = 600;
-		legendWidth = 100;
-		xMargin = 70;
-		yMargin = 70;
+	}
+	render() {
+		var height = 400;
+		var width = 600;
+		var legendWidth = 100;
+		var xMargin = 70;
+		var yMargin = 70;
 		height -= yMargin*2;
 		width -= xMargin*2;
 		var radius = Math.min(height, width)/2;
@@ -133,4 +131,6 @@ module.exports = React.createClass({
 			</svg>
 		);
 	}
-});
+}
+
+module.exports = PieChart;

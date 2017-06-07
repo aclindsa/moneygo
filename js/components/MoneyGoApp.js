@@ -13,36 +13,34 @@ var AccountsTabContainer = require('../containers/AccountsTabContainer');
 var SecuritiesTabContainer = require('../containers/SecuritiesTabContainer');
 var ReportsTabContainer = require('../containers/ReportsTabContainer');
 
-module.exports = React.createClass({
-	displayName: "MoneyGoApp",
-	getInitialState: function() {
-		return {
+class MoneyGoApp extends React.Component {
+	constructor() {
+		super();
+		this.state = {
 			showNewUserModal: false,
 			showAccountSettingsModal: false
 		};
-	},
-	componentDidMount: function() {
+		this.onShowSettings = this.handleShowSettings.bind(this);
+		this.onHideSettings = this.handleHideSettings.bind(this);
+		this.onShowNewUser = this.handleShowNewUser.bind(this);
+		this.onHideNewUser = this.handleHideNewUser.bind(this);
+	}
+	componentDidMount() {
 		this.props.tryResumingSession();
-	},
-	handleAccountSettings: function() {
+	}
+	handleShowSettings() {
 		this.setState({showAccountSettingsModal: true});
-	},
-	handleSettingsSubmitted: function(user) {
+	}
+	handleHideSettings(user) {
 		this.setState({showAccountSettingsModal: false});
-	},
-	handleSettingsCanceled: function() {
-		this.setState({showAccountSettingsModal: false});
-	},
-	handleCreateNewUser: function() {
+	}
+	handleShowNewUser() {
 		this.setState({showNewUserModal: true});
-	},
-	handleNewUserCreated: function() {
+	}
+	handleHideNewUser() {
 		this.setState({showNewUserModal: false});
-	},
-	handleNewUserCanceled: function() {
-		this.setState({showNewUserModal: false});
-	},
-	render: function() {
+	}
+	render() {
 		var mainContent;
 		if (this.props.user.isUser())
 			mainContent = (
@@ -74,18 +72,20 @@ module.exports = React.createClass({
 		return (
 			<div className="fullheight ui">
 				<TopBarContainer
-					onCreateNewUser={this.handleCreateNewUser}
-					onAccountSettings={this.handleAccountSettings} />
+					onCreateNewUser={this.onShowNewUser}
+					onAccountSettings={this.onShowSettings} />
 				{mainContent}
 				<NewUserModalContainer
 					show={this.state.showNewUserModal}
-					onSubmit={this.handleNewUserCreated}
-					onCancel={this.handleNewUserCanceled}/>
+					onSubmit={this.onHideNewUser}
+					onCancel={this.onHideNewUser}/>
 				<AccountSettingsModalContainer
 					show={this.state.showAccountSettingsModal}
-					onSubmit={this.handleSettingsSubmitted}
-					onCancel={this.handleSettingsCanceled}/>
+					onSubmit={this.onHideSettings}
+					onCancel={this.onHideSettings}/>
 			</div>
 		);
 	}
-});
+}
+
+module.exports = MoneyGoApp;
