@@ -12,7 +12,8 @@ var FormControl = ReactBootstrap.FormControl;
 var ControlLabel = ReactBootstrap.ControlLabel;
 var Col = ReactBootstrap.Col;
 
-var User = require('../models').User;
+var models = require('../models');
+var User = models.User;
 
 class AccountSettingsModal extends React.Component {
 	_getInitialState(props) {

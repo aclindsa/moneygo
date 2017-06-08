@@ -574,7 +574,7 @@ class OFXDownload {
 	}
 }
 
-module.exports = models = {
+module.exports = {
 	// Classes
 	User: User,
 	Session: Session,
