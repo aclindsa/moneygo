@@ -5,14 +5,16 @@ var Combobox = require('react-widgets').Combobox;
 var getAccountDisplayList = require('../utils').getAccountDisplayList;
 
 class AccountCombobox extends React.Component {
-	constructor() {
-		super();
-		this.onAccountChange = this.handleAccountChange.bind(this);
-		this.defaultProps = {
+	static get defaultProps() {
+		return {
 			includeRoot: true,
 			disabled: false,
 			rootName: "New Top-level Account"
 		}
+	}
+	constructor() {
+		super();
+		this.onAccountChange = this.handleAccountChange.bind(this);
 	}
 	handleAccountChange(account) {
 		if (this.props.onChange != null &&
