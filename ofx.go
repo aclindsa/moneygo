@@ -44,8 +44,7 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 	var t Transaction
 
 	t.Date = tran.DtPosted.UTC()
-	t.RemoteId = tran.FiTID.String()
-	// TODO CorrectFiTID/CorrectAction?
+
 	// Construct the description from whichever of the descriptive OFX fields are present
 	if len(tran.Name) > 0 {
 		t.Description = string(tran.Name)
@@ -80,6 +79,10 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 	if account.SecurityId < 1 || account.SecurityId > int64(len(i.Securities)) {
 		return errors.New("Internal error: security index not found in OFX import\n")
 	}
+
+	s1.RemoteId = tran.FiTID.String()
+	// TODO CorrectFiTID/CorrectAction?
+
 	security := i.Securities[account.SecurityId-1]
 	s1.Amount = amt.FloatString(security.Precision)
 	s2.Amount = amt.Neg(amt).FloatString(security.Precision)

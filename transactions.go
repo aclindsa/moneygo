@@ -34,9 +34,10 @@ type Split struct {
 	AccountId  int64
 	SecurityId int64
 
-	Number string // Check or reference number
-	Memo   string
-	Amount string // String representation of decimal, suitable for passing to big.Rat.SetString()
+	RemoteId string // unique ID from server, for detecting duplicates
+	Number   string // Check or reference number
+	Memo     string
+	Amount   string // String representation of decimal, suitable for passing to big.Rat.SetString()
 }
 
 func GetBigAmount(amt string) (*big.Rat, error) {
@@ -63,7 +64,6 @@ func (s *Split) Valid() bool {
 type Transaction struct {
 	TransactionId int64
 	UserId        int64
-	RemoteId      string // unique ID from server, for detecting duplicates
 	Description   string
 	Date          time.Time
 	Splits        []*Split `db:"-"`
