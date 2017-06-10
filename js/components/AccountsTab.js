@@ -721,6 +721,7 @@ class AccountsTab extends React.Component {
 						transactionPage={this.props.transactionPage}
 						imports={this.props.imports}
 						onFetchAllAccounts={this.props.onFetchAllAccounts}
+						onFetchAllSecurities={this.props.onFetchAllSecurities}
 						onCreateTransaction={this.props.onCreateTransaction}
 						onUpdateTransaction={this.props.onUpdateTransaction}
 						onDeleteTransaction={this.props.onDeleteTransaction}
