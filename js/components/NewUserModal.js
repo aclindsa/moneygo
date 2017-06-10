@@ -27,6 +27,9 @@ class NewUserModal extends React.Component {
 			passwordChanged: false,
 			initial_password: ""
 		};
+		this.onCancel = this.handleCancel.bind(this);
+		this.onChange = this.handleChange.bind(this);
+		this.onSubmit = this.handleSubmit.bind(this);
 	}
 	passwordValidationState() {
 		if (this.state.passwordChanged) {
@@ -81,19 +84,19 @@ class NewUserModal extends React.Component {
 	}
 	render() {
 		return (
-			<Modal show={this.props.show} onHide={this.handleCancel} bsSize="large">
+			<Modal show={this.props.show} onHide={this.onCancel} bsSize="large">
 				<Modal.Header closeButton>
 					<Modal.Title>Create New user</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
 				<span style={{color: "red"}}>{this.state.error}</span>
-				<Form horizontal onSubmit={this.handleSubmit}>
+				<Form horizontal onSubmit={this.onSubmit}>
 					<FormGroup>
 						<Col componentClass={ControlLabel} xs={2}>Name</Col>
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.name}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="name"/>
 						</Col>
 					</FormGroup>
@@ -102,7 +105,7 @@ class NewUserModal extends React.Component {
 						<Col xs={10}>
 						<FormControl type="text"
 							value={this.state.username}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="username"/>
 						</Col>
 					</FormGroup>
@@ -111,7 +114,7 @@ class NewUserModal extends React.Component {
 						<Col xs={10}>
 						<FormControl type="email"
 							value={this.state.email}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="email"/>
 						</Col>
 					</FormGroup>
@@ -120,7 +123,7 @@ class NewUserModal extends React.Component {
 						<Col xs={10}>
 						<FormControl type="password"
 							value={this.state.password}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="password"/>
 						<FormControl.Feedback/>
 						</Col>
@@ -130,7 +133,7 @@ class NewUserModal extends React.Component {
 						<Col xs={10}>
 						<FormControl type="password"
 							value={this.state.confirm_password}
-							onChange={this.handleChange}
+							onChange={this.onChange}
 							ref="confirm_password"/>
 						<FormControl.Feedback/>
 						</Col>
@@ -139,9 +142,9 @@ class NewUserModal extends React.Component {
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup>
-						<Button onClick={this.handleCancel}
+						<Button onClick={this.onCancel}
 								bsStyle="warning">Cancel</Button>
-						<Button onClick={this.handleSubmit}
+						<Button onClick={this.onSubmit}
 								bsStyle="success">Create New User</Button>
 					</ButtonGroup>
 				</Modal.Footer>

@@ -145,12 +145,12 @@ function importFile(url, inputElement) {
 }
 
 function importOFXFile(inputElement, account) {
-	url = "account/"+account.AccountId+"/import/ofxfile";
+	var url = "account/"+account.AccountId+"/import/ofxfile";
 	return importFile(url, inputElement);
 }
 
 function importGnucash(inputElement) {
-	url = "import/gnucash";
+	var url = "import/gnucash";
 	return importFile(url, inputElement);
 }
 

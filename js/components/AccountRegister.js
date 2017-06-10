@@ -781,7 +781,9 @@ class AccountRegister extends React.Component {
 	handleImportComplete() {
 		this.props.onCloseImportModal();
 		this.props.onFetchAllAccounts();
-		this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
+		if (this.props.selectedAccount != -1) {
+			this.props.onFetchTransactionPage(this.props.accounts[this.props.selectedAccount], this.props.pageSize, this.props.transactionPage.page);
+		}
 	}
 	handleDeleteTransaction(transaction) {
 		this.props.onDeleteTransaction(transaction);
