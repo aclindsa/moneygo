@@ -187,7 +187,9 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 		}
 
 		// Move any splits with SecurityId but not AccountId to Imbalances
-		// accounts
+		// accounts. In the same loop, check to see if this transaction/split
+		// has been imported before
+		var already_imported bool
 		for _, split := range transaction.Splits {
 			if split.SecurityId != -1 || split.AccountId == -1 {
 				imbalanced_account, err := GetImbalanceAccount(sqltransaction, user.UserId, split.SecurityId)
@@ -201,9 +203,21 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 				split.AccountId = imbalanced_account.AccountId
 				split.SecurityId = -1
 			}
+
+			exists, err := split.AlreadyImportedTx(sqltransaction)
+			if err != nil {
+				sqltransaction.Rollback()
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print("Error checking if split was already imported:", err)
+				return
+			} else if exists {
+				already_imported = true
+			}
 		}
 
-		transactions = append(transactions, transaction)
+		if !already_imported {
+			transactions = append(transactions, transaction)
+		}
 	}
 
 	for _, transaction := range transactions {

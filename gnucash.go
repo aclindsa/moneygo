@@ -84,6 +84,7 @@ type GnucashAccount struct {
 type GnucashTransaction struct {
 	TransactionId string              `xml:"http://www.gnucash.org/XML/trn id"`
 	Description   string              `xml:"http://www.gnucash.org/XML/trn description"`
+	Number        string              `xml:"http://www.gnucash.org/XML/trn num"`
 	DatePosted    GnucashDate         `xml:"http://www.gnucash.org/XML/trn date-posted"`
 	DateEntered   GnucashDate         `xml:"http://www.gnucash.org/XML/trn date-entered"`
 	Commodity     GnucashXMLCommodity `xml:"http://www.gnucash.org/XML/trn currency"`
@@ -215,7 +216,6 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		for j := range gt.Splits {
 			gs := gt.Splits[j]
 			s := new(Split)
-			s.Memo = gs.Memo
 
 			switch gs.Status {
 			default: // 'n', or not present
@@ -237,6 +237,10 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 				return nil, fmt.Errorf("Unable to find security: %s", account.Commodity.Name)
 			}
 			s.SecurityId = -1
+
+			s.RemoteId = "gnucash:" + gs.SplitId
+			s.Number = gt.Number
+			s.Memo = gs.Memo
 
 			var r big.Rat
 			_, ok = r.SetString(gs.Amount)
@@ -359,6 +363,7 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 	// Insert transactions, fixing up account IDs to match internal ones from
 	// above
 	for _, transaction := range gnucashImport.Transactions {
+		var already_imported bool
 		for _, split := range transaction.Splits {
 			acctId, ok := accountMap[split.AccountId]
 			if !ok {
@@ -368,13 +373,25 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			split.AccountId = acctId
+
+			exists, err := split.AlreadyImportedTx(sqltransaction)
+			if err != nil {
+				sqltransaction.Rollback()
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print("Error checking if split was already imported:", err)
+				return
+			} else if exists {
+				already_imported = true
+			}
 		}
-		err := InsertTransactionTx(sqltransaction, &transaction, user)
-		if err != nil {
-			sqltransaction.Rollback()
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
+		if !already_imported {
+			err := InsertTransactionTx(sqltransaction, &transaction, user)
+			if err != nil {
+				sqltransaction.Rollback()
+				WriteError(w, 999 /*Internal Error*/)
+				log.Print(err)
+				return
+			}
 		}
 	}
 

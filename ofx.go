@@ -80,7 +80,7 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 		return errors.New("Internal error: security index not found in OFX import\n")
 	}
 
-	s1.RemoteId = tran.FiTID.String()
+	s1.RemoteId = "ofx:" + tran.FiTID.String()
 	// TODO CorrectFiTID/CorrectAction?
 
 	security := i.Securities[account.SecurityId-1]

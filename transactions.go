@@ -61,6 +61,11 @@ func (s *Split) Valid() bool {
 	return err == nil
 }
 
+func (s *Split) AlreadyImportedTx(transaction *gorp.Transaction) (bool, error) {
+	count, err := transaction.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
+	return count == 1, err
+}
+
 type Transaction struct {
 	TransactionId int64
 	UserId        int64
