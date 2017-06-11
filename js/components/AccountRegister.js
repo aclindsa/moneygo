@@ -117,7 +117,8 @@ class AmountInput extends React.Component {
 		if (!props)
 			return {
 				LastGoodAmount: "0",
-				Amount: "0"
+				Amount: "0",
+				initialized: false
 			}
 
 		// Ensure we can edit this without screwing up other copies of it
@@ -129,7 +130,8 @@ class AmountInput extends React.Component {
 
 		return {
 			LastGoodAmount: a,
-			Amount: a
+			Amount: a,
+			initialized: true
 		};
 	}
 	constructor() {
@@ -138,7 +140,8 @@ class AmountInput extends React.Component {
 		this.state = this.getInitialState();
 	}
 	componentWillReceiveProps(nextProps) {
-		if ((!nextProps.value.eq(this.props.value) &&
+		if (!this.state.initialized ||
+				(!nextProps.value.eq(this.props.value) &&
 				!nextProps.value.eq(this.getValue())) ||
 				nextProps.security !== this.props.security) {
 			this.setState(this.getInitialState(nextProps));
