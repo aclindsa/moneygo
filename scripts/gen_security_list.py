@@ -2,7 +2,21 @@
 
 import csv
 from xml.dom import minidom
-from urllib import request
+import sys
+
+if sys.version_info[0] < 3:
+    from urllib2 import urlopen
+
+    # Allow writing utf-8 to stdout
+    import codecs
+    UTF8Writer = codecs.getwriter('utf8')
+    sys.stdout = UTF8Writer(sys.stdout)
+else:
+    from urllib.request import urlopen
+
+    # This is absent, but also unneeded in python3, so just return the string
+    def unicode(s, encoding):
+        return s
 
 class Security(object):
     def __init__(self, name, description, number, _type, precision):
@@ -11,14 +25,18 @@ class Security(object):
         self.number = number
         self.type = _type
         self.precision = precision
-    def __str__(self):
-        return """\tSecurity{
+    def unicode(self):
+        s = """\tSecurity{
 \t\tName: \"%s\",
 \t\tDescription: \"%s\",
 \t\tSymbol: \"%s\",
 \t\tPrecision: %d,
 \t\tType: %s,
 \t\tAlternateId: \"%s\"},\n""" % (self.name, self.description, self.name, self.precision, self.type, str(self.number))
+        try:
+            return unicode(s, 'utf_8')
+        except TypeError:
+            return s
 
 class SecurityList(object):
     def __init__(self, comment):
@@ -26,10 +44,10 @@ class SecurityList(object):
         self.currencies = {}
     def add(self, currency):
         self.currencies[currency.number] = currency
-    def __str__(self):
+    def unicode(self):
         string = "\t// "+self.comment+"\n"
         for key in sorted(self.currencies.keys()):
-            string += str(self.currencies[key])
+            string += self.currencies[key].unicode()
         return string
 
 def process_ccyntry(currency_list, node):
@@ -59,20 +77,21 @@ def process_ccyntry(currency_list, node):
 def get_currency_list():
     currency_list = SecurityList("ISO 4217, from http://www.currency-iso.org/en/home/tables/table-a1.html")
 
-    with request.urlopen('http://www.currency-iso.org/dam/downloads/lists/list_one.xml') as f:
-        xmldoc = minidom.parse(f)
-        for isonode in xmldoc.childNodes:
-            if isonode.nodeName == "ISO_4217":
-                for ccytblnode in isonode.childNodes:
-                    if ccytblnode.nodeName == "CcyTbl":
-                        for ccyntrynode in ccytblnode.childNodes:
-                            if ccyntrynode.nodeName == "CcyNtry":
-                                process_ccyntry(currency_list, ccyntrynode)
+    f = urlopen('http://www.currency-iso.org/dam/downloads/lists/list_one.xml')
+    xmldoc = minidom.parse(f)
+    for isonode in xmldoc.childNodes:
+        if isonode.nodeName == "ISO_4217":
+            for ccytblnode in isonode.childNodes:
+                if ccytblnode.nodeName == "CcyTbl":
+                    for ccyntrynode in ccytblnode.childNodes:
+                        if ccyntrynode.nodeName == "CcyNtry":
+                            process_ccyntry(currency_list, ccyntrynode)
+    f.close()
     return currency_list
 
 def get_cusip_list(filename):
     cusip_list = SecurityList("")
-    with open(filename, newline='') as csvfile:
+    with open(filename) as csvfile:
         csvreader = csv.reader(csvfile, delimiter=',')
         for row in csvreader:
             cusip = row[0]
@@ -87,8 +106,8 @@ def main():
 
     print("package main\n")
     print("var SecurityTemplates = []Security{")
-    print(str(currency_list))
-    print(str(cusip_list))
+    print(currency_list.unicode())
+    print(cusip_list.unicode())
     print("}")
 
 if __name__ == "__main__":
