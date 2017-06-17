@@ -11,9 +11,10 @@ your primary accounting software.
 
 ## Installation
 
-First, install npm in your distribution:
+First, install npm, python, curl, and go >= 1.7 in your distribution. Here is
+how in Arch Linux:
 
-	$ sudo pacman -S npm
+	$ sudo pacman -S npm curl go python
 
 Install browserify globally using npm:
 
@@ -47,3 +48,13 @@ from, running MoneyGo is then as easy as:
 
 You should then be able to explore MoneyGo by visiting http://localhost:8080 in
 your browser.
+
+## Missing Features
+
+* Importing investment transactions via OFX 
+* Budgets
+* Scheduled transactions
+* Matching duplicate transactions
+* Tracking exchange rates, security prices
+* Import QIF
+* Finishing reports
