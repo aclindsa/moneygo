@@ -1,4 +1,4 @@
-function account_series_map(accounts, report)
+function account_series_map(accounts, tabulation)
 	map = {}
 
 	for i=1,100 do -- we're not messing with accounts more than 100 levels deep
@@ -7,7 +7,7 @@ function account_series_map(accounts, report)
 			if not map[id] then
 				all_handled = false
 				if not acct.parent then
-					map[id] = report:series(acct.name)
+					map[id] = tabulation:series(acct.name)
 				elseif map[acct.parent.accountid] then
 					map[id] = map[acct.parent.accountid]:series(acct.name)
 				end
@@ -26,7 +26,7 @@ function generate()
 	account_type = account.Expense
 
 	accounts = get_accounts()
-	r = report.new(12)
+	r = tabulation.new(12)
 	r:title(year .. " Monthly Expenses")
 	series_map = account_series_map(accounts, r)
 

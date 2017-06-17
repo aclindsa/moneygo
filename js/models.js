@@ -494,18 +494,17 @@ class Series {
 	}
 }
 
-class Report {
+class Tabulation {
 	constructor() {
 		this.ReportId = "";
 		this.Title = "";
 		this.Subtitle = "";
-		this.XAxisLabel = "";
-		this.YAxisLabel = "";
+		this.Units = "";
 		this.Labels = [];
 		this.Series = {};
 		this.FlattenedSeries = {};
 	}
-	static topLevelAccountName() {
+	static topLevelSeriesName() {
 		return "(top level)"
 	}
 	toJSON() {
@@ -513,8 +512,7 @@ class Report {
 		json_obj.ReportId = this.ReportId;
 		json_obj.Title = this.Title;
 		json_obj.Subtitle = this.Subtitle;
-		json_obj.XAxisLabel = this.XAxisLabel;
-		json_obj.YAxisLabel = this.YAxisLabel;
+		json_obj.Units = this.Units;
 		json_obj.Labels = this.Labels;
 		json_obj.Series = {};
 		for (var series in this.Series) {
@@ -532,10 +530,8 @@ class Report {
 			this.Title = json_obj.Title;
 		if (json_obj.hasOwnProperty("Subtitle"))
 			this.Subtitle = json_obj.Subtitle;
-		if (json_obj.hasOwnProperty("XAxisLabel"))
-			this.XAxisLabel = json_obj.XAxisLabel;
-		if (json_obj.hasOwnProperty("YAxisLabel"))
-			this.YAxisLabel = json_obj.YAxisLabel;
+		if (json_obj.hasOwnProperty("Units"))
+			this.Units = json_obj.Units;
 		if (json_obj.hasOwnProperty("Labels"))
 			this.Labels = json_obj.Labels;
 		if (json_obj.hasOwnProperty("Series")) {
@@ -582,7 +578,7 @@ module.exports = {
 	Account: Account,
 	Split: Split,
 	Transaction: Transaction,
-	Report: Report,
+	Tabulation: Tabulation,
 	OFXDownload: OFXDownload,
 	Error: Error,
 

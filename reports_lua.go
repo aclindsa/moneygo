@@ -4,14 +4,14 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
-const luaReportTypeName = "report"
+const luaTabulationTypeName = "tabulation"
 const luaSeriesTypeName = "series"
 
-func luaRegisterReports(L *lua.LState) {
-	mtr := L.NewTypeMetatable(luaReportTypeName)
-	L.SetGlobal("report", mtr)
-	L.SetField(mtr, "new", L.NewFunction(luaReportNew))
-	L.SetField(mtr, "__index", L.NewFunction(luaReport__index))
+func luaRegisterTabulations(L *lua.LState) {
+	mtr := L.NewTypeMetatable(luaTabulationTypeName)
+	L.SetGlobal("tabulation", mtr)
+	L.SetField(mtr, "new", L.NewFunction(luaTabulationNew))
+	L.SetField(mtr, "__index", L.NewFunction(luaTabulation__index))
 	L.SetField(mtr, "__metatable", lua.LString("protected"))
 
 	mts := L.NewTypeMetatable(luaSeriesTypeName)
@@ -20,13 +20,13 @@ func luaRegisterReports(L *lua.LState) {
 	L.SetField(mts, "__metatable", lua.LString("protected"))
 }
 
-// Checks whether the first lua argument is a *LUserData with *Report and returns *Report
-func luaCheckReport(L *lua.LState, n int) *Report {
+// Checks whether the first lua argument is a *LUserData with *Tabulation and returns *Tabulation
+func luaCheckTabulation(L *lua.LState, n int) *Tabulation {
 	ud := L.CheckUserData(n)
-	if report, ok := ud.Value.(*Report); ok {
-		return report
+	if tabulation, ok := ud.Value.(*Tabulation); ok {
+		return tabulation
 	}
-	L.ArgError(n, "report expected")
+	L.ArgError(n, "tabulation expected")
 	return nil
 }
 
@@ -40,114 +40,101 @@ func luaCheckSeries(L *lua.LState, n int) *Series {
 	return nil
 }
 
-func luaReportNew(L *lua.LState) int {
+func luaTabulationNew(L *lua.LState) int {
 	numvalues := L.CheckInt(1)
 	ud := L.NewUserData()
-	ud.Value = &Report{
+	ud.Value = &Tabulation{
 		Labels: make([]string, numvalues),
 		Series: make(map[string]*Series),
 	}
-	L.SetMetatable(ud, L.GetTypeMetatable(luaReportTypeName))
+	L.SetMetatable(ud, L.GetTypeMetatable(luaTabulationTypeName))
 	L.Push(ud)
 	return 1
 }
 
-func luaReport__index(L *lua.LState) int {
+func luaTabulation__index(L *lua.LState) int {
 	field := L.CheckString(2)
 
 	switch field {
 	case "Label", "label":
-		L.Push(L.NewFunction(luaReportLabel))
+		L.Push(L.NewFunction(luaTabulationLabel))
 	case "Series", "series":
-		L.Push(L.NewFunction(luaReportSeries))
+		L.Push(L.NewFunction(luaTabulationSeries))
 	case "Title", "title":
-		L.Push(L.NewFunction(luaReportTitle))
+		L.Push(L.NewFunction(luaTabulationTitle))
 	case "Subtitle", "subtitle":
-		L.Push(L.NewFunction(luaReportSubtitle))
-	case "XAxisLabel", "xaxislabel":
-		L.Push(L.NewFunction(luaReportXAxis))
-	case "YAxisLabel", "yaxislabel":
-		L.Push(L.NewFunction(luaReportYAxis))
+		L.Push(L.NewFunction(luaTabulationSubtitle))
+	case "Units", "units":
+		L.Push(L.NewFunction(luaTabulationUnits))
 	default:
-		L.ArgError(2, "unexpected report attribute: "+field)
+		L.ArgError(2, "unexpected tabulation attribute: "+field)
 	}
 
 	return 1
 }
 
-func luaReportLabel(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
+func luaTabulationLabel(L *lua.LState) int {
+	tabulation := luaCheckTabulation(L, 1)
 	labelnumber := L.CheckInt(2)
 	label := L.CheckString(3)
 
-	if labelnumber > cap(report.Labels) || labelnumber < 1 {
+	if labelnumber > cap(tabulation.Labels) || labelnumber < 1 {
 		L.ArgError(2, "Label index must be between 1 and the number of data points, inclusive")
 	}
-	report.Labels[labelnumber-1] = label
+	tabulation.Labels[labelnumber-1] = label
 	return 0
 }
 
-func luaReportSeries(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
+func luaTabulationSeries(L *lua.LState) int {
+	tabulation := luaCheckTabulation(L, 1)
 	name := L.CheckString(2)
 	ud := L.NewUserData()
 
-	s, ok := report.Series[name]
+	s, ok := tabulation.Series[name]
 	if ok {
 		ud.Value = s
 	} else {
-		report.Series[name] = &Series{
+		tabulation.Series[name] = &Series{
 			Series: make(map[string]*Series),
-			Values: make([]float64, cap(report.Labels)),
+			Values: make([]float64, cap(tabulation.Labels)),
 		}
-		ud.Value = report.Series[name]
+		ud.Value = tabulation.Series[name]
 	}
 	L.SetMetatable(ud, L.GetTypeMetatable(luaSeriesTypeName))
 	L.Push(ud)
 	return 1
 }
 
-func luaReportTitle(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
+func luaTabulationTitle(L *lua.LState) int {
+	tabulation := luaCheckTabulation(L, 1)
 
 	if L.GetTop() == 2 {
-		report.Title = L.CheckString(2)
+		tabulation.Title = L.CheckString(2)
 		return 0
 	}
-	L.Push(lua.LString(report.Title))
+	L.Push(lua.LString(tabulation.Title))
 	return 1
 }
 
-func luaReportSubtitle(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
+func luaTabulationSubtitle(L *lua.LState) int {
+	tabulation := luaCheckTabulation(L, 1)
 
 	if L.GetTop() == 2 {
-		report.Subtitle = L.CheckString(2)
+		tabulation.Subtitle = L.CheckString(2)
 		return 0
 	}
-	L.Push(lua.LString(report.Subtitle))
+	L.Push(lua.LString(tabulation.Subtitle))
 	return 1
 }
 
-func luaReportXAxis(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
+func luaTabulationUnits(L *lua.LState) int {
+	tabulation := luaCheckTabulation(L, 1)
 
 	if L.GetTop() == 2 {
-		report.XAxisLabel = L.CheckString(2)
+		tabulation.Units = L.CheckString(2)
 		return 0
 	}
-	L.Push(lua.LString(report.XAxisLabel))
-	return 1
-}
-
-func luaReportYAxis(L *lua.LState) int {
-	report := luaCheckReport(L, 1)
-
-	if L.GetTop() == 2 {
-		report.YAxisLabel = L.CheckString(2)
-		return 0
-	}
-	L.Push(lua.LString(report.YAxisLabel))
+	L.Push(lua.LString(tabulation.Units))
 	return 1
 }
 

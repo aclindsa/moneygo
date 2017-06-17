@@ -4,55 +4,116 @@ var ErrorActions = require('./ErrorActions');
 
 var models = require('../models.js');
 var Report = models.Report;
+var Tabulation = models.Tabulation;
 var Error = models.Error;
 
-function fetchReport(reportName) {
+function fetchReports() {
 	return {
-		type: ReportConstants.FETCH_REPORT,
-		reportName: reportName
+		type: ReportConstants.FETCH_REPORTS
 	}
 }
 
-function reportFetched(report) {
+function reportsFetched(reports) {
 	return {
-		type: ReportConstants.REPORT_FETCHED,
+		type: ReportConstants.REPORTS_FETCHED,
+		reports: reports
+	}
+}
+
+function createReport() {
+	return {
+		type: ReportConstants.CREATE_REPORT
+	}
+}
+
+function reportCreated(report) {
+	return {
+		type: ReportConstants.REPORT_CREATED,
 		report: report
 	}
 }
 
-function selectReport(report, seriesTraversal) {
+function updateReport() {
 	return {
-		type: ReportConstants.SELECT_REPORT,
-		report: report,
-		seriesTraversal: seriesTraversal
+		type: ReportConstants.UPDATE_REPORT
 	}
 }
 
-function reportSelected(flattenedReport, seriesTraversal) {
+function reportUpdated(report) {
+	return {
+		type: ReportConstants.REPORT_UPDATED,
+		report: report
+	}
+}
+
+function removeReport() {
+	return {
+		type: ReportConstants.REMOVE_REPORT
+	}
+}
+
+function reportRemoved(reportId) {
+	return {
+		type: ReportConstants.REPORT_REMOVED,
+		reportId: reportId
+	}
+}
+
+function reportSelected(report) {
 	return {
 		type: ReportConstants.REPORT_SELECTED,
-		report: flattenedReport,
+		report: report
+	}
+}
+
+function tabulateReport(report) {
+	return {
+		type: ReportConstants.TABULATE_REPORT,
+		report: report
+	}
+}
+
+function reportTabulated(report, tabulation) {
+	return {
+		type: ReportConstants.REPORT_TABULATED,
+		report: report,
+		tabulation: tabulation
+	}
+}
+
+function selectionCleared() {
+	return {
+		type: ReportConstants.SELECTION_CLEARED
+	}
+}
+
+function seriesSelected(flattenedTabulation, seriesTraversal) {
+	return {
+		type: ReportConstants.SERIES_SELECTED,
+		tabulation: flattenedTabulation,
 		seriesTraversal: seriesTraversal
 	}
 }
 
-function fetch(report) {
+function fetchAll() {
 	return function (dispatch) {
-		dispatch(fetchReport(report));
+		dispatch(fetchReports());
 
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "report/"+report+"/",
+			url: "report/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
 				if (e.isError()) {
 					dispatch(ErrorActions.serverError(e));
 				} else {
-					var r = new Report();
-					r.fromJSON(data);
-					dispatch(reportFetched(r));
+					dispatch(reportsFetched(data.reports.map(function(json) {
+						var r = new Report();
+						r.fromJSON(json);
+						return r;
+					})));
 				}
 			},
 			error: function(jqXHR, status, error) {
@@ -62,14 +123,117 @@ function fetch(report) {
 	};
 }
 
-function select(report, seriesTraversal) {
+function create(report) {
+	return function (dispatch) {
+		dispatch(createReport());
+
+		$.ajax({
+			type: "POST",
+			dataType: "json",
+			url: "report/",
+			data: {report: report.toJSON()},
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					dispatch(ErrorActions.serverError(e));
+				} else {
+					var a = new Report();
+					a.fromJSON(data);
+					dispatch(reportCreated(a));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				dispatch(ErrorActions.ajaxError(error));
+			}
+		});
+	};
+}
+
+function update(report) {
+	return function (dispatch) {
+		dispatch(updateReport());
+
+		$.ajax({
+			type: "PUT",
+			dataType: "json",
+			url: "report/"+report.ReportId+"/",
+			data: {report: report.toJSON()},
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					dispatch(ErrorActions.serverError(e));
+				} else {
+					var a = new Report();
+					a.fromJSON(data);
+					dispatch(reportUpdated(a));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				dispatch(ErrorActions.ajaxError(error));
+			}
+		});
+	};
+}
+
+function remove(report) {
+	return function(dispatch) {
+		dispatch(removeReport());
+
+		$.ajax({
+			type: "DELETE",
+			dataType: "json",
+			url: "report/"+report.ReportId+"/",
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					dispatch(ErrorActions.serverError(e));
+				} else {
+					dispatch(reportRemoved(report.ReportId));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				dispatch(ErrorActions.ajaxError(error));
+			}
+		});
+	};
+}
+
+function tabulate(report) {
+	return function (dispatch) {
+		dispatch(tabulateReport(report));
+
+		$.ajax({
+			type: "GET",
+			dataType: "json",
+			url: "report/"+report.ReportId+"/tabulation/",
+			success: function(data, status, jqXHR) {
+				var e = new Error();
+				e.fromJSON(data);
+				if (e.isError()) {
+					dispatch(ErrorActions.serverError(e));
+				} else {
+					var t = new Tabulation();
+					t.fromJSON(data);
+					dispatch(reportTabulated(report, t));
+				}
+			},
+			error: function(jqXHR, status, error) {
+				dispatch(ErrorActions.ajaxError(error));
+			}
+		});
+	};
+}
+
+function selectSeries(tabulation, seriesTraversal) {
 	return function (dispatch) {
 		if (!seriesTraversal)
 			seriesTraversal = [];
-		dispatch(selectReport(report, seriesTraversal));
 
 		// Descend the tree to the right series to flatten
-		var series = report;
+		var series = tabulation;
 		for (var i=0; i < seriesTraversal.length; i++) {
 			if (!series.Series.hasOwnProperty(seriesTraversal[i])) {
 				dispatch(ErrorActions.clientError("Invalid series"));
@@ -87,23 +251,27 @@ function select(report, seriesTraversal) {
 
 		// Add back in any values from the current level
 		if (series.hasOwnProperty('Values'))
-			flattenedSeries[Report.topLevelAccountName()] = series.Values;
+			flattenedSeries[Tabulation.topLevelSeriesName()] = series.Values;
 
-		var flattenedReport = new Report();
+		var flattenedTabulation = new Tabulation();
 
-		flattenedReport.ReportId = report.ReportId;
-		flattenedReport.Title = report.Title;
-		flattenedReport.Subtitle = report.Subtitle;
-		flattenedReport.XAxisLabel = report.XAxisLabel;
-		flattenedReport.YAxisLabel = report.YAxisLabel;
-		flattenedReport.Labels = report.Labels.slice();
-		flattenedReport.FlattenedSeries = flattenedSeries;
+		flattenedTabulation.ReportId = tabulation.ReportId;
+		flattenedTabulation.Title = tabulation.Title;
+		flattenedTabulation.Subtitle = tabulation.Subtitle;
+		flattenedTabulation.Units = tabulation.Units;
+		flattenedTabulation.Labels = tabulation.Labels.slice();
+		flattenedTabulation.FlattenedSeries = flattenedSeries;
 
-		dispatch(reportSelected(flattenedReport, seriesTraversal));
+		dispatch(seriesSelected(flattenedTabulation, seriesTraversal));
 	};
 }
 
 module.exports = {
-	fetch: fetch,
-	select: select
+	fetchAll: fetchAll,
+	create: create,
+	update: update,
+	remove: remove,
+	tabulate: tabulate,
+	select: reportSelected,
+	selectSeries: selectSeries
 };
