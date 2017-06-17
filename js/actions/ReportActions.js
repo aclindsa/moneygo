@@ -87,10 +87,9 @@ function selectionCleared() {
 	}
 }
 
-function seriesSelected(flattenedTabulation, seriesTraversal) {
+function seriesSelected(seriesTraversal) {
 	return {
 		type: ReportConstants.SERIES_SELECTED,
-		tabulation: flattenedTabulation,
 		seriesTraversal: seriesTraversal
 	}
 }
@@ -228,45 +227,6 @@ function tabulate(report) {
 	};
 }
 
-function selectSeries(tabulation, seriesTraversal) {
-	return function (dispatch) {
-		if (!seriesTraversal)
-			seriesTraversal = [];
-
-		// Descend the tree to the right series to flatten
-		var series = tabulation;
-		for (var i=0; i < seriesTraversal.length; i++) {
-			if (!series.Series.hasOwnProperty(seriesTraversal[i])) {
-				dispatch(ErrorActions.clientError("Invalid series"));
-				return;
-			}
-			series = series.Series[seriesTraversal[i]];
-		}
-
-		// Actually flatten the data
-		var flattenedSeries = series.mapReduceChildren(null,
-			function(accumulator, currentValue, currentIndex, array) {
-				return accumulator + currentValue;
-			}
-		);
-
-		// Add back in any values from the current level
-		if (series.hasOwnProperty('Values'))
-			flattenedSeries[Tabulation.topLevelSeriesName()] = series.Values;
-
-		var flattenedTabulation = new Tabulation();
-
-		flattenedTabulation.ReportId = tabulation.ReportId;
-		flattenedTabulation.Title = tabulation.Title;
-		flattenedTabulation.Subtitle = tabulation.Subtitle;
-		flattenedTabulation.Units = tabulation.Units;
-		flattenedTabulation.Labels = tabulation.Labels.slice();
-		flattenedTabulation.FlattenedSeries = flattenedSeries;
-
-		dispatch(seriesSelected(flattenedTabulation, seriesTraversal));
-	};
-}
-
 module.exports = {
 	fetchAll: fetchAll,
 	create: create,
@@ -274,5 +234,5 @@ module.exports = {
 	remove: remove,
 	tabulate: tabulate,
 	select: reportSelected,
-	selectSeries: selectSeries
+	selectSeries: seriesSelected
 };

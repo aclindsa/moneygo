@@ -23,7 +23,7 @@ function mapDispatchToProps(dispatch) {
 		onDeleteReport: function(report) {dispatch(ReportActions.remove(report))},
 		onSelectReport: function(report) {dispatch(ReportActions.select(report))},
 		onTabulateReport: function(report) {dispatch(ReportActions.tabulate(report))},
-		onSelectSeries: function(tabulation, seriesTraversal) {dispatch(ReportActions.selectSeries(tabulation, seriesTraversal))}
+		onSelectSeries: function(seriesTraversal) {dispatch(ReportActions.selectSeries(seriesTraversal))}
 	}
 }
 

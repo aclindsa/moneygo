@@ -156,10 +156,6 @@ class ReportsTab extends React.Component {
 				nextProps.onTabulateReport(nextProps.reports.map[nextProps.reports.list[0]]);
 				this.setState({initialized: true});
 			}
-		} else if (selected != -1 &&
-				nextProps.reports.tabulations.hasOwnProperty(selected) &&
-				nextProps.reports.selectedTabulation == null) {
-			nextProps.onSelectSeries(nextProps.reports.tabulations[selected]);
 		}
 	}
 	handleSelectSeries(series) {
@@ -167,8 +163,7 @@ class ReportsTab extends React.Component {
 			return;
 		var seriesTraversal = this.props.reports.seriesTraversal.slice();
 		seriesTraversal.push(series);
-		var selectedTabulation = this.props.reports.tabulations[this.props.reports.selected];
-		this.props.onSelectSeries(selectedTabulation, seriesTraversal);
+		this.props.onSelectSeries(seriesTraversal);
 	}
 	handleSelectReport(report) {
 		this.props.onSelectReport(report);
@@ -214,10 +209,9 @@ class ReportsTab extends React.Component {
 				var self = this;
 				var navOnClick = function() {
 					var onSelectSeries = self.props.onSelectSeries;
-					var tabulation = self.props.reports.tabulations[self.props.reports.selected];
 					var mySeriesTraversal = seriesTraversal.slice();
 					return function() {
-						onSelectSeries(tabulation, mySeriesTraversal);
+						onSelectSeries(mySeriesTraversal);
 					};
 				}();
 				titleTracks.push((
