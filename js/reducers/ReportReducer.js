@@ -63,16 +63,19 @@ module.exports = function(state = initialState, action) {
 				selectedTabulation: null,
 				seriesTraversal: []
 			});
-		case ReportConstants.TABULATION_FETCHED:
+		case ReportConstants.REPORT_TABULATED:
 			var tabulation = action.tabulation;
-			return assign({}, state, {
+			var tabulations = assign({}, state.tabulations, {
 				[tabulation.ReportId]: tabulation
 			});
+			return assign({}, state, {
+				tabulations: tabulations
+			});
 		case ReportConstants.SERIES_SELECTED:
-			return {
+			return assign({}, state, {
 				selectedTabulation: action.tabulation,
 				seriesTraversal: action.seriesTraversal
-			};
+			});
 		case UserConstants.USER_LOGGEDOUT:
 			return initialState;
 		default:

@@ -135,12 +135,12 @@ class StackedBarChart extends React.Component {
 				if (value == 0)
 					continue;
 				if (value > 0) {
-					rectHeight = y(value) - y(0);
+					var rectHeight = y(value) - y(0);
 					positiveSum[j] += rectHeight;
-					rectY = height - y(0) - positiveSum[j];
+					var rectY = height - y(0) - positiveSum[j];
 				} else {
-					rectHeight = y(0) - y(value);
-					rectY = height - y(0) + negativeSum[j];
+					var rectHeight = y(0) - y(value);
+					var rectY = height - y(0) + negativeSum[j];
 					negativeSum[j] += rectHeight;
 				}
 

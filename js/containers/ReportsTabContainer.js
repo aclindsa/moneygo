@@ -4,8 +4,14 @@ var ReportActions = require('../actions/ReportActions');
 var ReportsTab = require('../components/ReportsTab');
 
 function mapStateToProps(state) {
+	var report_list = [];
+	for (var reportId in state.reports.map) {
+		if (state.reports.map.hasOwnProperty(reportId))
+			report_list.push(state.reports.map[reportId]);
+	}
 	return {
-		reports: state.reports
+		reports: state.reports,
+		report_list: report_list
 	}
 }
 

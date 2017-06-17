@@ -203,6 +203,8 @@ func ReportTabulationHandler(w http.ResponseWriter, r *http.Request, user *User,
 		return
 	}
 
+	tabulation.ReportId = reportid
+
 	err = tabulation.Write(w)
 	if err != nil {
 		WriteError(w, 999 /*Internal Error*/)

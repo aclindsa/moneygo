@@ -138,9 +138,9 @@ function create(report) {
 				if (e.isError()) {
 					dispatch(ErrorActions.serverError(e));
 				} else {
-					var a = new Report();
-					a.fromJSON(data);
-					dispatch(reportCreated(a));
+					var r = new Report();
+					r.fromJSON(data);
+					dispatch(reportCreated(r));
 				}
 			},
 			error: function(jqXHR, status, error) {
@@ -165,9 +165,10 @@ function update(report) {
 				if (e.isError()) {
 					dispatch(ErrorActions.serverError(e));
 				} else {
-					var a = new Report();
-					a.fromJSON(data);
-					dispatch(reportUpdated(a));
+					var r = new Report();
+					r.fromJSON(data);
+					dispatch(reportUpdated(r));
+					dispatch(tabulate(r));
 				}
 			},
 			error: function(jqXHR, status, error) {

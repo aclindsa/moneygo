@@ -435,6 +435,35 @@ class Error {
 	}
 }
 
+class Report {
+	constructor() {
+		this.ReportId = -1;
+		this.UserId = -1;
+		this.Name = "";
+		this.Lua = "";
+	}
+	toJSON() {
+		var json_obj = {};
+		json_obj.ReportId = this.ReportId;
+		json_obj.UserId = this.UserId;
+		json_obj.Name = this.Name;
+		json_obj.Lua = this.Lua;
+		return JSON.stringify(json_obj);
+	}
+	fromJSON(json_input) {
+		var json_obj = getJSONObj(json_input)
+
+		if (json_obj.hasOwnProperty("ReportId"))
+			this.ReportId = json_obj.ReportId;
+		if (json_obj.hasOwnProperty("UserId"))
+			this.UserId = json_obj.UserId;
+		if (json_obj.hasOwnProperty("Name"))
+			this.Name = json_obj.Name;
+		if (json_obj.hasOwnProperty("Lua"))
+			this.Lua = json_obj.Lua;
+	}
+}
+
 class Series {
 	constructor() {
 		this.Values = [];
@@ -496,7 +525,7 @@ class Series {
 
 class Tabulation {
 	constructor() {
-		this.ReportId = "";
+		this.ReportId = -1;
 		this.Title = "";
 		this.Subtitle = "";
 		this.Units = "";
@@ -578,6 +607,7 @@ module.exports = {
 	Account: Account,
 	Split: Split,
 	Transaction: Transaction,
+	Report: Report,
 	Tabulation: Tabulation,
 	OFXDownload: OFXDownload,
 	Error: Error,
