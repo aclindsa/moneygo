@@ -49,6 +49,7 @@
 
 .chart-element {
 	stroke-width: 0;
+	cursor: pointer;
 }
 g.chart-series:hover .chart-element {
 	stroke-width: 2;

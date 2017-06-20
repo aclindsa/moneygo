@@ -36,10 +36,13 @@ class StackedBarChart extends React.Component {
 		var seriesValues = {};
 		for (var child in series) {
 			if (series.hasOwnProperty(child)) {
-				seriesNames.push(child);
-				seriesValues[child] = series[child].reduce(function(accum, curr, i, arr) {
+				var value = series[child].reduce(function(accum, curr, i, arr) {
 					return accum + Math.abs(curr);
 				}, 0);
+				if (value != 0) {
+					seriesValues[child] = value;
+					seriesNames.push(child);
+				}
 			}
 		}
 		seriesNames.sort(function(a, b) {
@@ -59,11 +62,16 @@ class StackedBarChart extends React.Component {
 	render() {
 		var height = 400;
 		var width = 1000;
-		var legendWidth = 100;
+		var legendWidth = 200;
 		var xMargin = 70;
 		var yMargin = 70;
+		var legendEntryHeight = 15;
 		height -= yMargin*2;
 		width -= xMargin*2;
+
+		var sortedSeries = this.sortedSeries(this.props.report.FlattenedSeries);
+		if (height < legendEntryHeight * sortedSeries.length)
+			height = legendEntryHeight * sortedSeries.length;
 
 		var minMax = this.calcMinMax(this.props.report.FlattenedSeries);
 		var xAxisMarksEvery = this.calcAxisMarkSeparation(minMax, height, 40);
@@ -73,7 +81,6 @@ class StackedBarChart extends React.Component {
 		var x = d3.scaleLinear()
 			.range([0, width])
 			.domain([0, this.props.report.Labels.length + 0.5]);
-		var sortedSeries = this.sortedSeries(this.props.report.FlattenedSeries);
 
 		var bars = [];
 		var labels = [];
@@ -165,12 +172,12 @@ class StackedBarChart extends React.Component {
 		var legend = [];
 		for (var series in legendMap) {
 			var legendClasses = "chart-color" + (legendMap[series] % 12);
-			var legendY = (legendMap[series] - 1)*15;
+			var legendY = (legendMap[series] - 1)*legendEntryHeight;
 			legend.push((
 				<rect key={"legend-key-"+legendMap[series]} className={legendClasses} x={0} y={legendY} width={10} height={10}/>
 			));
 			legend.push((
-				<text key={"legend-label-"+legendMap[series]} x={0 + 15} y={legendY + 10}>{series}</text>
+				<text key={"legend-label-"+legendMap[series]} x={legendEntryHeight} y={legendY + 10}>{series}</text>
 			));
 		}
 

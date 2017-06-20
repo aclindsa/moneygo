@@ -31,17 +31,20 @@ class Slice extends React.Component {
 
 class PieChart extends React.Component {
 	sortedSeries(series) {
-		// Return an array of the series names, from highest to lowest sums (in
-		// absolute terms)
+		// Return an array of the non-zero series names, from highest to lowest
+		// sums (in absolute terms)
 
 		var seriesNames = [];
 		var seriesValues = {};
 		for (var child in series) {
 			if (series.hasOwnProperty(child)) {
-				seriesNames.push(child);
-				seriesValues[child] = series[child].reduce(function(accum, curr, i, arr) {
+				var value = series[child].reduce(function(accum, curr, i, arr) {
 					return accum + curr;
 				}, 0);
+				if (value != 0) {
+					seriesValues[child] = value;
+					seriesNames.push(child);
+				}
 			}
 		}
 		seriesNames.sort(function(a, b) {
@@ -52,17 +55,22 @@ class PieChart extends React.Component {
 	}
 	render() {
 		var height = 400;
-		var width = 600;
-		var legendWidth = 100;
+		var width = 400;
+		var legendWidth = 200;
 		var xMargin = 70;
 		var yMargin = 70;
+		var legendEntryHeight = 15;
 		height -= yMargin*2;
 		width -= xMargin*2;
-		var radius = Math.min(height, width)/2;
 
 		var sortedSeriesValues = this.sortedSeries(this.props.report.FlattenedSeries);
 		var sortedSeries = sortedSeriesValues[0];
 		var seriesValues = sortedSeriesValues[1];
+
+		if (height < legendEntryHeight * sortedSeries.length)
+			height = legendEntryHeight * sortedSeries.length;
+		var radius = Math.min(height, width)/2;
+
 		var r = d3.scaleLinear()
 			.range([0, 2*Math.PI])
 			.domain([0, sortedSeries.reduce(function(accum, curr, i, arr) {
@@ -78,8 +86,6 @@ class PieChart extends React.Component {
 		for (var i=0; i < sortedSeries.length; i++) {
 			var child = sortedSeries[i];
 			var value = seriesValues[child];
-			if (value == 0)
-				continue;
 
 			var sliceClasses = "chart-element chart-color" + (childId % 12);
 			var self = this;
@@ -113,12 +119,12 @@ class PieChart extends React.Component {
 		var legend = [];
 		for (var series in legendMap) {
 			var legendClasses = "chart-color" + (legendMap[series] % 12);
-			var legendY = (legendMap[series] - 1)*15;
+			var legendY = (legendMap[series] - 1)*legendEntryHeight;
 			legend.push((
 				<rect key={"legend-key-"+legendMap[series]} className={legendClasses} x={0} y={legendY} width={10} height={10}/>
 			));
 			legend.push((
-				<text key={"legend-label-"+legendMap[series]} x={0 + 15} y={legendY + 10}>{series}</text>
+				<text key={"legend-label-"+legendMap[series]} x={legendEntryHeight} y={legendY + 10}>{series}</text>
 			));
 		}
 
