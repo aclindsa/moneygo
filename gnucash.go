@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -288,7 +290,28 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gnucashImport, err := ImportGnucash(part)
+	bufread := bufio.NewReader(part)
+	gzHeader, err := bufread.Peek(2)
+	if err != nil {
+		WriteError(w, 999 /*Internal Error*/)
+		log.Print(err)
+		return
+	}
+
+	// Does this look like a gzipped file?
+	var gnucashImport *GnucashImport
+	if gzHeader[0] == 0x1f && gzHeader[1] == 0x8b {
+		gzr, err := gzip.NewReader(bufread)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
+		gnucashImport, err = ImportGnucash(gzr)
+	} else {
+		gnucashImport, err = ImportGnucash(bufread)
+	}
+
 	if err != nil {
 		WriteError(w, 3 /*Invalid Request*/)
 		return
