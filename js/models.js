@@ -13,6 +13,7 @@ function getJSONObj(json_input) {
 class User {
 	constructor() {
 		this.UserId = -1;
+		this.DefaultCurrency = -1;
 		this.Name = "";
 		this.Username = "";
 		this.Password = "";
@@ -21,6 +22,7 @@ class User {
 	toJSON() {
 		var json_obj = {};
 		json_obj.UserId = this.UserId;
+		json_obj.DefaultCurrency = this.DefaultCurrency;
 		json_obj.Name = this.Name;
 		json_obj.Username = this.Username;
 		json_obj.Password = this.Password;
@@ -32,6 +34,8 @@ class User {
 
 		if (json_obj.hasOwnProperty("UserId"))
 			this.UserId = json_obj.UserId;
+		if (json_obj.hasOwnProperty("DefaultCurrency"))
+			this.DefaultCurrency = json_obj.DefaultCurrency;
 		if (json_obj.hasOwnProperty("Name"))
 			this.Name = json_obj.Name;
 		if (json_obj.hasOwnProperty("Username"))

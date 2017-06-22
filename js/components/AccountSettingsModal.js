@@ -12,6 +12,8 @@ var FormControl = ReactBootstrap.FormControl;
 var ControlLabel = ReactBootstrap.ControlLabel;
 var Col = ReactBootstrap.Col;
 
+var Combobox = require('react-widgets').Combobox;
+
 var models = require('../models');
 var User = models.User;
 
@@ -22,6 +24,7 @@ class AccountSettingsModal extends React.Component {
 			name: props ? props.user.Name: "",
 			username: props ? props.user.Username : "",
 			email: props ? props.user.Email : "",
+			defaultCurrency: props ? props.user.DefaultCurrency : "",
 			password: models.BogusPassword,
 			confirm_password: models.BogusPassword,
 			passwordChanged: false,
@@ -33,6 +36,7 @@ class AccountSettingsModal extends React.Component {
 		this.state = this._getInitialState();
 		this.onCancel = this.handleCancel.bind(this);
 		this.onChange = this.handleChange.bind(this);
+		this.onSelectCurrency = this.handleSelectCurrency.bind(this);
 		this.onSubmit = this.handleSubmit.bind(this);
 	}
 	componentWillReceiveProps(nextProps) {
@@ -73,6 +77,13 @@ class AccountSettingsModal extends React.Component {
 			confirm_password: ReactDOM.findDOMNode(this.refs.confirm_password).value
 		});
 	}
+	handleSelectCurrency(security) {
+		if (security.hasOwnProperty('SecurityId')) {
+			this.setState({
+				defaultCurrency: security.SecurityId
+			});
+		}
+	}
 	handleSubmit(e) {
 		var u = new User();
 		e.preventDefault();
@@ -81,6 +92,7 @@ class AccountSettingsModal extends React.Component {
 		u.Name = this.state.name;
 		u.Username = this.state.username;
 		u.Email = this.state.email;
+		u.DefaultCurrency = this.state.defaultCurrency;
 		if (this.state.passwordChanged) {
 			u.Password = this.state.password;
 			if (u.Password != this.state.confirm_password) {
@@ -128,6 +140,20 @@ class AccountSettingsModal extends React.Component {
 							value={this.state.email}
 							onChange={this.onChange}
 							ref="email"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Default Currency</Col>
+						<Col xs={10}>
+						<Combobox
+							data={this.props.currencies}
+							valueField='SecurityId'
+							textField={item => item == undefined || typeof item === 'string' ? item : item.Name + " - " + item.Description}
+							defaultValue={this.state.defaultCurrency}
+							onChange={this.onSelectCurrency}
+							suggest
+							filter='contains'
+							ref="security" />
 						</Col>
 					</FormGroup>
 					<FormGroup validationState={this.passwordValidationState()}>

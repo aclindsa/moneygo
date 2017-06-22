@@ -5,7 +5,9 @@ var UserActions = require('../actions/UserActions');
 var NewUserModal = require('../components/NewUserModal');
 
 function mapStateToProps(state) {
-	return {}
+	return {
+		currencies: state.securityTemplates.currencies
+	}
 }
 
 function mapDispatchToProps(dispatch) {

@@ -3,30 +3,37 @@ var assign = require('object-assign');
 var SecurityTemplateConstants = require('../constants/SecurityTemplateConstants');
 var UserConstants = require('../constants/UserConstants');
 
-var SecurityType = require('../models').SecurityType;
+const initialState = {
+	search: "",
+	type: 0,
+	templates: [],
+	currencies: []
+};
 
-module.exports = function(state = {search: "", type: 0, templates: [], searchNumber: 0}, action) {
+module.exports = function(state = initialState, action) {
 	switch (action.type) {
 		case SecurityTemplateConstants.SEARCH_SECURITY_TEMPLATES:
-			return {
+			return assign({}, state, {
 				search: action.searchString,
 				type: action.searchType,
 				templates: []
-			};
+			});
 		case SecurityTemplateConstants.SECURITY_TEMPLATES_SEARCHED:
 			if ((action.searchString != state.search) || (action.searchType != state.type))
 				return state;
-			return {
+			return assign({}, state, {
 				search: action.searchString,
 				type: action.searchType,
 				templates: action.securities
-			};
+			});
+		case SecurityTemplateConstants.CURRENCIES_FETCHED:
+			return assign({}, state, {
+				currencies: action.currencies
+			});
 		case UserConstants.USER_LOGGEDOUT:
-			return {
-				search: "",
-				type: 0,
-				templates: []
-			};
+			return assign({}, initialState, {
+				currencies: state.currencies
+			});
 		default:
 			return state;
 	}

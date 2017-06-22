@@ -11,6 +11,8 @@ var Col = ReactBootstrap.Col;
 var Button = ReactBootstrap.Button;
 var ButtonGroup = ReactBootstrap.ButtonGroup;
 
+var Combobox = require('react-widgets').Combobox;
+
 var models = require('../models');
 var User = models.User;
 
@@ -22,6 +24,7 @@ class NewUserModal extends React.Component {
 			name: "",
 			username: "",
 			email: "",
+			defaultCurrency: '840', // ISO4217 code for USD
 			password: "",
 			confirm_password: "",
 			passwordChanged: false,
@@ -29,6 +32,7 @@ class NewUserModal extends React.Component {
 		};
 		this.onCancel = this.handleCancel.bind(this);
 		this.onChange = this.handleChange.bind(this);
+		this.onSelectCurrency = this.handleSelectCurrency.bind(this);
 		this.onSubmit = this.handleSubmit.bind(this);
 	}
 	passwordValidationState() {
@@ -64,6 +68,13 @@ class NewUserModal extends React.Component {
 			confirm_password: ReactDOM.findDOMNode(this.refs.confirm_password).value
 		});
 	}
+	handleSelectCurrency(security) {
+		if (security.hasOwnProperty('SecurityId')) {
+			this.setState({
+				defaultCurrency: security.AlternateId
+			});
+		}
+	}
 	handleSubmit(e) {
 		var u = new User();
 		var error = "";
@@ -72,6 +83,7 @@ class NewUserModal extends React.Component {
 		u.Name = this.state.name;
 		u.Username = this.state.username;
 		u.Email = this.state.email;
+		u.DefaultCurrency = Number.parseInt(this.state.defaultCurrency);
 		u.Password = this.state.password;
 		if (u.Password != this.state.confirm_password) {
 			this.setState({error: "Error: passwords do not match"});
@@ -116,6 +128,20 @@ class NewUserModal extends React.Component {
 							value={this.state.email}
 							onChange={this.onChange}
 							ref="email"/>
+						</Col>
+					</FormGroup>
+					<FormGroup>
+						<Col componentClass={ControlLabel} xs={2}>Default Currency</Col>
+						<Col xs={10}>
+						<Combobox
+							data={this.props.currencies}
+							valueField='AlternateId'
+							textField={item => typeof item === 'string' ? item : item.Name + " - " + item.Description}
+							defaultValue={this.state.defaultCurrency}
+							onChange={this.onSelectCurrency}
+							suggest
+							filter='contains'
+							ref="security" />
 						</Col>
 					</FormGroup>
 					<FormGroup validationState={this.passwordValidationState()}>

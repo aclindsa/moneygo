@@ -36,7 +36,7 @@ type Security struct {
 	// security is precise to
 	Precision int
 	Type      int64
-	// AlternateId is CUSIP for Type=Stock
+	// AlternateId is CUSIP for Type=Stock, ISO4217 for Type=Currency
 	AlternateId string
 }
 
@@ -80,6 +80,16 @@ func SearchSecurityTemplates(search string, _type int64, limit int64) []*Securit
 func FindSecurityTemplate(name string, _type int64) *Security {
 	for _, security := range SecurityTemplates {
 		if name == security.Name && _type == security.Type {
+			return &security
+		}
+	}
+	return nil
+}
+
+func FindCurrencyTemplate(iso4217 int64) *Security {
+	iso4217string := strconv.FormatInt(iso4217, 10)
+	for _, security := range SecurityTemplates {
+		if security.Type == Currency && security.AlternateId == iso4217string {
 			return &security
 		}
 	}
@@ -169,6 +179,15 @@ func DeleteSecurity(s *Security) error {
 	if accounts != 0 {
 		transaction.Rollback()
 		return errors.New("One or more accounts still use this security")
+	}
+
+	user, err := GetUserTx(transaction, s.UserId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	} else if user.DefaultCurrency == s.SecurityId {
+		transaction.Rollback()
+		return errors.New("Cannot delete security which is user's default currency")
 	}
 
 	count, err := transaction.Delete(s)

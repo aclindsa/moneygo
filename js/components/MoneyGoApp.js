@@ -27,6 +27,7 @@ class MoneyGoApp extends React.Component {
 	}
 	componentDidMount() {
 		this.props.tryResumingSession();
+		this.props.fetchCurrencies();
 	}
 	handleShowSettings() {
 		this.setState({showAccountSettingsModal: true});
