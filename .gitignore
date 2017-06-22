@@ -1,5 +1,6 @@
 *.swp
 static/bundle.js
+static/codemirror
 static/react-widgets
 node_modules
 cusip_list.csv
