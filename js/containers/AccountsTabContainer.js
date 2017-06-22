@@ -8,16 +8,11 @@ var ImportActions = require('../actions/ImportActions');
 var AccountsTab = require('../components/AccountsTab');
 
 function mapStateToProps(state) {
-	var security_list = [];
-	for (var securityId in state.securities) {
-		if (state.securities.hasOwnProperty(securityId))
-			security_list.push(state.securities[securityId]);
-	}
 	return {
 		accounts: state.accounts.map,
 		accountChildren: state.accounts.children,
-		securities: state.securities,
-		security_list: security_list,
+		securities: state.securities.map,
+		security_list: state.securities.list,
 		selectedAccount: state.selectedAccount,
 		transactions: state.transactions,
 		transactionPage: state.transactionPage,

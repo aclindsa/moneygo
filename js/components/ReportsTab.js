@@ -288,7 +288,7 @@ class ReportsTab extends React.Component {
 			</ButtonGroup>
 			<ButtonGroup>
 				<Combobox
-					data={this.props.report_list}
+					data={this.props.reports.list}
 					valueField='ReportId'
 					textField={item => typeof item === 'string' ? item : item.Name}
 					value={selectedReport}
