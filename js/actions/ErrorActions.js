@@ -32,6 +32,17 @@ function clientError(error) {
 	};
 }
 
+function userError(error) {
+	var e = new Error();
+	e.ErrorId = 999;
+	e.ErrorString =  error;
+
+	return {
+		type: ErrorConstants.ERROR_USER,
+		error: e
+	};
+}
+
 function clearError() {
 	return {
 		type: ErrorConstants.CLEAR_ERROR,
@@ -42,5 +53,6 @@ module.exports = {
 	serverError: serverError,
 	ajaxError: ajaxError,
 	clientError: clientError,
+	userError: userError,
 	clearError: clearError
 };

@@ -148,6 +148,15 @@ func UpdateSecurity(s *Security) error {
 		return err
 	}
 
+	user, err := GetUserTx(transaction, s.UserId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	} else if user.DefaultCurrency == s.SecurityId && s.Type != Currency {
+		transaction.Rollback()
+		return errors.New("Cannot change security which is user's default currency to be non-currency")
+	}
+
 	count, err := transaction.Update(s)
 	if err != nil {
 		transaction.Rollback()

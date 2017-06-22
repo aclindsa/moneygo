@@ -136,7 +136,7 @@ class AddEditSecurityModal extends React.Component {
 			symbol: template.Symbol,
 			precision: template.Precision,
 			type: template.Type,
-			alternateid: template.AlternateId 
+			alternateid: template.AlternateId
 		});
 	}
 	handleCancel() {
@@ -287,13 +287,17 @@ class AddEditSecurityModal extends React.Component {
 
 class DeletionFailedModal extends React.Component {
 	render() {
+		var msg = "We are unable to delete your " + this.props.deletingSecurity.Name + " security because it is in use by " + this.props.securityAccounts.length + " account(s). Please change those accounts to use other securities and try again.";
+		if (this.props.user.DefaultCurrency == this.props.deletingSecurity.SecurityId) {
+			msg = "We are unable to delete your default currency: " + this.props.deletingSecurity.Name + ". To delete this security, select another as your default currency under Account Settings.";
+		}
 		return (
 			<Modal show={this.props.show} onHide={this.props.onClose}>
 				<Modal.Header closeButton>
 					<Modal.Title>Cannot Delete Security</Modal.Title>
 				</Modal.Header>
 				<Modal.Body>
-					We are unable to delete this security because it is in use by {this.props.securityAccounts.length} account(s). Please change those accounts to use other securities and try again.
+					{msg}
 				</Modal.Body>
 				<Modal.Footer>
 					<ButtonGroup className="pull-right">
@@ -366,8 +370,10 @@ class SecuritiesTab extends React.Component {
 		this.setState({editingSecurity: true});
 	}
 	handleDeleteSecurity() {
-		if (this.props.selectedSecurityAccounts.length == 0)
-			this.props.onDeleteSecurity(this.props.securities[this.props.selectedSecurity]);
+		// check if user has this as their default currency
+		var security = this.props.securities[this.props.selectedSecurity];
+		if (this.props.selectedSecurityAccounts.length == 0 && security.SecurityId != this.props.user.DefaultCurrency)
+			this.props.onDeleteSecurity(security);
 		else
 			this.setState({deletionFailedModal: true});
 	}
@@ -383,7 +389,12 @@ class SecuritiesTab extends React.Component {
 	}
 	handleEditingSubmit(security) {
 		this.setState({editingSecurity: false});
-		this.props.onUpdateSecurity(security);
+
+		if (security.SecurityId == this.props.user.DefaultCurrency && security.Type != SecurityType.Currency) {
+			this.props.onUserError("Unable to modify the default currency to be a non-currency security");
+		} else {
+			this.props.onUpdateSecurity(security);
+		}
 	}
 	handleCloseDeletionFailed() {
 		this.setState({deletionFailedModal: false});
@@ -412,6 +423,7 @@ class SecuritiesTab extends React.Component {
 				securityTemplates={this.props.securityTemplates} />
 			<DeletionFailedModal
 				show={this.state.deletionFailedModal}
+				user={this.props.user}
 				deletingSecurity={selectedSecurity}
 				onClose={this.onCloseDeletionFailed}
 				securityAccounts={this.props.selectedSecurityAccounts} />

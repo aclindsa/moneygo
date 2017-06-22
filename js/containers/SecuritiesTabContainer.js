@@ -2,6 +2,8 @@ var connect = require('react-redux').connect;
 
 var SecurityActions = require('../actions/SecurityActions');
 var SecurityTemplateActions = require('../actions/SecurityTemplateActions');
+var ErrorActions = require('../actions/ErrorActions');
+
 var SecuritiesTab = require('../components/SecuritiesTab');
 
 function mapStateToProps(state) {
@@ -12,6 +14,7 @@ function mapStateToProps(state) {
 			selectedSecurityAccounts.push(state.accounts.map[accountId]);
 	}
 	return {
+		user: state.user,
 		securities: state.securities.map,
 		security_list: state.securities.list,
 		selectedSecurityAccounts: selectedSecurityAccounts,
@@ -26,7 +29,8 @@ function mapDispatchToProps(dispatch) {
 		onUpdateSecurity: function(security) {dispatch(SecurityActions.update(security))},
 		onDeleteSecurity: function(securityId) {dispatch(SecurityActions.remove(securityId))},
 		onSelectSecurity: function(securityId) {dispatch(SecurityActions.select(securityId))},
-		onSearchTemplates: function(search, type, limit) {dispatch(SecurityTemplateActions.search(search, type, limit))}
+		onSearchTemplates: function(search, type, limit) {dispatch(SecurityTemplateActions.search(search, type, limit))},
+		onUserError: function(error) {dispatch(ErrorActions.userError(error))}
 	}
 }
 
