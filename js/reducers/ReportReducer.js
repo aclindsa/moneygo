@@ -85,7 +85,7 @@ module.exports = function(state = initialState, action) {
 			var list = [];
 			for (var reportId in reports) {
 				if (reports.hasOwnProperty(reportId))
-					list.push(report);
+					list.push(reports[reportId]);
 			}
 			return assign({}, state, {
 				map: reports,
