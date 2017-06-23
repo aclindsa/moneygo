@@ -26,14 +26,14 @@ function generate()
 	account_type = account.Income
 
 	accounts = get_accounts()
-	r = tabulation.new(1)
-	r:title(year .. " Income")
-	series_map = account_series_map(accounts, r)
+	t = tabulation.new(1)
+	t:title(year .. " Income")
+	series_map = account_series_map(accounts, t)
 
 	begin_date = date.new(year, 1, 1)
 	end_date = date.new(year+1, 1, 1)
 
-	r:label(1, year .. " Income")
+	t:label(1, year .. " Income")
 
 	for id, acct in pairs(accounts) do
 		series = series_map[id]
@@ -43,5 +43,5 @@ function generate()
 		end
 	end
 
-	return r
+	return t
 end

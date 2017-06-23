@@ -26,15 +26,15 @@ function generate()
 	account_type = account.Expense
 
 	accounts = get_accounts()
-	r = tabulation.new(12)
-	r:title(year .. " Monthly Expenses")
-	series_map = account_series_map(accounts, r)
+	t = tabulation.new(12)
+	t:title(year .. " Monthly Expenses")
+	series_map = account_series_map(accounts, t)
 
 	for month=1,12 do
 		begin_date = date.new(year, month, 1)
 		end_date = date.new(year, month+1, 1)
 
-		r:label(month, tostring(begin_date))
+		t:label(month, tostring(begin_date))
 
 		for id, acct in pairs(accounts) do
 			series = series_map[id]
@@ -45,5 +45,5 @@ function generate()
 		end
 	end
 
-	return r
+	return t
 end
