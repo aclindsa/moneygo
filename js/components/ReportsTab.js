@@ -152,8 +152,8 @@ class ReportsTab extends React.Component {
 		if (!this.state.initialized) {
 			if (selected == -1 &&
 					nextProps.reports.list.length > 0) {
-				nextProps.onSelectReport(nextProps.reports.map[nextProps.reports.list[0]]);
-				nextProps.onTabulateReport(nextProps.reports.map[nextProps.reports.list[0]]);
+				nextProps.onSelectReport(nextProps.reports.list[0]);
+				nextProps.onTabulateReport(nextProps.reports.list[0]);
 				this.setState({initialized: true});
 			}
 		}

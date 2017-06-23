@@ -58,7 +58,7 @@ module.exports = function(state = initialState, action) {
 			for (var i = 0; i < action.reports.length; i++) {
 				var report = action.reports[i];
 				reports[report.ReportId] = report;
-				list.push(report.ReportId);
+				list.push(report);
 				if (state.selected == report.ReportId)
 					selected = state.selected;
 			}
@@ -85,7 +85,7 @@ module.exports = function(state = initialState, action) {
 			var list = [];
 			for (var reportId in reports) {
 				if (reports.hasOwnProperty(reportId))
-					list.push(report.ReportId);
+					list.push(report);
 			}
 			return assign({}, state, {
 				map: reports,
