@@ -9,6 +9,10 @@ OFX (via [ofxgo](https://github.com/aclindsa/ofxgo)).
 This project is in active development and is not yet ready to be relied upon as
 your primary accounting software.
 
+## Documentation
+
+[Documentation in markdown](./docs/index.md)
+
 ## Installation
 
 First, install npm, python, curl, and go >= 1.7 in your distribution. Here is

@@ -107,6 +107,8 @@ func luaAccount__index(L *lua.LState) int {
 		} else {
 			panic("SecurityId not in lua security_map")
 		}
+	case "SecurityId", "securityid":
+		L.Push(lua.LNumber(float64(a.SecurityId)))
 	case "Parent", "parent", "ParentAccount", "parentaccount":
 		if a.ParentAccountId == -1 {
 			L.Push(lua.LNil)

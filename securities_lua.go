@@ -37,6 +37,36 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 	return security_map, nil
 }
 
+func luaContextGetDefaultCurrency(L *lua.LState) (*Security, error) {
+	security_map, err := luaContextGetSecurities(L)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx := L.Context()
+
+	user, ok := ctx.Value(userContextKey).(*User)
+	if !ok {
+		return nil, errors.New("Couldn't find User in lua's Context")
+	}
+
+	if security, ok := security_map[user.DefaultCurrency]; ok {
+		return security, nil
+	} else {
+		return nil, errors.New("DefaultCurrency not in lua security_map")
+	}
+}
+
+func luaGetDefaultCurrency(L *lua.LState) int {
+	defcurrency, err := luaContextGetDefaultCurrency(L)
+	if err != nil {
+		panic("luaGetDefaultCurrency couldn't fetch default currency")
+	}
+
+	L.Push(SecurityToLua(L, defcurrency))
+	return 1
+}
+
 func luaGetSecurities(L *lua.LState) int {
 	security_map, err := luaContextGetSecurities(L)
 	if err != nil {
@@ -62,9 +92,13 @@ func luaRegisterSecurities(L *lua.LState) {
 	L.SetField(mt, "__metatable", lua.LString("protected"))
 	getSecuritiesFn := L.NewFunction(luaGetSecurities)
 	L.SetField(mt, "get_all", getSecuritiesFn)
+	getDefaultCurrencyFn := L.NewFunction(luaGetDefaultCurrency)
+	L.SetField(mt, "get_default", getDefaultCurrencyFn)
 
-	// also register the get_securities function as a global in its own right
+	// also register the get_securities and get_default functions as globals in
+	// their own right
 	L.SetGlobal("get_securities", getSecuritiesFn)
+	L.SetGlobal("get_default_currency", getDefaultCurrencyFn)
 }
 
 func SecurityToLua(L *lua.LState, security *Security) *lua.LUserData {
