@@ -9,6 +9,13 @@ OFX (via [ofxgo](https://github.com/aclindsa/ofxgo)).
 This project is in active development and is not yet ready to be relied upon as
 your primary accounting software.
 
+## Screenshots
+
+
+![Yearly Expense Report](./screenshots/yearly_expenses.png)
+![Transaction Register](./screenshots/transaction_register.png)
+![Transaction Editing](./screenshots/editing_transaction.png)
+
 ## Documentation
 
 [Documentation in markdown](./docs/index.md)
