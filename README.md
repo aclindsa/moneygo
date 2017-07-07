@@ -16,9 +16,12 @@ your primary accounting software.
 ![Transaction Register](./screenshots/transaction_register.png)
 ![Transaction Editing](./screenshots/editing_transaction.png)
 
-## Documentation
+## Usage Documentation
 
-[Documentation in markdown](./docs/index.md)
+Though I believe much of the interface is 'discoverable', I'm working on
+documentation for those things that may not be so obvious to use: creating
+custom reports, importing transactions, etc. For the moment, the easiest way to
+view that documentation is to [browse it on github](./docs/index.md).
 
 ## Installation
 
