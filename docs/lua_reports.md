@@ -42,6 +42,8 @@ function generate()
 end
 ```
 
+More examples can be found in the reports/ directory in the MoneyGo source tree.
+
 ## Basic Operation
 
 The lua code behind a report *must* contain a `generate()` function which takes
