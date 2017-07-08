@@ -1,4 +1,4 @@
 # MoneyGo Documentation
 
-* [Lua Reports](lua_reports.md)
-* [Importing Transactions using OFX](ofx_imports.md)
+* [Creating Reports in Lua](lua_reports.md)
+* [Importing Transactions Using OFX](ofx_imports.md)
