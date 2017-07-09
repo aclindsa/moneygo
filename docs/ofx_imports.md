@@ -11,11 +11,20 @@ software with their login credentials and the software negotiates the download
 on their behalf. MoneyGo supports both import methods with the help of the
 [ofxgo](https://github.com/aclindsa/ofxgo) project.
 
+To import an OFX file you have already downloaded from your FI, click the
+'Import' button after selecting the account you want to import transactions to,
+select 'OFX/QFX File' as the Import Type, and upload the OFX file.
+
+To import OFX transactions directly from the FI, instead select 'OFX' as the
+Import Type and enter your password and the date range of transactions you want
+to import. Note that there are a number of connections details that you will
+need to fill out before this will work (see below).
+
 ## OFX Connection Details
 
-The first (and potentially most tedious) step is to enter the OFX connection
-details for your FI into the 'Sync (OFX)' tab when editing the MoneyGo account
-for which you wish to import transactions.
+The most tedious part is entering the OFX connection details for your FI into
+the 'Sync (OFX)' tab when editing the MoneyGo account for which you wish to
+import transactions.
 
 ### Helpful Sources
 
@@ -35,6 +44,9 @@ I've found most helpful:
 
 ### Fields
 
+The following are the fields that make up the OFX connection details that
+MoneyGo needs to know in order to successfully import transactions from your FI.
+
 **OFX URL**: This is the URL that MoneyGo/ofxgo should make their initial
 requests against. This is called 'Server URL' in the Gnucash wiki above, and FI
 Url at ofxhome.
@@ -53,8 +65,34 @@ your bank's routing number or some other string.
 **Account ID**: This is specific to your account, and is frequently your account
 number.
 
-**Account Type**: The type of account.
+**Account Type**: The type of account (i.e. 'Checking' or 'Savings')
 
 ### Advanced Settings
 
-TODO
+The following fields may or may not be required. Some of them are are to work
+around incompatibilities with FI's OFX implementations, set the OFX version
+spoken to something other than the default, or provide additional required
+information.
+
+**Client UID**: This is required by some banks (Chase) as a sort of two-factor
+authentication. You may have to generate this yourself (using `uuidgen` on Linux
+machines), and then some type of out-of-band approval/authentication to your FI
+after you try to download transactions using OFX in MoneyGo for the first time. 
+
+**App ID**: This is supposed to identify the application making the OFX
+requests. ofxgo defaults to its own string if this is empty, but some FI's
+require this to be a particular string in order to return valid results
+(frequently 'QWIN')
+
+**App Version**: The application version supposedly being used make the OFX
+requests. Like they do for the 'App ID', you may have to set this to a
+particular value to make your FI's server happy.
+
+**OFX Version**: This defaults to "203" (for version 2.0.3 of the OFX spec) if
+left empty. It must be one of "102", "103", "151", "160", "200", "201", "202",
+"203", "210", "211", "220" if specified. This controls what version of OFX is
+used to talk with the server.
+
+**Don't indent OFX request files**: This is unchecked by default. Though rare,
+some FI's implementations break if the SGML/XML elements are indented (and
+others' break if they aren't!).
