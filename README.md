@@ -9,8 +9,15 @@ OFX (via [ofxgo](https://github.com/aclindsa/ofxgo)).
 This project is in active development and is not yet ready to be relied upon as
 your primary accounting software.
 
-## Screenshots
+## Features
 
+* [Import from OFX](./docs/ofx_imports.md) (bank and credit card transactions
+  only so far) and Gnucash
+* Enter transactions manually using the register, double-entry accounting is
+  enforced
+* Generate [custom charts in Lua](./docs/lua_reports.md)
+
+## Screenshots
 
 ![Yearly Expense Report](./screenshots/yearly_expenses.png)
 ![Transaction Register](./screenshots/transaction_register.png)
@@ -71,4 +78,3 @@ your browser.
 * Matching duplicate transactions
 * Tracking exchange rates, security prices
 * Import QIF
-* Finishing reports
