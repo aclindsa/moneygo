@@ -161,6 +161,7 @@ func runReport(user *User, report *Report) (*Tabulation, error) {
 	luaRegisterBalances(L)
 	luaRegisterDates(L)
 	luaRegisterTabulations(L)
+	luaRegisterPrices(L)
 
 	err := L.DoString(report.Lua)
 

@@ -72,6 +72,20 @@ type GnucashDate struct {
 	Date GnucashTime `xml:"http://www.gnucash.org/XML/ts date"`
 }
 
+type GnucashPrice struct {
+	Id        string           `xml:"http://www.gnucash.org/XML/price id"`
+	Commodity GnucashCommodity `xml:"http://www.gnucash.org/XML/price commodity"`
+	Currency  GnucashCommodity `xml:"http://www.gnucash.org/XML/price currency"`
+	Date      GnucashDate      `xml:"http://www.gnucash.org/XML/price time"`
+	Source    string           `xml:"http://www.gnucash.org/XML/price source"`
+	Type      string           `xml:"http://www.gnucash.org/XML/price type"`
+	Value     string           `xml:"http://www.gnucash.org/XML/price value"`
+}
+
+type GnucashPriceDB struct {
+	Prices []GnucashPrice `xml:"price"`
+}
+
 type GnucashAccount struct {
 	Version         string              `xml:"version,attr"`
 	accountid       int64               // Used to map Gnucash guid's to integer ones
@@ -105,6 +119,7 @@ type GnucashSplit struct {
 type GnucashXMLImport struct {
 	XMLName      xml.Name             `xml:"gnc-v2"`
 	Commodities  []GnucashCommodity   `xml:"http://www.gnucash.org/XML/gnc book>commodity"`
+	PriceDB      GnucashPriceDB       `xml:"http://www.gnucash.org/XML/gnc book>pricedb"`
 	Accounts     []GnucashAccount     `xml:"http://www.gnucash.org/XML/gnc book>account"`
 	Transactions []GnucashTransaction `xml:"http://www.gnucash.org/XML/gnc book>transaction"`
 }
@@ -113,6 +128,7 @@ type GnucashImport struct {
 	Securities   []Security
 	Accounts     []Account
 	Transactions []Transaction
+	Prices       []Price
 }
 
 func ImportGnucash(r io.Reader) (*GnucashImport, error) {
@@ -139,6 +155,38 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 			s.AlternateId != "template" {
 			gncimport.Securities = append(gncimport.Securities, s)
 		}
+	}
+
+	// Create prices, setting security and currency IDs from securityMap
+	for i := range gncxml.PriceDB.Prices {
+		price := gncxml.PriceDB.Prices[i]
+		var p Price
+		security, ok := securityMap[price.Commodity.Name]
+		if !ok {
+			return nil, fmt.Errorf("Unable to find commodity '%s' for price '%s'", price.Commodity.Name, price.Id)
+		}
+		currency, ok := securityMap[price.Currency.Name]
+		if !ok {
+			return nil, fmt.Errorf("Unable to find currency '%s' for price '%s'", price.Currency.Name, price.Id)
+		}
+		if currency.Type != Currency {
+			return nil, fmt.Errorf("Currency for imported price isn't actually a currency\n")
+		}
+		p.PriceId = int64(i + 1)
+		p.SecurityId = security.SecurityId
+		p.CurrencyId = currency.SecurityId
+		p.Date = price.Date.Date.Time
+
+		var r big.Rat
+		_, ok = r.SetString(price.Value)
+		if ok {
+			p.Value = r.FloatString(currency.Precision)
+		} else {
+			return nil, fmt.Errorf("Can't set price value: %s", price.Value)
+		}
+
+		p.RemoteId = "gnucash:" + price.Id
+		gncimport.Prices = append(gncimport.Prices, p)
 	}
 
 	//find root account, while simultaneously creating map of GUID's to
@@ -338,6 +386,21 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		securityMap[securityId] = s.SecurityId
+	}
+
+	// Import prices, setting security and currency IDs from securityMap
+	for _, price := range gnucashImport.Prices {
+		price.SecurityId = securityMap[price.SecurityId]
+		price.CurrencyId = securityMap[price.CurrencyId]
+		price.PriceId = 0
+
+		err := CreatePriceIfNotExist(sqltransaction, &price)
+		if err != nil {
+			sqltransaction.Rollback()
+			WriteError(w, 6 /*Import Error*/)
+			log.Print(err)
+			return
+		}
 	}
 
 	// Get/create accounts in the database, building a map from Gnucash account

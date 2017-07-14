@@ -135,8 +135,25 @@ func luaSecurity__index(L *lua.LState) int {
 		L.Push(lua.LNumber(float64(a.Precision)))
 	case "Type", "type":
 		L.Push(lua.LNumber(float64(a.Type)))
+	case "ClosestPrice", "closestprice":
+		L.Push(L.NewFunction(luaClosestPrice))
 	default:
 		L.ArgError(2, "unexpected security attribute: "+field)
+	}
+
+	return 1
+}
+
+func luaClosestPrice(L *lua.LState) int {
+	s := luaCheckSecurity(L, 1)
+	c := luaCheckSecurity(L, 2)
+	date := luaCheckTime(L, 3)
+
+	p, err := GetClosestPrice(s, c, date)
+	if err != nil {
+		L.Push(lua.LNil)
+	} else {
+		L.Push(PriceToLua(L, p))
 	}
 
 	return 1

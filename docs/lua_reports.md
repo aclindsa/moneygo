@@ -136,8 +136,36 @@ has several fields describing it:
 * `s.Type` returns an int constant which represents what type of security it is
   (i.e. stock or currency)
 
+Securities support a ClosestPrice function that allows you to fetch the price of
+the current security in a given currency that is closest to the supplied date.
+For example, to print the price in the user's default currency for each security
+in the user's account:
+
+```
+  default_currency = get_default_currency()
+  for id, security in pairs(get_securities()) do
+    price = security.price(default_currency, date.now())
+    if price ~= nil then
+      print(tostring(security) .. ": " security.Symbol .. " " .. price.Value)
+    else
+      print("Failed to fetch price for " .. tostring(security))
+    end
+  end
+```
+
 You can also query for an account's default currency using the global
 `get_default_currency()` function.
+
+### Prices
+
+Price objects can be queried from Security objects. Price objects contain the
+following fields:
+
+* `p.PriceId`
+* `p.Security` returns the security object the price is for
+* `p.Currency` returns the currency that the price is in
+* `p.Value` returns the price of one unit of 'security' in 'currency', as a
+  float
 
 ### Dates
 

@@ -22,6 +22,7 @@ func initDB() *gorp.DbMap {
 	dbmap.AddTableWithName(Security{}, "securities").SetKeys(true, "SecurityId")
 	dbmap.AddTableWithName(Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(Split{}, "splits").SetKeys(true, "SplitId")
+	dbmap.AddTableWithName(Price{}, "prices").SetKeys(true, "PriceId")
 	dbmap.AddTableWithName(Report{}, "reports").SetKeys(true, "ReportId")
 
 	err = dbmap.CreateTablesIfNotExists()
