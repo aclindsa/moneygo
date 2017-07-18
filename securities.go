@@ -199,6 +199,14 @@ func DeleteSecurity(s *Security) error {
 		return errors.New("Cannot delete security which is user's default currency")
 	}
 
+	// Remove all prices involving this security (either of this security, or
+	// using it as a currency)
+	_, err = transaction.Exec("DELETE * FROM prices WHERE SecurityId=? OR CurrencyId=?", s.SecurityId, s.SecurityId)
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
 	count, err := transaction.Delete(s)
 	if err != nil {
 		transaction.Rollback()
