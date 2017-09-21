@@ -174,7 +174,7 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 				split := new(Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
-				security, err := GetSecurity(imbalanced_security, user.UserId)
+				security, err := GetSecurityTx(sqltransaction, imbalanced_security, user.UserId)
 				if err != nil {
 					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
