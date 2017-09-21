@@ -14,6 +14,7 @@ import (
 	"time"
 )
 
+// Split.Status
 const (
 	Imported   int64 = 1
 	Entered          = 2
@@ -22,10 +23,25 @@ const (
 	Voided           = 5
 )
 
+// Split.ImportSplitType
+const (
+	Default         int64 = 0
+	ImportAccount         = 1
+	SubAccount            = 2
+	ExternalAccount       = 3
+	TradingAccount        = 4
+	Commission            = 5
+	Taxes                 = 6
+	Fees                  = 7
+	Load                  = 8
+	IncomeAccount         = 9
+)
+
 type Split struct {
-	SplitId       int64
-	TransactionId int64
-	Status        int64
+	SplitId         int64
+	TransactionId   int64
+	Status          int64
+	ImportSplitType int64
 
 	// One of AccountId and SecurityId must be -1
 	// In normal splits, AccountId will be valid and SecurityId will be -1. The
