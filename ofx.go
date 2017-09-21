@@ -392,6 +392,90 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, accoun
 	return &t, nil
 }
 
+func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Security, account *Account) (*Transaction, error) {
+	t := i.GetInvTran(&expense.InvTran)
+
+	security, err := i.GetSecurityAlternateId(string(expense.SecID.UniqueID), Stock)
+	if err != nil {
+		return nil, err
+	}
+
+	memo := string(expense.InvTran.Memo)
+	if len(memo) == 0 {
+		memo = "INVEXPENSE"
+	}
+	memo += " (" + security.Symbol + ")"
+
+	var total big.Rat
+	total.Set(&expense.Total.Rat)
+	if ok, _ := expense.Currency.Valid(); ok {
+		total.Mul(&total, &expense.Currency.CurRate.Rat)
+	}
+
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: ImportAccount,
+		AccountId:       account.AccountId,
+		SecurityId:      -1,
+		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
+	})
+	total.Neg(&total)
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: ExpenseAccount,
+		AccountId:       -1,
+		SecurityId:      curdef.SecurityId,
+		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
+	})
+
+	return &t, nil
+}
+
+func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curdef *Security, account *Account) (*Transaction, error) {
+	t := i.GetInvTran(&marginint.InvTran)
+
+	memo := string(marginint.InvTran.Memo)
+	if len(memo) == 0 {
+		memo = "MARGININTEREST"
+	}
+
+	var total big.Rat
+	total.Set(&marginint.Total.Rat)
+	if ok, _ := marginint.Currency.Valid(); ok {
+		total.Mul(&total, &marginint.Currency.CurRate.Rat)
+	}
+
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: ImportAccount,
+		AccountId:       account.AccountId,
+		SecurityId:      -1,
+		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
+	})
+	total.Neg(&total)
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: IncomeAccount,
+		AccountId:       -1,
+		SecurityId:      curdef.SecurityId,
+		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
+	})
+
+	return &t, nil
+}
+
 func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&reinvest.InvTran)
 
@@ -541,6 +625,51 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
 		Amount:          units.FloatString(security.Precision),
+	})
+
+	return &t, nil
+}
+
+func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, account *Account) (*Transaction, error) {
+	t := i.GetInvTran(&retofcap.InvTran)
+
+	security, err := i.GetSecurityAlternateId(string(retofcap.SecID.UniqueID), Stock)
+	if err != nil {
+		return nil, err
+	}
+
+	memo := string(retofcap.InvTran.Memo)
+	if len(memo) == 0 {
+		memo = "RETOFCAP"
+	}
+	memo += " (" + security.Symbol + ")"
+
+	var total big.Rat
+	total.Set(&retofcap.Total.Rat)
+	if ok, _ := retofcap.Currency.Valid(); ok {
+		total.Mul(&total, &retofcap.Currency.CurRate.Rat)
+	}
+
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: ImportAccount,
+		AccountId:       account.AccountId,
+		SecurityId:      -1,
+		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
+	})
+	total.Neg(&total)
+	t.Splits = append(t.Splits, &Split{
+		// TODO ReversalFiTID?
+		Status:          Imported,
+		ImportSplitType: IncomeAccount,
+		AccountId:       -1,
+		SecurityId:      curdef.SecurityId,
+		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
+		Memo:            memo,
+		Amount:          total.FloatString(curdef.Precision),
 	})
 
 	return &t, nil
@@ -737,17 +866,22 @@ func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Ac
 		t, err = i.GetInvBuyTran(&tran.InvBuy, curdef, account)
 	} else if tran, ok := (*invtran).(ofxgo.BuyStock); ok {
 		t, err = i.GetInvBuyTran(&tran.InvBuy, curdef, account)
-		// TODO implementme
 		//	} else if tran, ok := (*invtran).(ofxgo.ClosureOpt); ok {
+		// TODO implementme
 	} else if tran, ok := (*invtran).(ofxgo.Income); ok {
 		t, err = i.GetIncomeTran(&tran, curdef, account)
-		//	} else if tran, ok := (*invtran).(ofxgo.InvExpense); ok {
+	} else if tran, ok := (*invtran).(ofxgo.InvExpense); ok {
+		t, err = i.GetInvExpenseTran(&tran, curdef, account)
 		//	} else if tran, ok := (*invtran).(ofxgo.JrnlFund); ok {
+		// TODO implementme
 		//	} else if tran, ok := (*invtran).(ofxgo.JrnlSec); ok {
-		//	} else if tran, ok := (*invtran).(ofxgo.MarginInterest); ok {
+		// TODO implementme
+	} else if tran, ok := (*invtran).(ofxgo.MarginInterest); ok {
+		t, err = i.GetMarginInterestTran(&tran, curdef, account)
 	} else if tran, ok := (*invtran).(ofxgo.Reinvest); ok {
 		t, err = i.GetReinvestTran(&tran, curdef, account)
-		//	} else if tran, ok := (*invtran).(ofxgo.RetOfCap); ok {
+	} else if tran, ok := (*invtran).(ofxgo.RetOfCap); ok {
+		t, err = i.GetRetOfCapTran(&tran, curdef, account)
 	} else if tran, ok := (*invtran).(ofxgo.SellDebt); ok {
 		t, err = i.GetInvSellTran(&tran.InvSell, curdef, account)
 	} else if tran, ok := (*invtran).(ofxgo.SellMF); ok {
@@ -758,8 +892,8 @@ func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Ac
 		t, err = i.GetInvSellTran(&tran.InvSell, curdef, account)
 	} else if tran, ok := (*invtran).(ofxgo.SellStock); ok {
 		t, err = i.GetInvSellTran(&tran.InvSell, curdef, account)
-		// TODO implementme
 		//	} else if tran, ok := (*invtran).(ofxgo.Split); ok {
+		// TODO implementme
 	} else if tran, ok := (*invtran).(ofxgo.Transfer); ok {
 		t, err = i.GetTransferTran(&tran, account)
 	} else {
