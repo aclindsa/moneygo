@@ -32,7 +32,7 @@ view that documentation is to [browse it on github](./docs/index.md).
 
 ## Installation
 
-First, install npm, python, curl, and go >= 1.7 in your distribution. Here is
+First, install npm, python, curl, and go >= 1.9 in your distribution. Here is
 how in Arch Linux:
 
 	$ sudo pacman -S npm curl go python
