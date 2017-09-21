@@ -120,8 +120,21 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 				split.AccountId = account.AccountId
 			} else if split.SecurityId != -1 {
 				if sec, ok := securitymap[split.SecurityId]; ok {
-					split.SecurityId = sec.SecurityId
 					// TODO try to auto-match splits to existing accounts based on past transactions that look like this one
+					if split.ImportSplitType == TradingAccount {
+						// Find/make trading account if we're that type of split
+						trading_account, err := GetTradingAccount(sqltransaction, user.UserId, sec.SecurityId)
+						if err != nil {
+							sqltransaction.Rollback()
+							WriteError(w, 999 /*Internal Error*/)
+							log.Print("Couldn't find split's SecurityId in map during OFX import")
+							return
+						}
+						split.AccountId = trading_account.AccountId
+						split.SecurityId = -1
+					} else {
+						split.SecurityId = sec.SecurityId
+					}
 				} else {
 					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
@@ -146,23 +159,9 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 
 		// Fixup any imbalances in transactions
 		var zero big.Rat
-		var num_imbalances int
-		for _, imbalance := range imbalances {
-			if imbalance.Cmp(&zero) != 0 {
-				num_imbalances += 1
-			}
-		}
-
 		for imbalanced_security, imbalance := range imbalances {
 			if imbalance.Cmp(&zero) != 0 {
-				var imbalanced_account *Account
-				// If we're dealing with exactly two securities, assume any imbalances
-				// from imports are from trading currencies/securities
-				if num_imbalances == 2 {
-					imbalanced_account, err = GetTradingAccount(sqltransaction, user.UserId, imbalanced_security)
-				} else {
-					imbalanced_account, err = GetImbalanceAccount(sqltransaction, user.UserId, imbalanced_security)
-				}
+				imbalanced_account, err := GetImbalanceAccount(sqltransaction, user.UserId, imbalanced_security)
 				if err != nil {
 					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)

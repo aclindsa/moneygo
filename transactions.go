@@ -26,8 +26,8 @@ const (
 // Split.ImportSplitType
 const (
 	Default         int64 = 0
-	ImportAccount         = 1
-	SubAccount            = 2
+	ImportAccount         = 1 // This split belongs to the main account being imported
+	SubAccount            = 2 // This split belongs to a sub-account of that being imported
 	ExternalAccount       = 3
 	TradingAccount        = 4
 	Commission            = 5
@@ -35,6 +35,7 @@ const (
 	Fees                  = 7
 	Load                  = 8
 	IncomeAccount         = 9
+	ExpenseAccount        = 10
 )
 
 type Split struct {

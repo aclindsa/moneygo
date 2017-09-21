@@ -201,7 +201,7 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 		return nil, err
 	}
 
-	security, err := GetSecurity(securityid, userid)
+	security, err := GetSecurityTx(transaction, securityid, userid)
 	if err != nil {
 		return nil, err
 	}
