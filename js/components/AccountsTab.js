@@ -110,12 +110,16 @@ class AddEditAccountModal extends React.Component {
 			ofxuser: ReactDOM.findDOMNode(this.refs.ofxuser).value,
 			ofxbankid: ReactDOM.findDOMNode(this.refs.ofxbankid).value,
 			ofxacctid: ReactDOM.findDOMNode(this.refs.ofxacctid).value,
-			ofxaccttype: ReactDOM.findDOMNode(this.refs.ofxaccttype).value,
 			ofxclientuid: ReactDOM.findDOMNode(this.refs.ofxclientuid).value,
 			ofxappid: ReactDOM.findDOMNode(this.refs.ofxappid).value,
 			ofxappver: ReactDOM.findDOMNode(this.refs.ofxappver).value,
 			ofxversion: ReactDOM.findDOMNode(this.refs.ofxversion).value,
 		});
+		if (this.state.type != AccountType.Investment) {
+			this.setState({
+				ofxaccttype: ReactDOM.findDOMNode(this.refs.ofxaccttype).value,
+			});
+		}
 	}
 
 	handleNoIndentClick() {
