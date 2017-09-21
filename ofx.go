@@ -850,7 +850,6 @@ func ImportOFX(r io.Reader) (*OFXImport, error) {
 	for _, seclist := range response.SecList {
 		if securitylist, ok := seclist.(*ofxgo.SecurityList); ok {
 			err = i.importSecurities(securitylist)
-			// TODO actually import securities
 			if err != nil {
 				return nil, err
 			}
