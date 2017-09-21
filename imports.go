@@ -114,12 +114,14 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 				if split.AccountId != importedAccount.AccountId {
 					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
+					log.Print("Imported split's AccountId wasn't -1 but also didn't match the account")
 					return
 				}
 				split.AccountId = account.AccountId
 			} else if split.SecurityId != -1 {
 				if sec, ok := securitymap[split.SecurityId]; ok {
 					split.SecurityId = sec.SecurityId
+					// TODO try to auto-match splits to existing accounts based on past transactions that look like this one
 				} else {
 					sqltransaction.Rollback()
 					WriteError(w, 999 /*Internal Error*/)
@@ -225,6 +227,7 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
+			return
 		}
 	}
 
@@ -343,6 +346,7 @@ func OFXImportHandler(w http.ResponseWriter, r *http.Request, user *User, accoun
 	if err != nil {
 		// TODO this could be an error talking with the OFX server...
 		WriteError(w, 3 /*Invalid Request*/)
+		log.Print(err)
 		return
 	}
 	defer response.Body.Close()
@@ -362,6 +366,7 @@ func OFXFileImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 	if err != nil {
 		if err == io.EOF {
 			WriteError(w, 3 /*Invalid Request*/)
+			log.Print("Encountered unexpected EOF")
 		} else {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
