@@ -132,6 +132,23 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 						}
 						split.AccountId = trading_account.AccountId
 						split.SecurityId = -1
+					} else if split.ImportSplitType == SubAccount {
+						subaccount := &Account{
+							UserId:          user.UserId,
+							Name:            sec.Name,
+							ParentAccountId: account.AccountId,
+							SecurityId:      sec.SecurityId,
+							Type:            account.Type,
+						}
+						subaccount, err := GetCreateAccountTx(sqltransaction, *subaccount)
+						if err != nil {
+							sqltransaction.Rollback()
+							WriteError(w, 999 /*Internal Error*/)
+							log.Print(err)
+							return
+						}
+						split.AccountId = subaccount.AccountId
+						split.SecurityId = -1
 					} else {
 						split.SecurityId = sec.SecurityId
 					}
