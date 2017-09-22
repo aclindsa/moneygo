@@ -834,11 +834,13 @@ func GetAccountTransactions(user *User, accountid int64, sort string, page uint6
 	}
 	atl.TotalTransactions = count
 
-	security, err := GetSecurity(atl.Account.SecurityId, user.UserId)
+	security, err := GetSecurityTx(transaction, atl.Account.SecurityId, user.UserId)
 	if err != nil {
+		transaction.Rollback()
 		return nil, err
 	}
 	if security == nil {
+		transaction.Rollback()
 		return nil, errors.New("Security not found")
 	}
 

@@ -189,10 +189,15 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 	var tradingAccount Account
 	var account Account
 
+	user, err := GetUserTx(transaction, userid)
+	if err != nil {
+		return nil, err
+	}
+
 	tradingAccount.UserId = userid
 	tradingAccount.Type = Trading
 	tradingAccount.Name = "Trading"
-	tradingAccount.SecurityId = 840 /*USD*/ //FIXME SecurityId shouldn't matter for top-level trading account, but maybe we should grab the user's default
+	tradingAccount.SecurityId = user.DefaultCurrency
 	tradingAccount.ParentAccountId = -1
 
 	// Find/create the top-level trading account
