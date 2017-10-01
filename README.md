@@ -7,7 +7,8 @@ principles and allows for importing directly from financial institutions using
 OFX (via [ofxgo](https://github.com/aclindsa/ofxgo)).
 
 This project is in active development and is not yet ready to be relied upon as
-your primary accounting software.
+your primary accounting software (but please feel free to try it out and offer
+feedback!).
 
 ## Features
 
