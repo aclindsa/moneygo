@@ -65,12 +65,12 @@ the `go generate ...` command.
 Assuming you're in the same directory you ran the above installation commands
 from, running MoneyGo is then as easy as:
 
-	$ ./bin/moneygo \
-	  -port 8080 \
-	  -base src/github.com/aclindsa/moneygo/
+	$ ./bin/moneygo -config src/github.com/aclindsa/moneygo/example_config.ini
 
 You should then be able to explore MoneyGo by visiting http://localhost:8080 in
-your browser.
+your browser. Editing the configuration file supplied will allow you to modify
+several settings including the port used and whether to serve via FastCGI
+instead of HTTP (the default).
 
 ## Missing Features
 

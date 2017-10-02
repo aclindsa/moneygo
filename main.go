@@ -14,34 +14,25 @@ import (
 	"strconv"
 )
 
-var serveFcgi bool
-var baseDir string
-var tmpDir string
-var port int
-var smtpServer string
-var smtpPort int
-var smtpUsername string
-var smtpPassword string
-var reminderEmail string
+var configFile string
+var config *Config
 
 func init() {
-	flag.StringVar(&baseDir, "base", "./", "Base directory for server")
-	flag.StringVar(&tmpDir, "tmp", "/tmp", "Directory to create temporary files in")
-	flag.IntVar(&port, "port", 80, "Port to serve API/files on")
-	flag.StringVar(&smtpServer, "smtp.server", "smtp.example.com", "SMTP server to send reminder emails from.")
-	flag.IntVar(&smtpPort, "smtp.port", 587, "SMTP server port to connect to")
-	flag.StringVar(&smtpUsername, "smtp.username", "moneygo", "SMTP username")
-	flag.StringVar(&smtpPassword, "smtp.password", "password", "SMTP password")
-	flag.StringVar(&reminderEmail, "email", "moneygo@example.com", "Email address to send reminder emails as.")
-	flag.BoolVar(&serveFcgi, "fcgi", false, "Serve via fcgi rather than http.")
+	var err error
+	flag.StringVar(&configFile, "config", "/etc/moneygo/config.ini", "Path to config file")
 	flag.Parse()
 
-	static_path := path.Join(baseDir, "static")
+	config, err = readConfig(configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	static_path := path.Join(config.MoneyGo.Base_directory, "static")
 
 	// Ensure base directory is valid
 	dir_err_str := "The base directory doesn't look like it contains the " +
-		"'static' directory. Check to make sure you're passing the right " +
-		"value to the -base argument."
+		"'static' directory. Check to make sure your config file contains the" +
+		"right path for 'base_directory'."
 	static_dir, err := os.Stat(static_path)
 	if err != nil {
 		log.Print(err)
@@ -56,11 +47,11 @@ func init() {
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(baseDir, "static/index.html"))
+	http.ServeFile(w, r, path.Join(config.MoneyGo.Base_directory, "static/index.html"))
 }
 
 func staticHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(baseDir, r.URL.Path))
+	http.ServeFile(w, r, path.Join(config.MoneyGo.Base_directory, r.URL.Path))
 }
 
 func main() {
@@ -76,13 +67,13 @@ func main() {
 	servemux.HandleFunc("/import/gnucash", GnucashImportHandler)
 	servemux.HandleFunc("/report/", ReportHandler)
 
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(config.MoneyGo.Port))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Serving on port %d out of directory: %s", port, baseDir)
-	if serveFcgi {
+	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Base_directory)
+	if config.MoneyGo.Fcgi {
 		fcgi.Serve(listener, context.ClearHandler(servemux))
 	} else {
 		http.Serve(listener, context.ClearHandler(servemux))
