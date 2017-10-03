@@ -1,15 +1,15 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/securecookie"
-	"github.com/gorilla/sessions"
+	"io"
 	"log"
 	"net/http"
+	"time"
 )
-
-var cookie_store = sessions.NewCookieStore(securecookie.GenerateRandomKey(64))
 
 type Session struct {
 	SessionId     int64
@@ -25,14 +25,13 @@ func (s *Session) Write(w http.ResponseWriter) error {
 func GetSession(r *http.Request) (*Session, error) {
 	var s Session
 
-	session, _ := cookie_store.Get(r, "moneygo")
-	_, ok := session.Values["session-secret"]
-	if !ok {
-		return nil, fmt.Errorf("session-secret cookie not set")
+	cookie, err := r.Cookie("moneygo-session")
+	if err != nil {
+		return nil, fmt.Errorf("moneygo-session cookie not set")
 	}
-	s.SessionSecret = session.Values["session-secret"].(string)
+	s.SessionSecret = cookie.Value
 
-	err := DB.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
+	err = DB.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -46,26 +45,41 @@ func DeleteSessionIfExists(r *http.Request) {
 	}
 }
 
+func NewSessionCookie() (string, error) {
+	bits := make([]byte, 128)
+	if _, err := io.ReadFull(rand.Reader, bits); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(bits), nil
+}
+
 func NewSession(w http.ResponseWriter, r *http.Request, userid int64) (*Session, error) {
 	s := Session{}
 
-	session, _ := cookie_store.Get(r, "moneygo")
+	session_secret, err := NewSessionCookie()
+	if err != nil {
+		return nil, err
+	}
 
-	session.Values["session-secret"] = string(securecookie.GenerateRandomKey(64))
-	s.SessionSecret = session.Values["session-secret"].(string)
+	cookie := http.Cookie{
+		Name:     "moneygo-session",
+		Value:    session_secret,
+		Path:     "/",
+		Domain:   r.URL.Host,
+		Expires:  time.Now().AddDate(0, 1, 0), // a month from now
+		Secure:   true,
+		HttpOnly: true,
+	}
+	http.SetCookie(w, &cookie)
+
+	s.SessionSecret = session_secret
 	s.UserId = userid
 
-	err := DB.Insert(&s)
+	err = DB.Insert(&s)
 	if err != nil {
 		return nil, err
 	}
-
-	err = session.Save(r, w)
-	if err != nil {
-		return nil, err
-	} else {
-		return &s, nil
-	}
+	return &s, nil
 }
 
 func SessionHandler(w http.ResponseWriter, r *http.Request) {
