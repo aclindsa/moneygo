@@ -17,7 +17,21 @@ func initDB(cfg *Config) {
 		log.Fatal(err)
 	}
 
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	var dialect gorp.Dialect
+	if cfg.MoneyGo.DBType == SQLite {
+		dialect = gorp.SqliteDialect{}
+	} else if cfg.MoneyGo.DBType == MySQL {
+		dialect = gorp.MySQLDialect{
+			Engine:   "InnoDB",
+			Encoding: "UTF8",
+		}
+	} else if cfg.MoneyGo.DBType == Postgres {
+		dialect = gorp.PostgresDialect{}
+	} else {
+		log.Fatalf("Don't know gorp dialect to go with '%s' DB type", cfg.MoneyGo.DBType.String())
+	}
+
+	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
 	dbmap.AddTableWithName(User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(Account{}, "accounts").SetKeys(true, "AccountId")
