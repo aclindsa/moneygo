@@ -2,15 +2,17 @@ package main
 
 import (
 	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/gorp.v1"
 	"log"
 )
 
-var DB *gorp.DbMap = initDB()
+var DB *gorp.DbMap
 
-func initDB() *gorp.DbMap {
-	db, err := sql.Open("sqlite3", "file:moneygo.sqlite?cache=shared&mode=rwc")
+func initDB(cfg *Config) {
+	db, err := sql.Open(cfg.MoneyGo.DBType.String(), cfg.MoneyGo.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,5 +32,5 @@ func initDB() *gorp.DbMap {
 		log.Fatal(err)
 	}
 
-	return dbmap
+	DB = dbmap
 }
