@@ -32,7 +32,7 @@ func init() {
 	// Ensure base directory is valid
 	dir_err_str := "The base directory doesn't look like it contains the " +
 		"'static' directory. Check to make sure your config file contains the" +
-		"right path for 'base_directory'."
+		"right path for 'base-directory'."
 	static_dir, err := os.Stat(static_path)
 	if err != nil {
 		log.Print(err)
