@@ -27,7 +27,7 @@ func init() {
 		log.Fatal(err)
 	}
 
-	static_path := path.Join(config.MoneyGo.Base_directory, "static")
+	static_path := path.Join(config.MoneyGo.Basedir, "static")
 
 	// Ensure base directory is valid
 	dir_err_str := "The base directory doesn't look like it contains the " +
@@ -44,14 +44,16 @@ func init() {
 
 	// Setup the logging flags to be printed
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+
+	initDB(config)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(config.MoneyGo.Base_directory, "static/index.html"))
+	http.ServeFile(w, r, path.Join(config.MoneyGo.Basedir, "static/index.html"))
 }
 
 func staticHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(config.MoneyGo.Base_directory, r.URL.Path))
+	http.ServeFile(w, r, path.Join(config.MoneyGo.Basedir, r.URL.Path))
 }
 
 func main() {
@@ -72,7 +74,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Base_directory)
+	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Basedir)
 	if config.MoneyGo.Fcgi {
 		fcgi.Serve(listener, context.ClearHandler(servemux))
 	} else {
