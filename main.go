@@ -4,7 +4,6 @@ package main
 
 import (
 	"flag"
-	"github.com/gorilla/context"
 	"log"
 	"net"
 	"net/http"
@@ -76,8 +75,8 @@ func main() {
 
 	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Basedir)
 	if config.MoneyGo.Fcgi {
-		fcgi.Serve(listener, context.ClearHandler(servemux))
+		fcgi.Serve(listener, servemux)
 	} else {
-		http.Serve(listener, context.ClearHandler(servemux))
+		http.Serve(listener, servemux)
 	}
 }
