@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"github.com/FlashBoys/go-finance"
 	"gopkg.in/gorp.v1"
 	"time"
 )
@@ -93,8 +91,8 @@ func GetClosestPriceTx(transaction *gorp.Transaction, security, currency *Securi
 	}
 }
 
-func GetClosestPrice(security, currency *Security, date *time.Time) (*Price, error) {
-	transaction, err := DB.Begin()
+func GetClosestPrice(db *DB, security, currency *Security, date *time.Time) (*Price, error) {
+	transaction, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -112,11 +110,4 @@ func GetClosestPrice(security, currency *Security, date *time.Time) (*Price, err
 	}
 
 	return price, nil
-}
-
-func init() {
-	q, err := finance.GetQuote("BRK-A")
-	if err == nil {
-		fmt.Printf("%+v", q)
-	}
 }

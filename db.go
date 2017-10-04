@@ -2,22 +2,34 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/gorp.v1"
-	"log"
 )
 
-var DB *gorp.DbMap
-
-func initDB(cfg *Config) {
+func initDB(cfg *Config) (*gorp.DbMap, error) {
 	db, err := sql.Open(cfg.MoneyGo.DBType.String(), cfg.MoneyGo.DSN)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	dbmap := &gorp.DbMap{Db: db, Dialect: gorp.SqliteDialect{}}
+	var dialect gorp.Dialect
+	if cfg.MoneyGo.DBType == SQLite {
+		dialect = gorp.SqliteDialect{}
+	} else if cfg.MoneyGo.DBType == MySQL {
+		dialect = gorp.MySQLDialect{
+			Engine:   "InnoDB",
+			Encoding: "UTF8",
+		}
+	} else if cfg.MoneyGo.DBType == Postgres {
+		dialect = gorp.PostgresDialect{}
+	} else {
+		return nil, fmt.Errorf("Don't know gorp dialect to go with '%s' DB type", cfg.MoneyGo.DBType.String())
+	}
+
+	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
 	dbmap.AddTableWithName(User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(Account{}, "accounts").SetKeys(true, "AccountId")
@@ -29,8 +41,8 @@ func initDB(cfg *Config) {
 
 	err = dbmap.CreateTablesIfNotExists()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	DB = dbmap
+	return dbmap, nil
 }

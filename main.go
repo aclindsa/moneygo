@@ -4,6 +4,7 @@ package main
 
 import (
 	"flag"
+	"gopkg.in/gorp.v1"
 	"log"
 	"net"
 	"net/http"
@@ -43,8 +44,6 @@ func init() {
 
 	// Setup the logging flags to be printed
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
-
-	initDB(config)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -55,18 +54,39 @@ func staticHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, path.Join(config.MoneyGo.Basedir, r.URL.Path))
 }
 
-func main() {
+// Create a closure over db, allowing the handlers to look like a
+// http.HandlerFunc
+type DB = gorp.DbMap
+type DBHandler func(http.ResponseWriter, *http.Request, *DB)
+
+func DBHandlerFunc(h DBHandler, db *DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		h(w, r, db)
+	}
+}
+
+func GetHandler(db *DB) http.Handler {
 	servemux := http.NewServeMux()
 	servemux.HandleFunc("/", rootHandler)
 	servemux.HandleFunc("/static/", staticHandler)
-	servemux.HandleFunc("/session/", SessionHandler)
-	servemux.HandleFunc("/user/", UserHandler)
-	servemux.HandleFunc("/security/", SecurityHandler)
+	servemux.HandleFunc("/session/", DBHandlerFunc(SessionHandler, db))
+	servemux.HandleFunc("/user/", DBHandlerFunc(UserHandler, db))
+	servemux.HandleFunc("/security/", DBHandlerFunc(SecurityHandler, db))
 	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
-	servemux.HandleFunc("/account/", AccountHandler)
-	servemux.HandleFunc("/transaction/", TransactionHandler)
-	servemux.HandleFunc("/import/gnucash", GnucashImportHandler)
-	servemux.HandleFunc("/report/", ReportHandler)
+	servemux.HandleFunc("/account/", DBHandlerFunc(AccountHandler, db))
+	servemux.HandleFunc("/transaction/", DBHandlerFunc(TransactionHandler, db))
+	servemux.HandleFunc("/import/gnucash", DBHandlerFunc(GnucashImportHandler, db))
+	servemux.HandleFunc("/report/", DBHandlerFunc(ReportHandler, db))
+
+	return servemux
+}
+
+func main() {
+	database, err := initDB(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	handler := GetHandler(database)
 
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(config.MoneyGo.Port))
 	if err != nil {
@@ -75,8 +95,8 @@ func main() {
 
 	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Basedir)
 	if config.MoneyGo.Fcgi {
-		fcgi.Serve(listener, servemux)
+		fcgi.Serve(listener, handler)
 	} else {
-		http.Serve(listener, servemux)
+		http.Serve(listener, handler)
 	}
 }

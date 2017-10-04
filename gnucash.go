@@ -308,8 +308,8 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	return &gncimport, nil
 }
 
-func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
+func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
+	user, err := GetUserFromSession(db, r)
 	if err != nil {
 		WriteError(w, 1 /*Not Signed In*/)
 		return
@@ -365,7 +365,7 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sqltransaction, err := DB.Begin()
+	sqltransaction, err := db.Begin()
 	if err != nil {
 		WriteError(w, 999 /*Internal Error*/)
 		log.Print(err)

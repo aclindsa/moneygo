@@ -47,10 +47,10 @@ func (u *User) HashPassword() {
 	u.Password = ""
 }
 
-func GetUser(userid int64) (*User, error) {
+func GetUser(db *DB, userid int64) (*User, error) {
 	var u User
 
-	err := DB.SelectOne(&u, "SELECT * from users where UserId=?", userid)
+	err := db.SelectOne(&u, "SELECT * from users where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
@@ -67,18 +67,18 @@ func GetUserTx(transaction *gorp.Transaction, userid int64) (*User, error) {
 	return &u, nil
 }
 
-func GetUserByUsername(username string) (*User, error) {
+func GetUserByUsername(db *DB, username string) (*User, error) {
 	var u User
 
-	err := DB.SelectOne(&u, "SELECT * from users where Username=?", username)
+	err := db.SelectOne(&u, "SELECT * from users where Username=?", username)
 	if err != nil {
 		return nil, err
 	}
 	return &u, nil
 }
 
-func InsertUser(u *User) error {
-	transaction, err := DB.Begin()
+func InsertUser(db *DB, u *User) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -136,16 +136,16 @@ func InsertUser(u *User) error {
 	return nil
 }
 
-func GetUserFromSession(r *http.Request) (*User, error) {
-	s, err := GetSession(r)
+func GetUserFromSession(db *DB, r *http.Request) (*User, error) {
+	s, err := GetSession(db, r)
 	if err != nil {
 		return nil, err
 	}
-	return GetUser(s.UserId)
+	return GetUser(db, s.UserId)
 }
 
-func UpdateUser(u *User) error {
-	transaction, err := DB.Begin()
+func UpdateUser(db *DB, u *User) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -180,7 +180,7 @@ func UpdateUser(u *User) error {
 	return nil
 }
 
-func UserHandler(w http.ResponseWriter, r *http.Request) {
+func UserHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 	if r.Method == "POST" {
 		user_json := r.PostFormValue("user")
 		if user_json == "" {
@@ -197,7 +197,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 		user.UserId = -1
 		user.HashPassword()
 
-		err = InsertUser(&user)
+		err = InsertUser(db, &user)
 		if err != nil {
 			if _, ok := err.(UserExistsError); ok {
 				WriteError(w, 4 /*User Exists*/)
@@ -216,7 +216,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		user, err := GetUserFromSession(r)
+		user, err := GetUserFromSession(db, r)
 		if err != nil {
 			WriteError(w, 1 /*Not Signed In*/)
 			return
@@ -264,7 +264,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 				user.PasswordHash = old_pwhash
 			}
 
-			err = UpdateUser(user)
+			err = UpdateUser(db, user)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -278,7 +278,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			count, err := DB.Delete(&user)
+			count, err := db.Delete(&user)
 			if count != 1 || err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)

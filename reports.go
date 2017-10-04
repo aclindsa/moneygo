@@ -27,6 +27,7 @@ const (
 	accountsContextKey
 	securitiesContextKey
 	balanceContextKey
+	dbContextKey
 )
 
 const luaTimeoutSeconds time.Duration = 30 // maximum time a lua request can run for
@@ -76,36 +77,36 @@ func (r *Tabulation) Write(w http.ResponseWriter) error {
 	return enc.Encode(r)
 }
 
-func GetReport(reportid int64, userid int64) (*Report, error) {
+func GetReport(db *DB, reportid int64, userid int64) (*Report, error) {
 	var r Report
 
-	err := DB.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
+	err := db.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
 	if err != nil {
 		return nil, err
 	}
 	return &r, nil
 }
 
-func GetReports(userid int64) (*[]Report, error) {
+func GetReports(db *DB, userid int64) (*[]Report, error) {
 	var reports []Report
 
-	_, err := DB.Select(&reports, "SELECT * from reports where UserId=?", userid)
+	_, err := db.Select(&reports, "SELECT * from reports where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
 	return &reports, nil
 }
 
-func InsertReport(r *Report) error {
-	err := DB.Insert(r)
+func InsertReport(db *DB, r *Report) error {
+	err := db.Insert(r)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func UpdateReport(r *Report) error {
-	count, err := DB.Update(r)
+func UpdateReport(db *DB, r *Report) error {
+	count, err := db.Update(r)
 	if err != nil {
 		return err
 	}
@@ -115,8 +116,8 @@ func UpdateReport(r *Report) error {
 	return nil
 }
 
-func DeleteReport(r *Report) error {
-	count, err := DB.Delete(r)
+func DeleteReport(db *DB, r *Report) error {
+	count, err := db.Delete(r)
 	if err != nil {
 		return err
 	}
@@ -126,13 +127,14 @@ func DeleteReport(r *Report) error {
 	return nil
 }
 
-func runReport(user *User, report *Report) (*Tabulation, error) {
+func runReport(db *DB, user *User, report *Report) (*Tabulation, error) {
 	// Create a new LState without opening the default libs for security
 	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
 
 	// Create a new context holding the current user with a timeout
 	ctx := context.WithValue(context.Background(), userContextKey, user)
+	ctx = context.WithValue(ctx, dbContextKey, db)
 	ctx, cancel := context.WithTimeout(ctx, luaTimeoutSeconds*time.Second)
 	defer cancel()
 	L.SetContext(ctx)
@@ -189,14 +191,14 @@ func runReport(user *User, report *Report) (*Tabulation, error) {
 	}
 }
 
-func ReportTabulationHandler(w http.ResponseWriter, r *http.Request, user *User, reportid int64) {
-	report, err := GetReport(reportid, user.UserId)
+func ReportTabulationHandler(db *DB, w http.ResponseWriter, r *http.Request, user *User, reportid int64) {
+	report, err := GetReport(db, reportid, user.UserId)
 	if err != nil {
 		WriteError(w, 3 /*Invalid Request*/)
 		return
 	}
 
-	tabulation, err := runReport(user, report)
+	tabulation, err := runReport(db, user, report)
 	if err != nil {
 		// TODO handle different failure cases differently
 		log.Print("runReport returned:", err)
@@ -214,8 +216,8 @@ func ReportTabulationHandler(w http.ResponseWriter, r *http.Request, user *User,
 	}
 }
 
-func ReportHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
+func ReportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
+	user, err := GetUserFromSession(db, r)
 	if err != nil {
 		WriteError(w, 1 /*Not Signed In*/)
 		return
@@ -237,7 +239,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		report.ReportId = -1
 		report.UserId = user.UserId
 
-		err = InsertReport(&report)
+		err = InsertReport(db, &report)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
@@ -260,7 +262,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 				log.Print(err)
 				return
 			}
-			ReportTabulationHandler(w, r, user, reportid)
+			ReportTabulationHandler(db, w, r, user, reportid)
 			return
 		}
 
@@ -269,7 +271,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || n != 1 {
 			//Return all Reports
 			var rl ReportList
-			reports, err := GetReports(user.UserId)
+			reports, err := GetReports(db, user.UserId)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -284,7 +286,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		} else {
 			// Return Report with this Id
-			report, err := GetReport(reportid, user.UserId)
+			report, err := GetReport(db, reportid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
@@ -319,7 +321,7 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			report.UserId = user.UserId
 
-			err = UpdateReport(&report)
+			err = UpdateReport(db, &report)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -333,13 +335,13 @@ func ReportHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			report, err := GetReport(reportid, user.UserId)
+			report, err := GetReport(db, reportid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
 
-			err = DeleteReport(report)
+			err = DeleteReport(db, report)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)

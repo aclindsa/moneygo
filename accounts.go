@@ -124,10 +124,10 @@ func (al *AccountList) Write(w http.ResponseWriter) error {
 	return enc.Encode(al)
 }
 
-func GetAccount(accountid int64, userid int64) (*Account, error) {
+func GetAccount(db *DB, accountid int64, userid int64) (*Account, error) {
 	var a Account
 
-	err := DB.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
+	err := db.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
 	if err != nil {
 		return nil, err
 	}
@@ -145,10 +145,10 @@ func GetAccountTx(transaction *gorp.Transaction, accountid int64, userid int64) 
 	return &a, nil
 }
 
-func GetAccounts(userid int64) (*[]Account, error) {
+func GetAccounts(db *DB, userid int64) (*[]Account, error) {
 	var accounts []Account
 
-	_, err := DB.Select(&accounts, "SELECT * from accounts where UserId=?", userid)
+	_, err := db.Select(&accounts, "SELECT * from accounts where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
@@ -276,8 +276,8 @@ func (pame ParentAccountMissingError) Error() string {
 	return "Parent account missing"
 }
 
-func insertUpdateAccount(a *Account, insert bool) error {
-	transaction, err := DB.Begin()
+func insertUpdateAccount(db *DB, a *Account, insert bool) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -329,16 +329,16 @@ func insertUpdateAccount(a *Account, insert bool) error {
 	return nil
 }
 
-func InsertAccount(a *Account) error {
-	return insertUpdateAccount(a, true)
+func InsertAccount(db *DB, a *Account) error {
+	return insertUpdateAccount(db, a, true)
 }
 
-func UpdateAccount(a *Account) error {
-	return insertUpdateAccount(a, false)
+func UpdateAccount(db *DB, a *Account) error {
+	return insertUpdateAccount(db, a, false)
 }
 
-func DeleteAccount(a *Account) error {
-	transaction, err := DB.Begin()
+func DeleteAccount(db *DB, a *Account) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -385,8 +385,8 @@ func DeleteAccount(a *Account) error {
 	return nil
 }
 
-func AccountHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
+func AccountHandler(w http.ResponseWriter, r *http.Request, db *DB) {
+	user, err := GetUserFromSession(db, r)
 	if err != nil {
 		WriteError(w, 1 /*Not Signed In*/)
 		return
@@ -405,7 +405,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				log.Print(err)
 				return
 			}
-			AccountImportHandler(w, r, user, accountid, importtype)
+			AccountImportHandler(db, w, r, user, accountid, importtype)
 			return
 		}
 
@@ -425,7 +425,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		account.UserId = user.UserId
 		account.AccountVersion = 0
 
-		security, err := GetSecurity(account.SecurityId, user.UserId)
+		security, err := GetSecurity(db, account.SecurityId, user.UserId)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
@@ -436,7 +436,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = InsertAccount(&account)
+		err = InsertAccount(db, &account)
 		if err != nil {
 			if _, ok := err.(ParentAccountMissingError); ok {
 				WriteError(w, 3 /*Invalid Request*/)
@@ -461,7 +461,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil || n != 1 {
 			//Return all Accounts
 			var al AccountList
-			accounts, err := GetAccounts(user.UserId)
+			accounts, err := GetAccounts(db, user.UserId)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -478,12 +478,12 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 			// if URL looks like /account/[0-9]+/transactions, use the account
 			// transaction handler
 			if accountTransactionsRE.MatchString(r.URL.Path) {
-				AccountTransactionsHandler(w, r, user, accountid)
+				AccountTransactionsHandler(db, w, r, user, accountid)
 				return
 			}
 
 			// Return Account with this Id
-			account, err := GetAccount(accountid, user.UserId)
+			account, err := GetAccount(db, accountid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
@@ -517,7 +517,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			account.UserId = user.UserId
 
-			security, err := GetSecurity(account.SecurityId, user.UserId)
+			security, err := GetSecurity(db, account.SecurityId, user.UserId)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -528,7 +528,7 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			err = UpdateAccount(&account)
+			err = UpdateAccount(db, &account)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -542,13 +542,13 @@ func AccountHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			account, err := GetAccount(accountid, user.UserId)
+			account, err := GetAccount(db, accountid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
 
-			err = DeleteAccount(account)
+			err = DeleteAccount(db, account)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
