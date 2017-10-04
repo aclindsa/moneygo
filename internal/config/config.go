@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -59,7 +59,7 @@ type Config struct {
 	MoneyGo MoneyGo
 }
 
-func readConfig(filename string) (*Config, error) {
+func ReadConfig(filename string) (*Config, error) {
 	cfg := Config{
 		MoneyGo: MoneyGo{
 			Fcgi:    false,

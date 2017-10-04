@@ -3,5 +3,5 @@ static/bundle.js
 static/codemirror
 static/react-widgets
 node_modules
-cusip_list.csv
-security_templates.go
+internal/handlers/cusip_list.csv
+internal/handlers/security_templates.go
