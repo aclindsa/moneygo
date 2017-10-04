@@ -22,7 +22,7 @@ func (od *OFXDownload) Read(json_str string) error {
 	return dec.Decode(od)
 }
 
-func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid int64) {
+func ofxImportHelper(db *DB, r io.Reader, w http.ResponseWriter, user *User, accountid int64) {
 	itl, err := ImportOFX(r)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 		return
 	}
 
-	sqltransaction, err := DB.Begin()
+	sqltransaction, err := db.Begin()
 	if err != nil {
 		WriteError(w, 999 /*Internal Error*/)
 		log.Print(err)
@@ -258,7 +258,7 @@ func ofxImportHelper(r io.Reader, w http.ResponseWriter, user *User, accountid i
 	WriteSuccess(w)
 }
 
-func OFXImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
+func OFXImportHandler(db *DB, w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
 	download_json := r.PostFormValue("ofxdownload")
 	if download_json == "" {
 		log.Print("download_json")
@@ -274,7 +274,7 @@ func OFXImportHandler(w http.ResponseWriter, r *http.Request, user *User, accoun
 		return
 	}
 
-	account, err := GetAccount(accountid, user.UserId)
+	account, err := GetAccount(db, accountid, user.UserId)
 	if err != nil {
 		log.Print("GetAccount")
 		WriteError(w, 3 /*Invalid Request*/)
@@ -367,10 +367,10 @@ func OFXImportHandler(w http.ResponseWriter, r *http.Request, user *User, accoun
 	}
 	defer response.Body.Close()
 
-	ofxImportHelper(response.Body, w, user, accountid)
+	ofxImportHelper(db, response.Body, w, user, accountid)
 }
 
-func OFXFileImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
+func OFXFileImportHandler(db *DB, w http.ResponseWriter, r *http.Request, user *User, accountid int64) {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		WriteError(w, 3 /*Invalid Request*/)
@@ -390,19 +390,19 @@ func OFXFileImportHandler(w http.ResponseWriter, r *http.Request, user *User, ac
 		return
 	}
 
-	ofxImportHelper(part, w, user, accountid)
+	ofxImportHelper(db, part, w, user, accountid)
 }
 
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(w http.ResponseWriter, r *http.Request, user *User, accountid int64, importtype string) {
+func AccountImportHandler(db *DB, w http.ResponseWriter, r *http.Request, user *User, accountid int64, importtype string) {
 
 	switch importtype {
 	case "ofx":
-		OFXImportHandler(w, r, user, accountid)
+		OFXImportHandler(db, w, r, user, accountid)
 	case "ofxfile":
-		OFXFileImportHandler(w, r, user, accountid)
+		OFXFileImportHandler(db, w, r, user, accountid)
 	default:
 		WriteError(w, 3 /*Invalid Request*/)
 	}

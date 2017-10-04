@@ -2,19 +2,17 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/gorp.v1"
-	"log"
 )
 
-var DB *gorp.DbMap
-
-func initDB(cfg *Config) {
+func initDB(cfg *Config) (*gorp.DbMap, error) {
 	db, err := sql.Open(cfg.MoneyGo.DBType.String(), cfg.MoneyGo.DSN)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	var dialect gorp.Dialect
@@ -28,7 +26,7 @@ func initDB(cfg *Config) {
 	} else if cfg.MoneyGo.DBType == Postgres {
 		dialect = gorp.PostgresDialect{}
 	} else {
-		log.Fatalf("Don't know gorp dialect to go with '%s' DB type", cfg.MoneyGo.DBType.String())
+		return nil, fmt.Errorf("Don't know gorp dialect to go with '%s' DB type", cfg.MoneyGo.DBType.String())
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
@@ -43,8 +41,8 @@ func initDB(cfg *Config) {
 
 	err = dbmap.CreateTablesIfNotExists()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
-	DB = dbmap
+	return dbmap, nil
 }

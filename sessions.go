@@ -22,7 +22,7 @@ func (s *Session) Write(w http.ResponseWriter) error {
 	return enc.Encode(s)
 }
 
-func GetSession(r *http.Request) (*Session, error) {
+func GetSession(db *DB, r *http.Request) (*Session, error) {
 	var s Session
 
 	cookie, err := r.Cookie("moneygo-session")
@@ -31,17 +31,18 @@ func GetSession(r *http.Request) (*Session, error) {
 	}
 	s.SessionSecret = cookie.Value
 
-	err = DB.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
+	err = db.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
 	if err != nil {
 		return nil, err
 	}
 	return &s, nil
 }
 
-func DeleteSessionIfExists(r *http.Request) {
-	session, err := GetSession(r)
+func DeleteSessionIfExists(db *DB, r *http.Request) {
+	// TODO do this in one transaction
+	session, err := GetSession(db, r)
 	if err == nil {
-		DB.Delete(session)
+		db.Delete(session)
 	}
 }
 
@@ -53,7 +54,7 @@ func NewSessionCookie() (string, error) {
 	return base64.StdEncoding.EncodeToString(bits), nil
 }
 
-func NewSession(w http.ResponseWriter, r *http.Request, userid int64) (*Session, error) {
+func NewSession(db *DB, w http.ResponseWriter, r *http.Request, userid int64) (*Session, error) {
 	s := Session{}
 
 	session_secret, err := NewSessionCookie()
@@ -75,14 +76,14 @@ func NewSession(w http.ResponseWriter, r *http.Request, userid int64) (*Session,
 	s.SessionSecret = session_secret
 	s.UserId = userid
 
-	err = DB.Insert(&s)
+	err = db.Insert(&s)
 	if err != nil {
 		return nil, err
 	}
 	return &s, nil
 }
 
-func SessionHandler(w http.ResponseWriter, r *http.Request) {
+func SessionHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 	if r.Method == "POST" || r.Method == "PUT" {
 		user_json := r.PostFormValue("user")
 		if user_json == "" {
@@ -97,7 +98,7 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dbuser, err := GetUserByUsername(user.Username)
+		dbuser, err := GetUserByUsername(db, user.Username)
 		if err != nil {
 			WriteError(w, 2 /*Unauthorized Access*/)
 			return
@@ -109,9 +110,9 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		DeleteSessionIfExists(r)
+		DeleteSessionIfExists(db, r)
 
-		session, err := NewSession(w, r, dbuser.UserId)
+		session, err := NewSession(db, w, r, dbuser.UserId)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			return
@@ -124,7 +125,7 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else if r.Method == "GET" {
-		s, err := GetSession(r)
+		s, err := GetSession(db, r)
 		if err != nil {
 			WriteError(w, 1 /*Not Signed In*/)
 			return
@@ -132,7 +133,7 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 		s.Write(w)
 	} else if r.Method == "DELETE" {
-		DeleteSessionIfExists(r)
+		DeleteSessionIfExists(db, r)
 		WriteSuccess(w)
 	}
 }

@@ -96,10 +96,10 @@ func FindCurrencyTemplate(iso4217 int64) *Security {
 	return nil
 }
 
-func GetSecurity(securityid int64, userid int64) (*Security, error) {
+func GetSecurity(db *DB, securityid int64, userid int64) (*Security, error) {
 	var s Security
 
-	err := DB.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
+	err := db.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
 	if err != nil {
 		return nil, err
 	}
@@ -116,18 +116,18 @@ func GetSecurityTx(transaction *gorp.Transaction, securityid int64, userid int64
 	return &s, nil
 }
 
-func GetSecurities(userid int64) (*[]*Security, error) {
+func GetSecurities(db *DB, userid int64) (*[]*Security, error) {
 	var securities []*Security
 
-	_, err := DB.Select(&securities, "SELECT * from securities where UserId=?", userid)
+	_, err := db.Select(&securities, "SELECT * from securities where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
 	return &securities, nil
 }
 
-func InsertSecurity(s *Security) error {
-	err := DB.Insert(s)
+func InsertSecurity(db *DB, s *Security) error {
+	err := db.Insert(s)
 	if err != nil {
 		return err
 	}
@@ -142,8 +142,8 @@ func InsertSecurityTx(transaction *gorp.Transaction, s *Security) error {
 	return nil
 }
 
-func UpdateSecurity(s *Security) error {
-	transaction, err := DB.Begin()
+func UpdateSecurity(db *DB, s *Security) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -176,8 +176,8 @@ func UpdateSecurity(s *Security) error {
 	return nil
 }
 
-func DeleteSecurity(s *Security) error {
-	transaction, err := DB.Begin()
+func DeleteSecurity(db *DB, s *Security) error {
+	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
@@ -279,8 +279,8 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, securi
 	return security, nil
 }
 
-func SecurityHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
+func SecurityHandler(w http.ResponseWriter, r *http.Request, db *DB) {
+	user, err := GetUserFromSession(db, r)
 	if err != nil {
 		WriteError(w, 1 /*Not Signed In*/)
 		return
@@ -302,7 +302,7 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request) {
 		security.SecurityId = -1
 		security.UserId = user.UserId
 
-		err = InsertSecurity(&security)
+		err = InsertSecurity(db, &security)
 		if err != nil {
 			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
@@ -324,7 +324,7 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request) {
 			//Return all securities
 			var sl SecurityList
 
-			securities, err := GetSecurities(user.UserId)
+			securities, err := GetSecurities(db, user.UserId)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -339,7 +339,7 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else {
-			security, err := GetSecurity(securityid, user.UserId)
+			security, err := GetSecurity(db, securityid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
@@ -373,7 +373,7 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			security.UserId = user.UserId
 
-			err = UpdateSecurity(&security)
+			err = UpdateSecurity(db, &security)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
@@ -387,13 +387,13 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			security, err := GetSecurity(securityid, user.UserId)
+			security, err := GetSecurity(db, securityid, user.UserId)
 			if err != nil {
 				WriteError(w, 3 /*Invalid Request*/)
 				return
 			}
 
-			err = DeleteSecurity(security)
+			err = DeleteSecurity(db, security)
 			if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
