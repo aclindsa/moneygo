@@ -47,7 +47,8 @@ You'll then want to build everything (the Golang and Javascript portions) using
 something like:
 
 	$ export GOPATH=`pwd`
-	$ go get -v github.com/aclindsa/moneygo
+	$ go get -d github.com/aclindsa/moneygo
+	$ go generate -v github.com/aclindsa/moneygo/internal/handlers
 	$ go generate -v github.com/aclindsa/moneygo
 	$ go install -v github.com/aclindsa/moneygo
 

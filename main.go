@@ -3,8 +3,11 @@ package main
 //go:generate make
 
 import (
+	"database/sql"
 	"flag"
-	"gopkg.in/gorp.v1"
+	"github.com/aclindsa/moneygo/internal/config"
+	"github.com/aclindsa/moneygo/internal/db"
+	"github.com/aclindsa/moneygo/internal/handlers"
 	"log"
 	"net"
 	"net/http"
@@ -15,19 +18,19 @@ import (
 )
 
 var configFile string
-var config *Config
+var cfg *config.Config
 
 func init() {
 	var err error
 	flag.StringVar(&configFile, "config", "/etc/moneygo/config.ini", "Path to config file")
 	flag.Parse()
 
-	config, err = readConfig(configFile)
+	cfg, err = config.ReadConfig(configFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	static_path := path.Join(config.MoneyGo.Basedir, "static")
+	static_path := path.Join(cfg.MoneyGo.Basedir, "static")
 
 	// Ensure base directory is valid
 	dir_err_str := "The base directory doesn't look like it contains the " +
@@ -46,57 +49,48 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(config.MoneyGo.Basedir, "static/index.html"))
-}
+type FileHandler func(http.ResponseWriter, *http.Request, string)
 
-func staticHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, path.Join(config.MoneyGo.Basedir, r.URL.Path))
-}
-
-// Create a closure over db, allowing the handlers to look like a
-// http.HandlerFunc
-type DB = gorp.DbMap
-type DBHandler func(http.ResponseWriter, *http.Request, *DB)
-
-func DBHandlerFunc(h DBHandler, db *DB) http.HandlerFunc {
+func FileHandlerFunc(h FileHandler, basedir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h(w, r, db)
+		h(w, r, basedir)
 	}
 }
 
-func GetHandler(db *DB) http.Handler {
-	servemux := http.NewServeMux()
-	servemux.HandleFunc("/", rootHandler)
-	servemux.HandleFunc("/static/", staticHandler)
-	servemux.HandleFunc("/session/", DBHandlerFunc(SessionHandler, db))
-	servemux.HandleFunc("/user/", DBHandlerFunc(UserHandler, db))
-	servemux.HandleFunc("/security/", DBHandlerFunc(SecurityHandler, db))
-	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
-	servemux.HandleFunc("/account/", DBHandlerFunc(AccountHandler, db))
-	servemux.HandleFunc("/transaction/", DBHandlerFunc(TransactionHandler, db))
-	servemux.HandleFunc("/import/gnucash", DBHandlerFunc(GnucashImportHandler, db))
-	servemux.HandleFunc("/report/", DBHandlerFunc(ReportHandler, db))
+func rootHandler(w http.ResponseWriter, r *http.Request, basedir string) {
+	http.ServeFile(w, r, path.Join(basedir, "static/index.html"))
+}
 
-	return servemux
+func staticHandler(w http.ResponseWriter, r *http.Request, basedir string) {
+	http.ServeFile(w, r, path.Join(basedir, r.URL.Path))
 }
 
 func main() {
-	database, err := initDB(config)
+	database, err := sql.Open(cfg.MoneyGo.DBType.String(), cfg.MoneyGo.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
-	handler := GetHandler(database)
+	defer database.Close()
 
-	listener, err := net.Listen("tcp", ":"+strconv.Itoa(config.MoneyGo.Port))
+	dbmap, err := db.GetDbMap(database, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Printf("Serving on port %d out of directory: %s", config.MoneyGo.Port, config.MoneyGo.Basedir)
-	if config.MoneyGo.Fcgi {
-		fcgi.Serve(listener, handler)
+	// Get ServeMux for API and add our own handlers for files
+	servemux := handlers.GetHandler(dbmap)
+	servemux.HandleFunc("/", FileHandlerFunc(rootHandler, cfg.MoneyGo.Basedir))
+	servemux.HandleFunc("/static/", FileHandlerFunc(staticHandler, cfg.MoneyGo.Basedir))
+
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(cfg.MoneyGo.Port))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Serving on port %d out of directory: %s", cfg.MoneyGo.Port, cfg.MoneyGo.Basedir)
+	if cfg.MoneyGo.Fcgi {
+		fcgi.Serve(listener, servemux)
 	} else {
-		http.Serve(listener, handler)
+		http.Serve(listener, servemux)
 	}
 }

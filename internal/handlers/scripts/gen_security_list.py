@@ -104,7 +104,7 @@ def main():
     currency_list = get_currency_list()
     cusip_list = get_cusip_list('cusip_list.csv')
 
-    print("package main\n")
+    print("package handlers\n")
     print("var SecurityTemplates = []Security{")
     print(currency_list.unicode())
     print(cusip_list.unicode())

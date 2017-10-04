@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"gopkg.in/gorp.v1"

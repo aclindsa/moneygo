@@ -1,4 +1,6 @@
-package main
+package handlers
+
+//go:generate make
 
 import (
 	"encoding/json"
