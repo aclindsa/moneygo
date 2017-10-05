@@ -56,6 +56,11 @@ func (s *Security) Write(w http.ResponseWriter) error {
 	return enc.Encode(s)
 }
 
+func (sl *SecurityList) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(sl)
+}
+
 func (sl *SecurityList) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(sl)
@@ -415,7 +420,16 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 
 		var limit int64 = -1
 		search := query.Get("search")
-		_type := GetSecurityType(query.Get("type"))
+
+		var _type int64 = 0
+		typestring := query.Get("type")
+		if len(typestring) > 0 {
+			_type = GetSecurityType(typestring)
+			if _type == 0 {
+				WriteError(w, 3 /*Invalid Request*/)
+				return
+			}
+		}
 
 		limitstring := query.Get("limit")
 		if limitstring != "" {

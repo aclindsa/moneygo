@@ -72,7 +72,7 @@ func main() {
 	}
 	defer database.Close()
 
-	dbmap, err := db.GetDbMap(database, cfg)
+	dbmap, err := db.GetDbMap(database, cfg.MoneyGo.DBType)
 	if err != nil {
 		log.Fatal(err)
 	}
