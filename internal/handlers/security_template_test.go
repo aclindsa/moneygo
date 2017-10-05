@@ -50,18 +50,21 @@ func TestSecurityTemplates(t *testing.T) {
 	var sl handlers.SecurityList
 	response, err := http.Get(server.URL + "/securitytemplate/?search=USD&type=currency")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	if response.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code: %d\n", response.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	response.Body.Close()
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	err = (&sl).Read(string(body))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	num_usd := 0
@@ -77,5 +80,31 @@ func TestSecurityTemplates(t *testing.T) {
 
 	if num_usd != 1 {
 		t.Fatalf("Expected one USD security template, found %d\n", num_usd)
+	}
+}
+
+func TestSecurityTemplateLimit(t *testing.T) {
+	var sl handlers.SecurityList
+	response, err := http.Get(server.URL + "/securitytemplate/?search=e&limit=5")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != 200 {
+		t.Fatalf("Unexpected HTTP status code: %d\n", response.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = (&sl).Read(string(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(*sl.Securities) > 5 {
+		t.Fatalf("Requested only 5 securities, received %d\n", len(*sl.Securities))
 	}
 }
