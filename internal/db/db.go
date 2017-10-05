@@ -11,19 +11,19 @@ import (
 	"gopkg.in/gorp.v1"
 )
 
-func GetDbMap(db *sql.DB, cfg *config.Config) (*gorp.DbMap, error) {
+func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	var dialect gorp.Dialect
-	if cfg.MoneyGo.DBType == config.SQLite {
+	if dbtype == config.SQLite {
 		dialect = gorp.SqliteDialect{}
-	} else if cfg.MoneyGo.DBType == config.MySQL {
+	} else if dbtype == config.MySQL {
 		dialect = gorp.MySQLDialect{
 			Engine:   "InnoDB",
 			Encoding: "UTF8",
 		}
-	} else if cfg.MoneyGo.DBType == config.Postgres {
+	} else if dbtype == config.Postgres {
 		dialect = gorp.PostgresDialect{}
 	} else {
-		return nil, fmt.Errorf("Don't know gorp dialect to go with '%s' DB type", cfg.MoneyGo.DBType.String())
+		return nil, fmt.Errorf("Don't know gorp dialect to go with '%s' DB type", dbtype.String())
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
