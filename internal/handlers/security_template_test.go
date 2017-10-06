@@ -108,3 +108,49 @@ func TestSecurityTemplateLimit(t *testing.T) {
 		t.Fatalf("Requested only 5 securities, received %d\n", len(*sl.Securities))
 	}
 }
+
+func TestSecurityTemplateInvalidType(t *testing.T) {
+	var e handlers.Error
+	response, err := http.Get(server.URL + "/securitytemplate/?search=e&type=blah")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = (&e).Read(string(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if e.ErrorId != 3 {
+		t.Fatal("Expected ErrorId 3, Invalid Request")
+	}
+}
+
+func TestSecurityTemplateInvalidLimit(t *testing.T) {
+	var e handlers.Error
+	response, err := http.Get(server.URL + "/securitytemplate/?search=e&type=Currency&limit=foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = (&e).Read(string(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if e.ErrorId != 3 {
+		t.Fatal("Expected ErrorId 3, Invalid Request")
+	}
+}

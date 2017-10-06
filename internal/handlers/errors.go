@@ -4,11 +4,22 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Error struct {
 	ErrorId     int
 	ErrorString string
+}
+
+func (e *Error) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(e)
+}
+
+func (e *Error) Write(w http.ResponseWriter) error {
+	enc := json.NewEncoder(w)
+	return enc.Encode(e)
 }
 
 var error_codes = map[int]string{
@@ -29,8 +40,7 @@ func WriteError(w http.ResponseWriter, error_code int) {
 	}
 	e := Error{error_code, msg}
 
-	enc := json.NewEncoder(w)
-	err := enc.Encode(e)
+	err := e.Write(w)
 	if err != nil {
 		log.Fatal(err)
 	}
