@@ -1,54 +1,14 @@
 package handlers_test
 
 import (
-	"database/sql"
-	"github.com/aclindsa/moneygo/internal/config"
-	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
 	"io/ioutil"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path"
 	"testing"
 )
 
-var server *httptest.Server
-
-func RunTests(m *testing.M) int {
-	tmpdir, err := ioutil.TempDir("./", "handlertest")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-
-	dbpath := path.Join(tmpdir, "moneygo.sqlite")
-	database, err := sql.Open("sqlite3", "file:"+dbpath+"?cache=shared&mode=rwc")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer database.Close()
-
-	dbmap, err := db.GetDbMap(database, config.SQLite)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	servemux := handlers.GetHandler(dbmap)
-	server = httptest.NewServer(servemux)
-	defer server.Close()
-
-	return m.Run()
-}
-
-func TestMain(m *testing.M) {
-	os.Exit(RunTests(m))
-}
-
 func TestSecurityTemplates(t *testing.T) {
 	var sl handlers.SecurityList
-	response, err := http.Get(server.URL + "/securitytemplate/?search=USD&type=currency")
+	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=USD&type=currency")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +45,7 @@ func TestSecurityTemplates(t *testing.T) {
 
 func TestSecurityTemplateLimit(t *testing.T) {
 	var sl handlers.SecurityList
-	response, err := http.Get(server.URL + "/securitytemplate/?search=e&limit=5")
+	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&limit=5")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +71,7 @@ func TestSecurityTemplateLimit(t *testing.T) {
 
 func TestSecurityTemplateInvalidType(t *testing.T) {
 	var e handlers.Error
-	response, err := http.Get(server.URL + "/securitytemplate/?search=e&type=blah")
+	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&type=blah")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +94,7 @@ func TestSecurityTemplateInvalidType(t *testing.T) {
 
 func TestSecurityTemplateInvalidLimit(t *testing.T) {
 	var e handlers.Error
-	response, err := http.Get(server.URL + "/securitytemplate/?search=e&type=Currency&limit=foo")
+	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&type=Currency&limit=foo")
 	if err != nil {
 		t.Fatal(err)
 	}

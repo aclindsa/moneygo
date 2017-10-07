@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -20,6 +21,11 @@ type Session struct {
 func (s *Session) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(s)
+}
+
+func (s *Session) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(s)
 }
 
 func GetSession(db *DB, r *http.Request) (*Session, error) {
