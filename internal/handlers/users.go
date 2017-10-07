@@ -278,7 +278,7 @@ func UserHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 				return
 			}
 		} else if r.Method == "DELETE" {
-			count, err := db.Delete(&user)
+			count, err := db.Delete(user)
 			if count != 1 || err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
