@@ -3,7 +3,6 @@ package handlers_test
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -28,22 +27,7 @@ func newSession(user *User) (*http.Client, error) {
 
 func getSession(client *http.Client) (*handlers.Session, error) {
 	var s handlers.Session
-	response, err := client.Get(server.URL + "/session/")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	err = (&s).Read(string(body))
-	if err != nil {
-		return nil, err
-	}
-
+	read(client, &s, "/session/", "session")
 	return &s, nil
 }
 

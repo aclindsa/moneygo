@@ -41,12 +41,12 @@ type TransactType interface {
 	Read(string) error
 }
 
-func create(c *http.Client, input TransactType, output TransactType, urlsuffix, key string) error {
+func create(client *http.Client, input, output TransactType, urlsuffix, key string) error {
 	bytes, err := json.Marshal(input)
 	if err != nil {
 		return err
 	}
-	response, err := c.PostForm(server.URL+urlsuffix, url.Values{key: {string(bytes)}})
+	response, err := client.PostForm(server.URL+urlsuffix, url.Values{key: {string(bytes)}})
 	if err != nil {
 		return err
 	}
@@ -63,12 +63,98 @@ func create(c *http.Client, input TransactType, output TransactType, urlsuffix, 
 		return err
 	}
 	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return fmt.Errorf("Error when creating %s: %+v", key, e)
+		return fmt.Errorf("Error when creating %s: %+v", urlsuffix, e)
 	}
 
 	err = output.Read(string(body))
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func read(client *http.Client, output TransactType, urlsuffix, key string) error {
+	response, err := client.Get(server.URL + urlsuffix)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return fmt.Errorf("Error when updating %s: %+v", urlsuffix, e)
+	}
+
+	err = output.Read(string(body))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func update(client *http.Client, input, output TransactType, urlsuffix, key string) error {
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	response, err := PutForm(client, server.URL+urlsuffix, url.Values{key: {string(bytes)}})
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return fmt.Errorf("Error when updating %s: %+v", urlsuffix, e)
+	}
+
+	err = output.Read(string(body))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func remove(client *http.Client, urlsuffix, key string) error {
+	response, err := Delete(client, server.URL+urlsuffix)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return fmt.Errorf("Error when removing %s: %+v", urlsuffix, e)
 	}
 
 	return nil
