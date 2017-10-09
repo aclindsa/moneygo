@@ -35,8 +35,8 @@ type TestData struct {
 	initialized  bool
 	users        []User
 	clients      []*http.Client
-	accounts     []handlers.Account
 	securities   []handlers.Security
+	accounts     []handlers.Account // accounts must appear after their parents in this slice
 	transactions []handlers.Transaction
 	prices       []handlers.Price
 	reports      []handlers.Report
@@ -105,6 +105,47 @@ var data = []TestData{
 				Username:        "jsmith",
 				Password:        "hunter2",
 				Email:           "jsmith@example.com",
+			},
+		},
+		securities: []handlers.Security{
+			handlers.Security{
+				UserId:      0,
+				Name:        "USD",
+				Description: "US Dollar",
+				Symbol:      "$",
+				Precision:   2,
+				Type:        handlers.Currency,
+				AlternateId: "840",
+			},
+		},
+		accounts: []handlers.Account{
+			handlers.Account{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: -1,
+				Type:            handlers.Asset,
+				Name:            "Assets",
+			},
+			handlers.Account{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: 0,
+				Type:            handlers.Asset,
+				Name:            "Credit Union Checking",
+			},
+			handlers.Account{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: -1,
+				Type:            handlers.Expense,
+				Name:            "Expenses",
+			},
+			handlers.Account{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: 2,
+				Type:            handlers.Expense,
+				Name:            "Groceries",
 			},
 		},
 	},

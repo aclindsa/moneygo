@@ -2,6 +2,8 @@ package handlers_test
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
@@ -33,6 +35,43 @@ func PutForm(client *http.Client, url string, data url.Values) (*http.Response, 
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return client.Do(request)
+}
+
+type TransactType interface {
+	Read(string) error
+}
+
+func create(c *http.Client, input TransactType, output TransactType, urlsuffix, key string) error {
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+	response, err := c.PostForm(server.URL+urlsuffix, url.Values{key: {string(bytes)}})
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return fmt.Errorf("Error when creating %s: %+v", key, e)
+	}
+
+	err = output.Read(string(body))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {

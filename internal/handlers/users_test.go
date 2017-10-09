@@ -12,41 +12,9 @@ import (
 )
 
 func createUser(user *User) (*User, error) {
-	bytes, err := json.Marshal(user)
-	if err != nil {
-		return nil, err
-	}
-	response, err := server.Client().PostForm(server.URL+"/user/", url.Values{"user": {string(bytes)}})
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	var e handlers.Error
-	err = (&e).Read(string(body))
-	if err != nil {
-		return nil, err
-	}
-	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return nil, fmt.Errorf("Error when creating user %+v", e)
-	}
-
 	var u User
-	err = (&u).Read(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	if u.UserId == 0 || len(u.Username) == 0 {
-		return nil, fmt.Errorf("Unable to create user: %+v", user)
-	}
-
-	return &u, nil
+	err := create(server.Client(), user, &u, "/user/", "user")
+	return &u, err
 }
 
 func updateUser(client *http.Client, user *User) (*User, error) {
@@ -147,6 +115,10 @@ func getUser(client *http.Client, userid int64) (*User, error) {
 
 func TestCreateUser(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		if d.users[0].UserId == 0 || len(d.users[0].Username) == 0 {
+			t.Errorf("Unable to create user: %+v", data[0].users[0])
+		}
+
 		if len(d.users[0].Password) != 0 || len(d.users[0].PasswordHash) != 0 {
 			t.Error("Never send password, only send password hash when necessary")
 		}

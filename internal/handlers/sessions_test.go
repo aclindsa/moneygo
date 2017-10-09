@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
 	"io/ioutil"
@@ -13,7 +12,6 @@ import (
 
 func newSession(user *User) (*http.Client, error) {
 	var u User
-	var e handlers.Error
 
 	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: nil})
 	if err != nil {
@@ -23,34 +21,7 @@ func newSession(user *User) (*http.Client, error) {
 	client := server.Client()
 	client.Jar = jar
 
-	bytes, err := json.Marshal(user)
-	if err != nil {
-		return nil, err
-	}
-	response, err := client.PostForm(server.URL+"/session/", url.Values{"user": {string(bytes)}})
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	err = (&u).Read(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	err = (&e).Read(string(body))
-	if err != nil {
-		return nil, err
-	}
-
-	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return nil, fmt.Errorf("Unexpected error when creating session %+v", e)
-	}
+	create(client, user, &u, "/session/", "user")
 
 	return client, nil
 }
