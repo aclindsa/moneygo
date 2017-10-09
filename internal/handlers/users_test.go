@@ -146,73 +146,43 @@ func getUser(client *http.Client, userid int64) (*User, error) {
 }
 
 func TestCreateUser(t *testing.T) {
-	u, err := createUser(&users[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if len(u.Password) != 0 || len(u.PasswordHash) != 0 {
-		t.Error("Never send password, only send password hash when necessary")
-	}
-
-	u.Password = users[0].Password
-
-	client, err := newSession(u)
-	if err != nil {
-		t.Fatalf("Error creating new session, user not deleted (may cause errors in other tests): %s", err)
-	}
-	defer deleteUser(client, u)
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		if len(d.users[0].Password) != 0 || len(d.users[0].PasswordHash) != 0 {
+			t.Error("Never send password, only send password hash when necessary")
+		}
+	})
 }
 
 func TestGetUser(t *testing.T) {
-	origu, err := createUser(&users[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	origu.Password = users[0].Password
-
-	client, err := newSession(origu)
-	if err != nil {
-		t.Fatalf("Error creating new session, user not deleted (may cause errors in other tests): %s", err)
-	}
-	defer deleteUser(client, origu)
-
-	u, err := getUser(client, origu.UserId)
-	if err != nil {
-		t.Fatalf("Error fetching user: %s\n", err)
-	}
-	if u.UserId != origu.UserId {
-		t.Errorf("UserId doesn't match")
-	}
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		u, err := getUser(d.clients[0], d.users[0].UserId)
+		if err != nil {
+			t.Fatalf("Error fetching user: %s\n", err)
+		}
+		if u.UserId != d.users[0].UserId {
+			t.Errorf("UserId doesn't match")
+		}
+	})
 }
 
 func TestUpdateUser(t *testing.T) {
-	origu, err := createUser(&users[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	origu.Password = users[0].Password
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		user := &d.users[0]
+		user.Name = "Bob"
+		user.Email = "bob@example.com"
 
-	client, err := newSession(origu)
-	if err != nil {
-		t.Fatalf("Error creating new session, user not deleted (may cause errors in other tests): %s", err)
-	}
-	defer deleteUser(client, origu)
-
-	origu.Name = "Bob"
-	origu.Email = "bob@example.com"
-
-	u, err := updateUser(client, origu)
-	if err != nil {
-		t.Fatalf("Error updating user: %s\n", err)
-	}
-	if u.UserId != origu.UserId {
-		t.Errorf("UserId doesn't match")
-	}
-	if u.Name != origu.Name {
-		t.Errorf("UserId doesn't match")
-	}
-	if u.Email != origu.Email {
-		t.Errorf("UserId doesn't match")
-	}
+		u, err := updateUser(d.clients[0], user)
+		if err != nil {
+			t.Fatalf("Error updating user: %s\n", err)
+		}
+		if u.UserId != user.UserId {
+			t.Errorf("UserId doesn't match")
+		}
+		if u.Name != user.Name {
+			t.Errorf("UserId doesn't match")
+		}
+		if u.Email != user.Email {
+			t.Errorf("UserId doesn't match")
+		}
+	})
 }

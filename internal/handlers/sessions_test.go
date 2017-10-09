@@ -97,48 +97,30 @@ func sessionExistsOrError(c *http.Client) error {
 }
 
 func TestCreateSession(t *testing.T) {
-	u, err := createUser(&users[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	u.Password = users[0].Password
-
-	client, err := newSession(u)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer deleteUser(client, u)
-	if err := sessionExistsOrError(client); err != nil {
-		t.Fatal(err)
-	}
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		if err := sessionExistsOrError(d.clients[0]); err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestGetSession(t *testing.T) {
-	u, err := createUser(&users[0])
-	if err != nil {
-		t.Fatal(err)
-	}
-	u.Password = users[0].Password
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		session, err := getSession(d.clients[0])
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	client, err := newSession(u)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer deleteUser(client, u)
-	session, err := getSession(client)
-	if err != nil {
-		t.Fatal(err)
-	}
+		if len(session.SessionSecret) != 0 {
+			t.Error("Session.SessionSecret should not be passed back in JSON")
+		}
 
-	if len(session.SessionSecret) != 0 {
-		t.Error("Session.SessionSecret should not be passed back in JSON")
-	}
+		if session.UserId != d.users[0].UserId {
+			t.Errorf("session's UserId (%d) should equal user's UserID (%d)", session.UserId, d.users[0].UserId)
+		}
 
-	if session.UserId != u.UserId {
-		t.Errorf("session's UserId (%d) should equal user's UserID (%d)", session.UserId, u.UserId)
-	}
-
-	if session.SessionId == 0 {
-		t.Error("session's SessionId should not be 0")
-	}
+		if session.SessionId == 0 {
+			t.Error("session's SessionId should not be 0")
+		}
+	})
 }

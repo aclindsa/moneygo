@@ -35,6 +35,16 @@ func PutForm(client *http.Client, url string, data url.Values) (*http.Response, 
 	return client.Do(request)
 }
 
+func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {
+	testdata, err := d.Initialize()
+	if err != nil {
+		t.Fatal("Failed to initialize test data: %s", err)
+	}
+	defer testdata.Teardown()
+
+	fn(t, testdata)
+}
+
 func RunTests(m *testing.M) int {
 	tmpdir, err := ioutil.TempDir("./", "handlertest")
 	if err != nil {
