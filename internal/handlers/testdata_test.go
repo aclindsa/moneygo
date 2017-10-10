@@ -79,6 +79,14 @@ func (t *TestData) Initialize() (*TestData, error) {
 		}
 	}
 
+	for _, security := range t.securities {
+		s2, err := createSecurity(t2.clients[security.UserId], &security)
+		if err != nil {
+			return nil, err
+		}
+		t2.securities = append(t2.securities, *s2)
+	}
+
 	t2.initialized = true
 	return &t2, nil
 }
@@ -116,6 +124,15 @@ var data = []TestData{
 				Precision:   2,
 				Type:        handlers.Currency,
 				AlternateId: "840",
+			},
+			handlers.Security{
+				UserId:      0,
+				Name:        "SPY",
+				Description: "SPDR S&P 500 ETF Trust",
+				Symbol:      "SPY",
+				Precision:   5,
+				Type:        handlers.Stock,
+				AlternateId: "78462F103",
 			},
 		},
 		accounts: []handlers.Account{
