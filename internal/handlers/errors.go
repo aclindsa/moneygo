@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -10,6 +11,10 @@ import (
 type Error struct {
 	ErrorId     int
 	ErrorString string
+}
+
+func (e *Error) Error() string {
+	return fmt.Sprintf("Error %d: %s", e.ErrorId, e.ErrorString)
 }
 
 func (e *Error) Read(json_str string) error {

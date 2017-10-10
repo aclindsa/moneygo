@@ -3,7 +3,6 @@ package handlers_test
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
@@ -63,7 +62,7 @@ func create(client *http.Client, input, output TransactType, urlsuffix, key stri
 		return err
 	}
 	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return fmt.Errorf("Error when creating %s: %+v", urlsuffix, e)
+		return &e
 	}
 
 	err = output.Read(string(body))
@@ -92,7 +91,7 @@ func read(client *http.Client, output TransactType, urlsuffix, key string) error
 		return err
 	}
 	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return fmt.Errorf("Error when updating %s: %+v", urlsuffix, e)
+		return &e
 	}
 
 	err = output.Read(string(body))
@@ -125,7 +124,7 @@ func update(client *http.Client, input, output TransactType, urlsuffix, key stri
 		return err
 	}
 	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return fmt.Errorf("Error when updating %s: %+v", urlsuffix, e)
+		return &e
 	}
 
 	err = output.Read(string(body))
@@ -154,7 +153,7 @@ func remove(client *http.Client, urlsuffix, key string) error {
 		return err
 	}
 	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return fmt.Errorf("Error when removing %s: %+v", urlsuffix, e)
+		return &e
 	}
 
 	return nil
