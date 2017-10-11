@@ -164,7 +164,12 @@ func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {
 	if err != nil {
 		t.Fatal("Failed to initialize test data: %s", err)
 	}
-	defer testdata.Teardown()
+	defer func() {
+		err := testdata.Teardown()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}()
 
 	fn(t, testdata)
 }
