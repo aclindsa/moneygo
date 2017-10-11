@@ -27,8 +27,12 @@ func newSession(user *User) (*http.Client, error) {
 
 func getSession(client *http.Client) (*handlers.Session, error) {
 	var s handlers.Session
-	read(client, &s, "/session/", "session")
-	return &s, nil
+	err := read(client, &s, "/session/", "session")
+	return &s, err
+}
+
+func deleteSession(client *http.Client) error {
+	return remove(client, "/session/", "session")
 }
 
 func sessionExistsOrError(c *http.Client) error {
@@ -77,5 +81,39 @@ func TestGetSession(t *testing.T) {
 		if session.SessionId == 0 {
 			t.Error("session's SessionId should not be 0")
 		}
+	})
+}
+
+func TestDeleteSession(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		err := deleteSession(d.clients[0])
+		if err != nil {
+			t.Fatalf("Unexpected error removing session: %s\n", err)
+		}
+		err = deleteSession(d.clients[0])
+		if err != nil {
+			t.Fatalf("Unexpected error attempting to delete nonexistent session: %s\n", err)
+		}
+		_, err = getSession(d.clients[0])
+		if err == nil {
+			t.Fatalf("Expected error fetching deleted session")
+		}
+		if herr, ok := err.(*handlers.Error); ok {
+			if herr.ErrorId != 1 { // Not Signed in
+				t.Fatalf("Unexpected API error fetching deleted session: %s", herr)
+			}
+		} else {
+			t.Fatalf("Unexpected error fetching deleted session")
+		}
+
+		// Login again so we don't screw up the TestData teardown code
+		userWithPassword := d.users[0]
+		userWithPassword.Password = data[0].users[0].Password
+
+		client, err := newSession(&userWithPassword)
+		if err != nil {
+			t.Fatalf("Unexpected error re-creating session: %s\n", err)
+		}
+		d.clients[0] = client
 	})
 }

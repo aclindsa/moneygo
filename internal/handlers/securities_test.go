@@ -162,7 +162,7 @@ func TestDeleteSecurity(t *testing.T) {
 				t.Fatalf("Expected error fetching deleted security")
 			}
 			if herr, ok := err.(*handlers.Error); ok {
-				if herr.ErrorId != 3 {
+				if herr.ErrorId != 3 { // Invalid requeset
 					t.Fatalf("Unexpected API error fetching deleted security: %s", herr)
 				}
 			} else {
