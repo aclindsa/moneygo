@@ -44,12 +44,16 @@ func GetSession(db *DB, r *http.Request) (*Session, error) {
 	return &s, nil
 }
 
-func DeleteSessionIfExists(db *DB, r *http.Request) {
+func DeleteSessionIfExists(db *DB, r *http.Request) error {
 	// TODO do this in one transaction
 	session, err := GetSession(db, r)
 	if err == nil {
-		db.Delete(session)
+		_, err := db.Delete(session)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func NewSessionCookie() (string, error) {
@@ -116,7 +120,12 @@ func SessionHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 			return
 		}
 
-		DeleteSessionIfExists(db, r)
+		err = DeleteSessionIfExists(db, r)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 
 		session, err := NewSession(db, w, r, dbuser.UserId)
 		if err != nil {
@@ -139,7 +148,12 @@ func SessionHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 
 		s.Write(w)
 	} else if r.Method == "DELETE" {
-		DeleteSessionIfExists(db, r)
+		err := DeleteSessionIfExists(db, r)
+		if err != nil {
+			WriteError(w, 999 /*Internal Error*/)
+			log.Print(err)
+			return
+		}
 		WriteSuccess(w)
 	}
 }
