@@ -87,6 +87,18 @@ func (t *TestData) Initialize() (*TestData, error) {
 		t2.securities = append(t2.securities, *s2)
 	}
 
+	for i, account := range t.accounts {
+		account.SecurityId = t2.securities[t.accounts[i].SecurityId].SecurityId
+		if account.ParentAccountId != -1 {
+			account.ParentAccountId = t2.accounts[t.accounts[i].AccountId].AccountId
+		}
+		a2, err := createAccount(t2.clients[account.UserId], &account)
+		if err != nil {
+			return nil, err
+		}
+		t2.accounts = append(t2.accounts, *a2)
+	}
+
 	t2.initialized = true
 	return &t2, nil
 }

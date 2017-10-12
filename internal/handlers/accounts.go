@@ -528,10 +528,19 @@ func AccountHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 				return
 			}
 
+			if account.ParentAccountId == account.AccountId {
+				WriteError(w, 3 /*Invalid Request*/)
+				return
+			}
+
 			err = UpdateAccount(db, &account)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
+				if _, ok := err.(ParentAccountMissingError); ok {
+					WriteError(w, 3 /*Invalid Request*/)
+				} else {
+					WriteError(w, 999 /*Internal Error*/)
+					log.Print(err)
+				}
 				return
 			}
 
