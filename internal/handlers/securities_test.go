@@ -158,7 +158,6 @@ func TestGetSecurities(t *testing.T) {
 				}
 			}
 		} else if numsecurities != len(*sl.Securities) {
-			t.Errorf("%+v\n", *sl.Securities)
 			t.Fatalf("Expected %d securities, received %d", numsecurities, len(*sl.Securities))
 		}
 	})

@@ -90,7 +90,7 @@ func (t *TestData) Initialize() (*TestData, error) {
 	for i, account := range t.accounts {
 		account.SecurityId = t2.securities[t.accounts[i].SecurityId].SecurityId
 		if account.ParentAccountId != -1 {
-			account.ParentAccountId = t2.accounts[t.accounts[i].AccountId].AccountId
+			account.ParentAccountId = t2.accounts[t.accounts[i].ParentAccountId].AccountId
 		}
 		a2, err := createAccount(t2.clients[account.UserId], &account)
 		if err != nil {

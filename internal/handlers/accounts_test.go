@@ -22,6 +22,15 @@ func getAccount(client *http.Client, accountid int64) (*handlers.Account, error)
 	return &a, nil
 }
 
+func getAccounts(client *http.Client) (*handlers.AccountList, error) {
+	var al handlers.AccountList
+	err := read(client, &al, "/account/", "accounts")
+	if err != nil {
+		return nil, err
+	}
+	return &al, nil
+}
+
 func updateAccount(client *http.Client, account *handlers.Account) (*handlers.Account, error) {
 	var a handlers.Account
 	err := update(client, account, &a, "/account/"+strconv.FormatInt(account.AccountId, 10), "account")
@@ -77,6 +86,46 @@ func TestGetAccount(t *testing.T) {
 			if a.Name != orig.Name {
 				t.Errorf("Name doesn't match")
 			}
+		}
+	})
+}
+
+func TestGetAccounts(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		al, err := getAccounts(d.clients[0])
+		if err != nil {
+			t.Fatalf("Error fetching accounts: %s\n", err)
+		}
+
+		numaccounts := 0
+		foundIds := make(map[int64]bool)
+		for i := 0; i < len(data[0].accounts); i++ {
+			orig := data[0].accounts[i]
+			curr := d.accounts[i]
+
+			if curr.UserId != d.users[0].UserId {
+				continue
+			}
+			numaccounts += 1
+
+			found := false
+			for _, a := range *al.Accounts {
+				if orig.Name == a.Name && orig.Type == a.Type && a.ExternalAccountId == orig.ExternalAccountId && d.securities[orig.SecurityId].SecurityId == a.SecurityId && ((orig.ParentAccountId == -1 && a.ParentAccountId == -1) || d.accounts[orig.ParentAccountId].AccountId == a.ParentAccountId) {
+					if _, ok := foundIds[a.AccountId]; ok {
+						continue
+					}
+					foundIds[a.AccountId] = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Unable to find matching account: %+v", orig)
+			}
+		}
+
+		if numaccounts != len(*al.Accounts) {
+			t.Fatalf("Expected %d accounts, received %d", numaccounts, len(*al.Accounts))
 		}
 	})
 }

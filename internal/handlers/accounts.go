@@ -124,6 +124,11 @@ func (al *AccountList) Write(w http.ResponseWriter) error {
 	return enc.Encode(al)
 }
 
+func (al *AccountList) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(al)
+}
+
 func GetAccount(db *DB, accountid int64, userid int64) (*Account, error) {
 	var a Account
 
