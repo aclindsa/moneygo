@@ -22,6 +22,15 @@ func getSecurity(client *http.Client, securityid int64) (*handlers.Security, err
 	return &s, nil
 }
 
+func getSecurities(client *http.Client) (*handlers.SecurityList, error) {
+	var sl handlers.SecurityList
+	err := read(client, &sl, "/security/", "securities")
+	if err != nil {
+		return nil, err
+	}
+	return &sl, nil
+}
+
 func updateSecurity(client *http.Client, security *handlers.Security) (*handlers.Security, error) {
 	var s handlers.Security
 	err := update(client, security, &s, "/security/"+strconv.FormatInt(security.SecurityId, 10), "security")
@@ -41,7 +50,7 @@ func deleteSecurity(client *http.Client, s *handlers.Security) error {
 
 func TestCreateSecurity(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].securities); i++ {
+		for i := 0; i < len(data[0].securities); i++ {
 			orig := data[0].securities[i]
 			s := d.securities[i]
 
@@ -72,7 +81,7 @@ func TestCreateSecurity(t *testing.T) {
 
 func TestGetSecurity(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].securities); i++ {
+		for i := 0; i < len(data[0].securities); i++ {
 			orig := data[0].securities[i]
 			curr := d.securities[i]
 
@@ -105,9 +114,59 @@ func TestGetSecurity(t *testing.T) {
 	})
 }
 
+func TestGetSecurities(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		sl, err := getSecurities(d.clients[0])
+		if err != nil {
+			t.Fatalf("Error fetching securities: %s\n", err)
+		}
+
+		numsecurities := 0
+		foundIds := make(map[int64]bool)
+		for i := 0; i < len(data[0].securities); i++ {
+			orig := data[0].securities[i]
+			curr := d.securities[i]
+
+			if curr.UserId != d.users[0].UserId {
+				continue
+			}
+			numsecurities += 1
+
+			found := false
+			for _, s := range *sl.Securities {
+				if orig.Name == s.Name && orig.Description == s.Description && orig.Symbol == orig.Symbol && orig.Precision == s.Precision && orig.Type == s.Type && orig.AlternateId == s.AlternateId {
+					if _, ok := foundIds[s.SecurityId]; ok {
+						continue
+					}
+					foundIds[s.SecurityId] = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Unable to find matching security: %+v", curr)
+			}
+		}
+
+		if numsecurities+1 == len(*sl.Securities) {
+			for _, s := range *sl.Securities {
+				if _, ok := foundIds[s.SecurityId]; !ok {
+					if s.SecurityId == d.users[0].DefaultCurrency {
+						t.Fatalf("Extra security wasn't default currency, seems like an extra security was created")
+					}
+					break
+				}
+			}
+		} else if numsecurities != len(*sl.Securities) {
+			t.Errorf("%+v\n", *sl.Securities)
+			t.Fatalf("Expected %d securities, received %d", numsecurities, len(*sl.Securities))
+		}
+	})
+}
+
 func TestUpdateSecurity(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].securities); i++ {
+		for i := 0; i < len(data[0].securities); i++ {
 			orig := data[0].securities[i]
 			curr := d.securities[i]
 
@@ -148,9 +207,16 @@ func TestUpdateSecurity(t *testing.T) {
 
 func TestDeleteSecurity(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].securities); i++ {
+	Outer:
+		for i := 0; i < len(data[0].securities); i++ {
 			orig := data[0].securities[i]
 			curr := d.securities[i]
+
+			for _, a := range d.accounts {
+				if a.SecurityId == curr.SecurityId {
+					continue Outer
+				}
+			}
 
 			err := deleteSecurity(d.clients[orig.UserId], &curr)
 			if err != nil {
@@ -167,6 +233,34 @@ func TestDeleteSecurity(t *testing.T) {
 				}
 			} else {
 				t.Fatalf("Unexpected error fetching deleted security")
+			}
+		}
+	})
+}
+
+func TestDontDeleteSecurity(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+	Outer:
+		for i := 0; i < len(data[0].securities); i++ {
+			orig := data[0].securities[i]
+			curr := d.securities[i]
+
+			for _, a := range d.accounts {
+				if a.SecurityId != curr.SecurityId {
+					continue Outer
+				}
+			}
+
+			err := deleteSecurity(d.clients[orig.UserId], &curr)
+			if err == nil {
+				t.Fatalf("Expected error deleting in-use security")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 7 { // In Use Error
+					t.Fatalf("Unexpected API error deleting in-use security: %s", herr)
+				}
+			} else {
+				t.Fatalf("Unexpected error deleting in-use security")
 			}
 		}
 	})

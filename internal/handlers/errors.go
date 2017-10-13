@@ -34,6 +34,7 @@ var error_codes = map[int]string{
 	4: "User Exists",
 	//  5:   "Connection Failed", //reserved for client-side error
 	6:   "Import Error",
+	7:   "In Use Error",
 	999: "Internal Error",
 }
 

@@ -183,6 +183,14 @@ func UpdateSecurity(db *DB, s *Security) error {
 	return nil
 }
 
+type SecurityInUseError struct {
+	message string
+}
+
+func (e SecurityInUseError) Error() string {
+	return e.message
+}
+
 func DeleteSecurity(db *DB, s *Security) error {
 	transaction, err := db.Begin()
 	if err != nil {
@@ -194,7 +202,7 @@ func DeleteSecurity(db *DB, s *Security) error {
 
 	if accounts != 0 {
 		transaction.Rollback()
-		return errors.New("One or more accounts still use this security")
+		return SecurityInUseError{"One or more accounts still use this security"}
 	}
 
 	user, err := GetUserTx(transaction, s.UserId)
@@ -203,7 +211,7 @@ func DeleteSecurity(db *DB, s *Security) error {
 		return err
 	} else if user.DefaultCurrency == s.SecurityId {
 		transaction.Rollback()
-		return errors.New("Cannot delete security which is user's default currency")
+		return SecurityInUseError{"Cannot delete security which is user's default currency"}
 	}
 
 	// Remove all prices involving this security (either of this security, or
@@ -401,7 +409,9 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 			}
 
 			err = DeleteSecurity(db, security)
-			if err != nil {
+			if _, ok := err.(SecurityInUseError); ok {
+				WriteError(w, 7 /*In Use Error*/)
+			} else if err != nil {
 				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
 				return
