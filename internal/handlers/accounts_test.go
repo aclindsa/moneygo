@@ -128,7 +128,15 @@ func TestUpdateAccount(t *testing.T) {
 			t.Fatalf("Expected error updating account with invalid parent: %+v\n", a)
 		}
 
-		// TODO ensure you can't create cycles with ParentAccountId
+		orig = data[0].accounts[0]
+		curr = d.accounts[0]
+		child := d.accounts[1]
+		curr.ParentAccountId = child.AccountId
+
+		a, err = updateAccount(d.clients[orig.UserId], &curr)
+		if err == nil {
+			t.Fatalf("Expected error updating account with circular parent relationship: %+v\n", a)
+		}
 	})
 }
 
