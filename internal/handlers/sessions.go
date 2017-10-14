@@ -44,24 +44,8 @@ func GetSession(tx *Tx, r *http.Request) (*Session, error) {
 	return &s, nil
 }
 
-func GetSessionTx(tx *Tx, r *http.Request) (*Session, error) {
-	var s Session
-
-	cookie, err := r.Cookie("moneygo-session")
-	if err != nil {
-		return nil, fmt.Errorf("moneygo-session cookie not set")
-	}
-	s.SessionSecret = cookie.Value
-
-	err = tx.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
-	if err != nil {
-		return nil, err
-	}
-	return &s, nil
-}
-
 func DeleteSessionIfExists(tx *Tx, r *http.Request) error {
-	session, err := GetSessionTx(tx, r)
+	session, err := GetSession(tx, r)
 	if err == nil {
 		_, err := tx.Delete(session)
 		if err != nil {
@@ -153,7 +137,7 @@ func SessionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		}
 		return sessionwriter
 	} else if r.Method == "GET" {
-		s, err := GetSessionTx(tx, r)
+		s, err := GetSession(tx, r)
 		if err != nil {
 			return NewError(1 /*Not Signed In*/)
 		}

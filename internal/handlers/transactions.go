@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/gorp.v1"
 	"log"
 	"math/big"
 	"net/http"
@@ -78,8 +77,8 @@ func (s *Split) Valid() bool {
 	return err == nil
 }
 
-func (s *Split) AlreadyImportedTx(transaction *gorp.Transaction) (bool, error) {
-	count, err := transaction.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
+func (s *Split) AlreadyImported(tx *Tx) (bool, error) {
+	count, err := tx.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
 	return count == 1, err
 }
 
@@ -134,7 +133,7 @@ func (t *Transaction) Valid() bool {
 
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]big.Rat, error) {
+func (t *Transaction) GetImbalances(tx *Tx) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -146,7 +145,7 @@ func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]
 		if t.Splits[i].AccountId != -1 {
 			var err error
 			var account *Account
-			account, err = GetAccountTx(transaction, t.Splits[i].AccountId, t.UserId)
+			account, err = GetAccount(tx, t.Splits[i].AccountId, t.UserId)
 			if err != nil {
 				return nil, err
 			}
@@ -162,10 +161,10 @@ func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]
 
 // Returns true if all securities contained in this transaction are balanced,
 // false otherwise
-func (t *Transaction) Balanced(transaction *gorp.Transaction) (bool, error) {
+func (t *Transaction) Balanced(tx *Tx) (bool, error) {
 	var zero big.Rat
 
-	sums, err := t.GetImbalancesTx(transaction)
+	sums, err := t.GetImbalances(tx)
 	if err != nil {
 		return false, err
 	}
@@ -214,7 +213,7 @@ func GetTransactions(tx *Tx, userid int64) (*[]Transaction, error) {
 
 func incrementAccountVersions(tx *Tx, user *User, accountids []int64) error {
 	for i := range accountids {
-		account, err := GetAccountTx(tx, accountids[i], user.UserId)
+		account, err := GetAccount(tx, accountids[i], user.UserId)
 		if err != nil {
 			return err
 		}
@@ -236,7 +235,7 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransactionTx(tx *Tx, t *Transaction, user *User) error {
+func InsertTransaction(tx *Tx, t *Transaction, user *User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
@@ -286,16 +285,7 @@ func InsertTransactionTx(tx *Tx, t *Transaction, user *User) error {
 	return nil
 }
 
-func InsertTransaction(tx *Tx, t *Transaction, user *User) error {
-	err := InsertTransactionTx(tx, t, user)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func UpdateTransactionTx(tx *Tx, t *Transaction, user *User) error {
+func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
 	var existing_splits []*Split
 
 	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
@@ -431,13 +421,13 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
-			_, err := GetAccountTx(tx, transaction.Splits[i].AccountId, user.UserId)
+			_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 		}
 
-		err = InsertTransactionTx(tx, &transaction, user)
+		err = InsertTransaction(tx, &transaction, user)
 		if err != nil {
 			if _, ok := err.(AccountMissingError); ok {
 				return NewError(3 /*Invalid Request*/)
@@ -497,13 +487,13 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 
 			for i := range transaction.Splits {
-				_, err := GetAccountTx(tx, transaction.Splits[i].AccountId, user.UserId)
+				_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
 				if err != nil {
 					return NewError(3 /*Invalid Request*/)
 				}
 			}
 
-			err = UpdateTransactionTx(tx, &transaction, user)
+			err = UpdateTransaction(tx, &transaction, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -533,10 +523,10 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	return NewError(3 /*Invalid Request*/)
 }
 
-func TransactionsBalanceDifference(transaction *gorp.Transaction, accountid int64, transactions []Transaction) (*big.Rat, error) {
+func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Transaction) (*big.Rat, error) {
 	var pageDifference, tmp big.Rat
 	for i := range transactions {
-		_, err := transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
+		_, err := tx.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			return nil, err
 		}
@@ -649,7 +639,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 		sqloffset = fmt.Sprintf(" OFFSET %d", page*limit)
 	}
 
-	account, err := GetAccountTx(tx, accountid, user.UserId)
+	account, err := GetAccount(tx, accountid, user.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -673,7 +663,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 	}
 	atl.TotalTransactions = count
 
-	security, err := GetSecurityTx(tx, atl.Account.SecurityId, user.UserId)
+	security, err := GetSecurity(tx, atl.Account.SecurityId, user.UserId)
 	if err != nil {
 		return nil, err
 	}

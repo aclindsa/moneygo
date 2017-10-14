@@ -5,7 +5,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
 	"net/url"
@@ -113,16 +112,6 @@ func GetSecurity(tx *Tx, securityid int64, userid int64) (*Security, error) {
 	return &s, nil
 }
 
-func GetSecurityTx(transaction *gorp.Transaction, securityid int64, userid int64) (*Security, error) {
-	var s Security
-
-	err := transaction.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
-	if err != nil {
-		return nil, err
-	}
-	return &s, nil
-}
-
 func GetSecurities(tx *Tx, userid int64) (*[]*Security, error) {
 	var securities []*Security
 
@@ -141,16 +130,8 @@ func InsertSecurity(tx *Tx, s *Security) error {
 	return nil
 }
 
-func InsertSecurityTx(transaction *gorp.Transaction, s *Security) error {
-	err := transaction.Insert(s)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func UpdateSecurity(tx *Tx, s *Security) (err error) {
-	user, err := GetUserTx(tx, s.UserId)
+	user, err := GetUser(tx, s.UserId)
 	if err != nil {
 		return
 	} else if user.DefaultCurrency == s.SecurityId && s.Type != Currency {
@@ -184,7 +165,7 @@ func DeleteSecurity(tx *Tx, s *Security) error {
 		return SecurityInUseError{"One or more accounts still use this security"}
 	}
 
-	user, err := GetUserTx(tx, s.UserId)
+	user, err := GetUser(tx, s.UserId)
 	if err != nil {
 		return err
 	} else if user.DefaultCurrency == s.SecurityId {
@@ -209,11 +190,11 @@ func DeleteSecurity(tx *Tx, s *Security) error {
 	return nil
 }
 
-func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, security *Security) (*Security, error) {
+func ImportGetCreateSecurity(tx *Tx, userid int64, security *Security) (*Security, error) {
 	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId
-		err := InsertSecurityTx(transaction, security)
+		err := InsertSecurity(tx, security)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +203,7 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, securi
 
 	var securities []*Security
 
-	_, err := transaction.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", userid, security.Type, security.AlternateId, security.Precision)
+	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", userid, security.Type, security.AlternateId, security.Precision)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +235,7 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, securi
 	}
 
 	// If there wasn't even one security in the list, make a new one
-	err = InsertSecurityTx(transaction, security)
+	err = InsertSecurity(tx, security)
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +244,7 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, securi
 }
 
 func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSessionTx(tx, r)
+	user, err := GetUserFromSession(tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -282,7 +263,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		security.SecurityId = -1
 		security.UserId = user.UserId
 
-		err = InsertSecurityTx(tx, &security)
+		err = InsertSecurity(tx, &security)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -306,7 +287,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			sl.Securities = securities
 			return &sl
 		} else {
-			security, err := GetSecurityTx(tx, securityid, user.UserId)
+			security, err := GetSecurity(tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -339,7 +320,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return &security
 		} else if r.Method == "DELETE" {
-			security, err := GetSecurityTx(tx, securityid, user.UserId)
+			security, err := GetSecurity(tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}

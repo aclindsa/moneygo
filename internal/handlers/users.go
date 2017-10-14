@@ -56,16 +56,6 @@ func GetUser(tx *Tx, userid int64) (*User, error) {
 	return &u, nil
 }
 
-func GetUserTx(tx *Tx, userid int64) (*User, error) {
-	var u User
-
-	err := tx.SelectOne(&u, "SELECT * from users where UserId=?", userid)
-	if err != nil {
-		return nil, err
-	}
-	return &u, nil
-}
-
 func GetUserByUsername(tx *Tx, username string) (*User, error) {
 	var u User
 
@@ -100,7 +90,7 @@ func InsertUser(tx *Tx, u *User) error {
 	security = *security_template
 	security.UserId = u.UserId
 
-	err = InsertSecurityTx(tx, &security)
+	err = InsertSecurity(tx, &security)
 	if err != nil {
 		return err
 	}
@@ -125,16 +115,8 @@ func GetUserFromSession(tx *Tx, r *http.Request) (*User, error) {
 	return GetUser(tx, s.UserId)
 }
 
-func GetUserFromSessionTx(tx *Tx, r *http.Request) (*User, error) {
-	s, err := GetSessionTx(tx, r)
-	if err != nil {
-		return nil, err
-	}
-	return GetUserTx(tx, s.UserId)
-}
-
 func UpdateUser(tx *Tx, u *User) error {
-	security, err := GetSecurityTx(tx, u.DefaultCurrency, u.UserId)
+	security, err := GetSecurity(tx, u.DefaultCurrency, u.UserId)
 	if err != nil {
 		return err
 	} else if security.UserId != u.UserId || security.SecurityId != u.DefaultCurrency {

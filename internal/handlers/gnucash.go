@@ -407,7 +407,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 					account.ParentAccountId = accountMap[account.ParentAccountId]
 				}
 				account.SecurityId = securityMap[account.SecurityId]
-				a, err := GetCreateAccountTx(tx, account)
+				a, err := GetCreateAccount(tx, account)
 				if err != nil {
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)
@@ -436,7 +436,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 			split.AccountId = acctId
 
-			exists, err := split.AlreadyImportedTx(tx)
+			exists, err := split.AlreadyImported(tx)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -445,7 +445,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 		}
 		if !already_imported {
-			err := InsertTransactionTx(tx, &transaction, user)
+			err := InsertTransaction(tx, &transaction, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

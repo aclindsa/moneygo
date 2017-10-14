@@ -37,7 +37,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	}
 
 	// Return Account with this Id
-	account, err := GetAccountTx(tx, accountid, user.UserId)
+	account, err := GetAccount(tx, accountid, user.UserId)
 	if err != nil {
 		log.Print(err)
 		return NewError(3 /*Invalid Request*/)
@@ -117,7 +117,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 							SecurityId:      sec.SecurityId,
 							Type:            account.Type,
 						}
-						subaccount, err := GetCreateAccountTx(tx, *subaccount)
+						subaccount, err := GetCreateAccount(tx, *subaccount)
 						if err != nil {
 							log.Print(err)
 							return NewError(999 /*Internal Error*/)
@@ -137,7 +137,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 			}
 		}
 
-		imbalances, err := transaction.GetImbalancesTx(tx)
+		imbalances, err := transaction.GetImbalances(tx)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -157,7 +157,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 				split := new(Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
-				security, err := GetSecurityTx(tx, imbalanced_security, user.UserId)
+				security, err := GetSecurity(tx, imbalanced_security, user.UserId)
 				if err != nil {
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)
@@ -185,7 +185,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 				split.SecurityId = -1
 			}
 
-			exists, err := split.AlreadyImportedTx(tx)
+			exists, err := split.AlreadyImported(tx)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -200,7 +200,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	}
 
 	for _, transaction := range transactions {
-		err := InsertTransactionTx(tx, &transaction, user)
+		err := InsertTransaction(tx, &transaction, user)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)

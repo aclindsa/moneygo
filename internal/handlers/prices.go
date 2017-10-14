@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"gopkg.in/gorp.v1"
 	"time"
 )
 
@@ -14,18 +13,18 @@ type Price struct {
 	RemoteId   string // unique ID from source, for detecting duplicates
 }
 
-func InsertPriceTx(transaction *gorp.Transaction, p *Price) error {
-	err := transaction.Insert(p)
+func InsertPrice(tx *Tx, p *Price) error {
+	err := tx.Insert(p)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func CreatePriceIfNotExist(transaction *gorp.Transaction, price *Price) error {
+func CreatePriceIfNotExist(tx *Tx, price *Price) error {
 	if len(price.RemoteId) == 0 {
 		// Always create a new price if we can't match on the RemoteId
-		err := InsertPriceTx(transaction, price)
+		err := InsertPrice(tx, price)
 		if err != nil {
 			return err
 		}
@@ -34,7 +33,7 @@ func CreatePriceIfNotExist(transaction *gorp.Transaction, price *Price) error {
 
 	var prices []*Price
 
-	_, err := transaction.Select(&prices, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date=? AND Value=?", price.SecurityId, price.CurrencyId, price.Date, price.Value)
+	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date=? AND Value=?", price.SecurityId, price.CurrencyId, price.Date, price.Value)
 	if err != nil {
 		return err
 	}
@@ -43,7 +42,7 @@ func CreatePriceIfNotExist(transaction *gorp.Transaction, price *Price) error {
 		return nil // price already exists
 	}
 
-	err = InsertPriceTx(transaction, price)
+	err = InsertPrice(tx, price)
 	if err != nil {
 		return err
 	}
@@ -51,9 +50,9 @@ func CreatePriceIfNotExist(transaction *gorp.Transaction, price *Price) error {
 }
 
 // Return the latest price for security in currency units before date
-func GetLatestPrice(transaction *gorp.Transaction, security, currency *Security, date *time.Time) (*Price, error) {
+func GetLatestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Price, error) {
 	var p Price
-	err := transaction.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date <= ? ORDER BY Date DESC LIMIT 1", security.SecurityId, currency.SecurityId, date)
+	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date <= ? ORDER BY Date DESC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +60,9 @@ func GetLatestPrice(transaction *gorp.Transaction, security, currency *Security,
 }
 
 // Return the earliest price for security in currency units after date
-func GetEarliestPrice(transaction *gorp.Transaction, security, currency *Security, date *time.Time) (*Price, error) {
+func GetEarliestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Price, error) {
 	var p Price
-	err := transaction.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date >= ? ORDER BY Date ASC LIMIT 1", security.SecurityId, currency.SecurityId, date)
+	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date >= ? ORDER BY Date ASC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +70,9 @@ func GetEarliestPrice(transaction *gorp.Transaction, security, currency *Securit
 }
 
 // Return the price for security in currency closest to date
-func GetClosestPriceTx(transaction *gorp.Transaction, security, currency *Security, date *time.Time) (*Price, error) {
-	earliest, _ := GetEarliestPrice(transaction, security, currency, date)
-	latest, err := GetLatestPrice(transaction, security, currency, date)
+func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Price, error) {
+	earliest, _ := GetEarliestPrice(tx, security, currency, date)
+	latest, err := GetLatestPrice(tx, security, currency, date)
 
 	// Return early if either earliest or latest are invalid
 	if earliest == nil {
@@ -89,8 +88,4 @@ func GetClosestPriceTx(transaction *gorp.Transaction, security, currency *Securi
 	} else {
 		return earliest, nil
 	}
-}
-
-func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Price, error) {
-	return GetClosestPriceTx(tx, security, currency, date)
 }

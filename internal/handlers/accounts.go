@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
 	"regexp"
@@ -139,17 +138,6 @@ func GetAccount(tx *Tx, accountid int64, userid int64) (*Account, error) {
 	return &a, nil
 }
 
-func GetAccountTx(transaction *gorp.Transaction, accountid int64, userid int64) (*Account, error) {
-	var a Account
-
-	err := transaction.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
-	if err != nil {
-		return nil, err
-	}
-
-	return &a, nil
-}
-
 func GetAccounts(tx *Tx, userid int64) (*[]Account, error) {
 	var accounts []Account
 
@@ -162,12 +150,12 @@ func GetAccounts(tx *Tx, userid int64) (*[]Account, error) {
 
 // Get (and attempt to create if it doesn't exist). Matches on UserId,
 // SecurityId, Type, Name, and ParentAccountId
-func GetCreateAccountTx(transaction *gorp.Transaction, a Account) (*Account, error) {
+func GetCreateAccount(tx *Tx, a Account) (*Account, error) {
 	var accounts []Account
 	var account Account
 
 	// Try to find the top-level trading account
-	_, err := transaction.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND Type=? AND Name=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", a.UserId, a.SecurityId, a.Type, a.Name, a.ParentAccountId)
+	_, err := tx.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND Type=? AND Name=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", a.UserId, a.SecurityId, a.Type, a.Name, a.ParentAccountId)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +168,7 @@ func GetCreateAccountTx(transaction *gorp.Transaction, a Account) (*Account, err
 		account.Name = a.Name
 		account.ParentAccountId = a.ParentAccountId
 
-		err = transaction.Insert(&account)
+		err = tx.Insert(&account)
 		if err != nil {
 			return nil, err
 		}
@@ -190,11 +178,11 @@ func GetCreateAccountTx(transaction *gorp.Transaction, a Account) (*Account, err
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // trading account for the supplied security/currency
-func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid int64) (*Account, error) {
+func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error) {
 	var tradingAccount Account
 	var account Account
 
-	user, err := GetUserTx(transaction, userid)
+	user, err := GetUser(tx, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -206,12 +194,12 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 	tradingAccount.ParentAccountId = -1
 
 	// Find/create the top-level trading account
-	ta, err := GetCreateAccountTx(transaction, tradingAccount)
+	ta, err := GetCreateAccount(tx, tradingAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	security, err := GetSecurityTx(transaction, securityid, userid)
+	security, err := GetSecurity(tx, securityid, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +210,7 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 	account.SecurityId = securityid
 	account.Type = Trading
 
-	a, err := GetCreateAccountTx(transaction, account)
+	a, err := GetCreateAccount(tx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -232,14 +220,14 @@ func GetTradingAccount(transaction *gorp.Transaction, userid int64, securityid i
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // imbalance account for the supplied security/currency
-func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid int64) (*Account, error) {
+func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*Account, error) {
 	var imbalanceAccount Account
 	var account Account
 	xxxtemplate := FindSecurityTemplate("XXX", Currency)
 	if xxxtemplate == nil {
 		return nil, errors.New("Couldn't find XXX security template")
 	}
-	xxxsecurity, err := ImportGetCreateSecurity(transaction, userid, xxxtemplate)
+	xxxsecurity, err := ImportGetCreateSecurity(tx, userid, xxxtemplate)
 	if err != nil {
 		return nil, errors.New("Couldn't create XXX security")
 	}
@@ -251,12 +239,12 @@ func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid
 	imbalanceAccount.Type = Bank
 
 	// Find/create the top-level trading account
-	ia, err := GetCreateAccountTx(transaction, imbalanceAccount)
+	ia, err := GetCreateAccount(tx, imbalanceAccount)
 	if err != nil {
 		return nil, err
 	}
 
-	security, err := GetSecurityTx(transaction, securityid, userid)
+	security, err := GetSecurity(tx, securityid, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -267,7 +255,7 @@ func GetImbalanceAccount(transaction *gorp.Transaction, userid int64, securityid
 	account.SecurityId = securityid
 	account.Type = Bank
 
-	a, err := GetCreateAccountTx(transaction, account)
+	a, err := GetCreateAccount(tx, account)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +318,7 @@ func insertUpdateAccount(tx *Tx, a *Account, insert bool) error {
 			return err
 		}
 	} else {
-		oldacct, err := GetAccountTx(tx, a.AccountId, a.UserId)
+		oldacct, err := GetAccount(tx, a.AccountId, a.UserId)
 		if err != nil {
 			return err
 		}
