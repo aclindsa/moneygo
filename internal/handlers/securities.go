@@ -103,10 +103,10 @@ func FindCurrencyTemplate(iso4217 int64) *Security {
 	return nil
 }
 
-func GetSecurity(db *DB, securityid int64, userid int64) (*Security, error) {
+func GetSecurity(tx *Tx, securityid int64, userid int64) (*Security, error) {
 	var s Security
 
-	err := db.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
+	err := tx.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
 	if err != nil {
 		return nil, err
 	}
@@ -123,18 +123,18 @@ func GetSecurityTx(transaction *gorp.Transaction, securityid int64, userid int64
 	return &s, nil
 }
 
-func GetSecurities(db *DB, userid int64) (*[]*Security, error) {
+func GetSecurities(tx *Tx, userid int64) (*[]*Security, error) {
 	var securities []*Security
 
-	_, err := db.Select(&securities, "SELECT * from securities where UserId=?", userid)
+	_, err := tx.Select(&securities, "SELECT * from securities where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
 	return &securities, nil
 }
 
-func InsertSecurity(db *DB, s *Security) error {
-	err := db.Insert(s)
+func InsertSecurity(tx *Tx, s *Security) error {
+	err := tx.Insert(s)
 	if err != nil {
 		return err
 	}
@@ -149,35 +149,20 @@ func InsertSecurityTx(transaction *gorp.Transaction, s *Security) error {
 	return nil
 }
 
-func UpdateSecurity(db *DB, s *Security) error {
-	transaction, err := db.Begin()
+func UpdateSecurity(tx *Tx, s *Security) (err error) {
+	user, err := GetUserTx(tx, s.UserId)
 	if err != nil {
-		return err
-	}
-
-	user, err := GetUserTx(transaction, s.UserId)
-	if err != nil {
-		transaction.Rollback()
-		return err
+		return
 	} else if user.DefaultCurrency == s.SecurityId && s.Type != Currency {
-		transaction.Rollback()
 		return errors.New("Cannot change security which is user's default currency to be non-currency")
 	}
 
-	count, err := transaction.Update(s)
+	count, err := tx.Update(s)
 	if err != nil {
-		transaction.Rollback()
-		return err
+		return
 	}
 	if count != 1 {
-		transaction.Rollback()
 		return errors.New("Updated more than one security")
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return err
 	}
 
 	return nil
@@ -191,51 +176,34 @@ func (e SecurityInUseError) Error() string {
 	return e.message
 }
 
-func DeleteSecurity(db *DB, s *Security) error {
-	transaction, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
+func DeleteSecurity(tx *Tx, s *Security) error {
 	// First, ensure no accounts are using this security
-	accounts, err := transaction.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
+	accounts, err := tx.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
 
 	if accounts != 0 {
-		transaction.Rollback()
 		return SecurityInUseError{"One or more accounts still use this security"}
 	}
 
-	user, err := GetUserTx(transaction, s.UserId)
+	user, err := GetUserTx(tx, s.UserId)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	} else if user.DefaultCurrency == s.SecurityId {
-		transaction.Rollback()
 		return SecurityInUseError{"Cannot delete security which is user's default currency"}
 	}
 
 	// Remove all prices involving this security (either of this security, or
 	// using it as a currency)
-	_, err = transaction.Exec("DELETE FROM prices WHERE SecurityId=? OR CurrencyId=?", s.SecurityId, s.SecurityId)
+	_, err = tx.Exec("DELETE FROM prices WHERE SecurityId=? OR CurrencyId=?", s.SecurityId, s.SecurityId)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
-	count, err := transaction.Delete(s)
+	count, err := tx.Delete(s)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 	if count != 1 {
-		transaction.Rollback()
 		return errors.New("Deleted more than one security")
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return err
 	}
 
 	return nil
@@ -294,43 +262,33 @@ func ImportGetCreateSecurity(transaction *gorp.Transaction, userid int64, securi
 	return security, nil
 }
 
-func SecurityHandler(w http.ResponseWriter, r *http.Request, db *DB) {
-	user, err := GetUserFromSession(db, r)
+func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+	user, err := GetUserFromSessionTx(tx, r)
 	if err != nil {
-		WriteError(w, 1 /*Not Signed In*/)
-		return
+		return NewError(1 /*Not Signed In*/)
 	}
 
 	if r.Method == "POST" {
 		security_json := r.PostFormValue("security")
 		if security_json == "" {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		var security Security
 		err := security.Read(security_json)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		security.SecurityId = -1
 		security.UserId = user.UserId
 
-		err = InsertSecurity(db, &security)
+		err = InsertSecurityTx(tx, &security)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
 
-		w.WriteHeader(201 /*Created*/)
-		err = security.Write(w)
-		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
+		return ResponseWrapper{201, &security}
 	} else if r.Method == "GET" {
 		var securityid int64
 		n, err := GetURLPieces(r.URL.Path, "/security/%d", &securityid)
@@ -339,87 +297,65 @@ func SecurityHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 			//Return all securities
 			var sl SecurityList
 
-			securities, err := GetSecurities(db, user.UserId)
+			securities, err := GetSecurities(tx, user.UserId)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
 			sl.Securities = securities
-			err = (&sl).Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &sl
 		} else {
-			security, err := GetSecurity(db, securityid, user.UserId)
+			security, err := GetSecurityTx(tx, securityid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = security.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return security
 		}
 	} else {
 		securityid, err := GetURLID(r.URL.Path)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
 			security_json := r.PostFormValue("security")
 			if security_json == "" {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
 			var security Security
 			err := security.Read(security_json)
 			if err != nil || security.SecurityId != securityid {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 			security.UserId = user.UserId
 
-			err = UpdateSecurity(db, &security)
+			err = UpdateSecurity(tx, &security)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			err = security.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &security
 		} else if r.Method == "DELETE" {
-			security, err := GetSecurity(db, securityid, user.UserId)
+			security, err := GetSecurityTx(tx, securityid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteSecurity(db, security)
+			err = DeleteSecurity(tx, security)
 			if _, ok := err.(SecurityInUseError); ok {
-				WriteError(w, 7 /*In Use Error*/)
+				return NewError(7 /*In Use Error*/)
 			} else if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			WriteSuccess(w)
+			return SuccessWriter{}
 		}
 	}
+	return NewError(3 /*Invalid Request*/)
 }
 
 func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {

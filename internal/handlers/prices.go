@@ -91,23 +91,6 @@ func GetClosestPriceTx(transaction *gorp.Transaction, security, currency *Securi
 	}
 }
 
-func GetClosestPrice(db *DB, security, currency *Security, date *time.Time) (*Price, error) {
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	price, err := GetClosestPriceTx(transaction, security, currency, date)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
-	return price, nil
+func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Price, error) {
+	return GetClosestPriceTx(tx, security, currency, date)
 }

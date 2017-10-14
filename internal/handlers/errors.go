@@ -38,13 +38,17 @@ var error_codes = map[int]string{
 	999: "Internal Error",
 }
 
-func WriteError(w http.ResponseWriter, error_code int) {
+func NewError(error_code int) *Error {
 	msg, ok := error_codes[error_code]
 	if !ok {
 		log.Printf("Error: WriteError received error code of %d", error_code)
 		msg = error_codes[999]
 	}
-	e := Error{error_code, msg}
+	return &Error{error_code, msg}
+}
+
+func WriteError(w http.ResponseWriter, error_code int) {
+	e := NewError(error_code)
 
 	err := e.Write(w)
 	if err != nil {

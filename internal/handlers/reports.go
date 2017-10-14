@@ -77,36 +77,36 @@ func (r *Tabulation) Write(w http.ResponseWriter) error {
 	return enc.Encode(r)
 }
 
-func GetReport(db *DB, reportid int64, userid int64) (*Report, error) {
+func GetReport(tx *Tx, reportid int64, userid int64) (*Report, error) {
 	var r Report
 
-	err := db.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
+	err := tx.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
 	if err != nil {
 		return nil, err
 	}
 	return &r, nil
 }
 
-func GetReports(db *DB, userid int64) (*[]Report, error) {
+func GetReports(tx *Tx, userid int64) (*[]Report, error) {
 	var reports []Report
 
-	_, err := db.Select(&reports, "SELECT * from reports where UserId=?", userid)
+	_, err := tx.Select(&reports, "SELECT * from reports where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
 	return &reports, nil
 }
 
-func InsertReport(db *DB, r *Report) error {
-	err := db.Insert(r)
+func InsertReport(tx *Tx, r *Report) error {
+	err := tx.Insert(r)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func UpdateReport(db *DB, r *Report) error {
-	count, err := db.Update(r)
+func UpdateReport(tx *Tx, r *Report) error {
+	count, err := tx.Update(r)
 	if err != nil {
 		return err
 	}
@@ -116,8 +116,8 @@ func UpdateReport(db *DB, r *Report) error {
 	return nil
 }
 
-func DeleteReport(db *DB, r *Report) error {
-	count, err := db.Delete(r)
+func DeleteReport(tx *Tx, r *Report) error {
+	count, err := tx.Delete(r)
 	if err != nil {
 		return err
 	}
@@ -127,14 +127,14 @@ func DeleteReport(db *DB, r *Report) error {
 	return nil
 }
 
-func runReport(db *DB, user *User, report *Report) (*Tabulation, error) {
+func runReport(tx *Tx, user *User, report *Report) (*Tabulation, error) {
 	// Create a new LState without opening the default libs for security
 	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
 
 	// Create a new context holding the current user with a timeout
 	ctx := context.WithValue(context.Background(), userContextKey, user)
-	ctx = context.WithValue(ctx, dbContextKey, db)
+	ctx = context.WithValue(ctx, dbContextKey, tx)
 	ctx, cancel := context.WithTimeout(ctx, luaTimeoutSeconds*time.Second)
 	defer cancel()
 	L.SetContext(ctx)
@@ -191,79 +191,60 @@ func runReport(db *DB, user *User, report *Report) (*Tabulation, error) {
 	}
 }
 
-func ReportTabulationHandler(db *DB, w http.ResponseWriter, r *http.Request, user *User, reportid int64) {
-	report, err := GetReport(db, reportid, user.UserId)
+func ReportTabulationHandler(tx *Tx, r *http.Request, user *User, reportid int64) ResponseWriterWriter {
+	report, err := GetReport(tx, reportid, user.UserId)
 	if err != nil {
-		WriteError(w, 3 /*Invalid Request*/)
-		return
+		return NewError(3 /*Invalid Request*/)
 	}
 
-	tabulation, err := runReport(db, user, report)
+	tabulation, err := runReport(tx, user, report)
 	if err != nil {
 		// TODO handle different failure cases differently
 		log.Print("runReport returned:", err)
-		WriteError(w, 3 /*Invalid Request*/)
-		return
+		return NewError(3 /*Invalid Request*/)
 	}
 
 	tabulation.ReportId = reportid
 
-	err = tabulation.Write(w)
-	if err != nil {
-		WriteError(w, 999 /*Internal Error*/)
-		log.Print(err)
-		return
-	}
+	return tabulation
 }
 
-func ReportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
-	user, err := GetUserFromSession(db, r)
+func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+	user, err := GetUserFromSession(tx, r)
 	if err != nil {
-		WriteError(w, 1 /*Not Signed In*/)
-		return
+		return NewError(1 /*Not Signed In*/)
 	}
 
 	if r.Method == "POST" {
 		report_json := r.PostFormValue("report")
 		if report_json == "" {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		var report Report
 		err := report.Read(report_json)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		report.ReportId = -1
 		report.UserId = user.UserId
 
-		err = InsertReport(db, &report)
+		err = InsertReport(tx, &report)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
 
-		w.WriteHeader(201 /*Created*/)
-		err = report.Write(w)
-		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
+		return ResponseWrapper{201, &report}
 	} else if r.Method == "GET" {
 		if reportTabulationRE.MatchString(r.URL.Path) {
 			var reportid int64
 			n, err := GetURLPieces(r.URL.Path, "/report/%d/tabulation", &reportid)
 			if err != nil || n != 1 {
-				WriteError(w, 999 /*InternalError*/)
 				log.Print(err)
-				return
+				return NewError(999 /*InternalError*/)
 			}
-			ReportTabulationHandler(db, w, r, user, reportid)
-			return
+			return ReportTabulationHandler(tx, r, user, reportid)
 		}
 
 		var reportid int64
@@ -271,84 +252,62 @@ func ReportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 		if err != nil || n != 1 {
 			//Return all Reports
 			var rl ReportList
-			reports, err := GetReports(db, user.UserId)
+			reports, err := GetReports(tx, user.UserId)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 			rl.Reports = reports
-			err = (&rl).Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &rl
 		} else {
 			// Return Report with this Id
-			report, err := GetReport(db, reportid, user.UserId)
+			report, err := GetReport(tx, reportid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = report.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return report
 		}
 	} else {
 		reportid, err := GetURLID(r.URL.Path)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		if r.Method == "PUT" {
 			report_json := r.PostFormValue("report")
 			if report_json == "" {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
 			var report Report
 			err := report.Read(report_json)
 			if err != nil || report.ReportId != reportid {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 			report.UserId = user.UserId
 
-			err = UpdateReport(db, &report)
+			err = UpdateReport(tx, &report)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			err = report.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &report
 		} else if r.Method == "DELETE" {
-			report, err := GetReport(db, reportid, user.UserId)
+			report, err := GetReport(tx, reportid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteReport(db, report)
+			err = DeleteReport(tx, report)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			WriteSuccess(w)
+			return SuccessWriter{}
 		}
 	}
+	return NewError(3 /*Invalid Request*/)
 }

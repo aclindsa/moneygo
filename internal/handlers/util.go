@@ -18,6 +18,23 @@ func GetURLPieces(url string, format string, a ...interface{}) (int, error) {
 	return fmt.Sscanf(url, format, a...)
 }
 
+type ResponseWrapper struct {
+	Code   int
+	Writer ResponseWriterWriter
+}
+
+func (r ResponseWrapper) Write(w http.ResponseWriter) error {
+	w.WriteHeader(r.Code)
+	return r.Writer.Write(w)
+}
+
+type SuccessWriter struct{}
+
+func (s SuccessWriter) Write(w http.ResponseWriter) error {
+	fmt.Fprint(w, "{}")
+	return nil
+}
+
 func WriteSuccess(w http.ResponseWriter) {
 	fmt.Fprint(w, "{}")
 }

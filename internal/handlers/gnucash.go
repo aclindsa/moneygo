@@ -308,42 +308,37 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	return &gncimport, nil
 }
 
-func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
-	user, err := GetUserFromSession(db, r)
+func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+	user, err := GetUserFromSession(tx, r)
 	if err != nil {
-		WriteError(w, 1 /*Not Signed In*/)
-		return
+		return NewError(1 /*Not Signed In*/)
 	}
 
 	if r.Method != "POST" {
-		WriteError(w, 3 /*Invalid Request*/)
-		return
+		return NewError(3 /*Invalid Request*/)
 	}
 
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
-		WriteError(w, 3 /*Invalid Request*/)
-		return
+		return NewError(3 /*Invalid Request*/)
 	}
 
 	// Assume there is only one 'part' and it's the one we care about
 	part, err := multipartReader.NextPart()
 	if err != nil {
 		if err == io.EOF {
-			WriteError(w, 3 /*Invalid Request*/)
+			return NewError(3 /*Invalid Request*/)
 		} else {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
+			return NewError(999 /*Internal Error*/)
 		}
-		return
 	}
 
 	bufread := bufio.NewReader(part)
 	gzHeader, err := bufread.Peek(2)
 	if err != nil {
-		WriteError(w, 999 /*Internal Error*/)
 		log.Print(err)
-		return
+		return NewError(999 /*Internal Error*/)
 	}
 
 	// Does this look like a gzipped file?
@@ -351,9 +346,8 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 	if gzHeader[0] == 0x1f && gzHeader[1] == 0x8b {
 		gzr, err := gzip.NewReader(bufread)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
 		gnucashImport, err = ImportGnucash(gzr)
 	} else {
@@ -361,15 +355,7 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 	}
 
 	if err != nil {
-		WriteError(w, 3 /*Invalid Request*/)
-		return
-	}
-
-	sqltransaction, err := db.Begin()
-	if err != nil {
-		WriteError(w, 999 /*Internal Error*/)
-		log.Print(err)
-		return
+		return NewError(3 /*Invalid Request*/)
 	}
 
 	// Import securities, building map from Gnucash security IDs to our
@@ -377,13 +363,11 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 	securityMap := make(map[int64]int64)
 	for _, security := range gnucashImport.Securities {
 		securityId := security.SecurityId // save off because it could be updated
-		s, err := ImportGetCreateSecurity(sqltransaction, user.UserId, &security)
+		s, err := ImportGetCreateSecurity(tx, user.UserId, &security)
 		if err != nil {
-			sqltransaction.Rollback()
-			WriteError(w, 6 /*Import Error*/)
 			log.Print(err)
 			log.Print(security)
-			return
+			return NewError(6 /*Import Error*/)
 		}
 		securityMap[securityId] = s.SecurityId
 	}
@@ -394,12 +378,10 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 		price.CurrencyId = securityMap[price.CurrencyId]
 		price.PriceId = 0
 
-		err := CreatePriceIfNotExist(sqltransaction, &price)
+		err := CreatePriceIfNotExist(tx, &price)
 		if err != nil {
-			sqltransaction.Rollback()
-			WriteError(w, 6 /*Import Error*/)
 			log.Print(err)
-			return
+			return NewError(6 /*Import Error*/)
 		}
 	}
 
@@ -425,12 +407,10 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 					account.ParentAccountId = accountMap[account.ParentAccountId]
 				}
 				account.SecurityId = securityMap[account.SecurityId]
-				a, err := GetCreateAccountTx(sqltransaction, account)
+				a, err := GetCreateAccountTx(tx, account)
 				if err != nil {
-					sqltransaction.Rollback()
-					WriteError(w, 999 /*Internal Error*/)
 					log.Print(err)
-					return
+					return NewError(999 /*Internal Error*/)
 				}
 				accountMap[account.AccountId] = a.AccountId
 				accountsRemaining--
@@ -438,10 +418,8 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 		}
 		if accountsRemaining == accountsRemainingLast {
 			//We didn't make any progress in importing the next level of accounts, so there must be a circular parent-child relationship, so give up and tell the user they're wrong
-			sqltransaction.Rollback()
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(fmt.Errorf("Circular account parent-child relationship when importing %s", part.FileName()))
-			return
+			return NewError(999 /*Internal Error*/)
 		}
 		accountsRemainingLast = accountsRemaining
 	}
@@ -453,41 +431,27 @@ func GnucashImportHandler(w http.ResponseWriter, r *http.Request, db *DB) {
 		for _, split := range transaction.Splits {
 			acctId, ok := accountMap[split.AccountId]
 			if !ok {
-				sqltransaction.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(fmt.Errorf("Error: Split's AccountID Doesn't exist: %d\n", split.AccountId))
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 			split.AccountId = acctId
 
-			exists, err := split.AlreadyImportedTx(sqltransaction)
+			exists, err := split.AlreadyImportedTx(tx)
 			if err != nil {
-				sqltransaction.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print("Error checking if split was already imported:", err)
-				return
+				return NewError(999 /*Internal Error*/)
 			} else if exists {
 				already_imported = true
 			}
 		}
 		if !already_imported {
-			err := InsertTransactionTx(sqltransaction, &transaction, user)
+			err := InsertTransactionTx(tx, &transaction, user)
 			if err != nil {
-				sqltransaction.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 		}
 	}
 
-	err = sqltransaction.Commit()
-	if err != nil {
-		sqltransaction.Rollback()
-		WriteError(w, 999 /*Internal Error*/)
-		log.Print(err)
-		return
-	}
-
-	WriteSuccess(w)
+	return SuccessWriter{}
 }
