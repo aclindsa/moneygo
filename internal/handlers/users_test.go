@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"github.com/aclindsa/moneygo/internal/handlers"
 	"net/http"
 	"strconv"
 	"testing"
@@ -46,6 +47,24 @@ func TestCreateUser(t *testing.T) {
 
 		if len(d.users[0].Password) != 0 || len(d.users[0].PasswordHash) != 0 {
 			t.Error("Never send password, only send password hash when necessary")
+		}
+	})
+}
+
+func TestDontRecreateUser(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for _, user := range data[0].users {
+			_, err := createUser(&user)
+			if err == nil {
+				t.Fatalf("Expected error re-creating user")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 4 { // User exists
+					t.Fatalf("Unexpected API error re-creating user: %s", herr)
+				}
+			} else {
+				t.Fatalf("Expected error re-creating user")
+			}
 		}
 	})
 }
