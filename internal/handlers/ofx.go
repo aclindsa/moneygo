@@ -898,7 +898,6 @@ func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Ac
 		t, err = i.GetTransferTran(&tran, account)
 	} else {
 		return errors.New("Unrecognized type satisfying ofxgo.InvTransaction interface: " + (*invtran).TransactionType())
-		return nil
 
 	}
 

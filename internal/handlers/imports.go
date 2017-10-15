@@ -321,11 +321,11 @@ func OFXFileImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) 
 	part, err := multipartReader.NextPart()
 	if err != nil {
 		if err == io.EOF {
-			return NewError(3 /*Invalid Request*/)
 			log.Print("Encountered unexpected EOF")
+			return NewError(3 /*Invalid Request*/)
 		} else {
-			return NewError(999 /*Internal Error*/)
 			log.Print(err)
+			return NewError(999 /*Internal Error*/)
 		}
 	}
 

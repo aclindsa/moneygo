@@ -34,7 +34,3 @@ func (s SuccessWriter) Write(w http.ResponseWriter) error {
 	fmt.Fprint(w, "{}")
 	return nil
 }
-
-func WriteSuccess(w http.ResponseWriter) {
-	fmt.Fprint(w, "{}")
-}

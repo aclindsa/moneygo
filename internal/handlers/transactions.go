@@ -412,8 +412,8 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 		balanced, err := transaction.Balanced(tx)
 		if err != nil {
-			return NewError(999 /*Internal Error*/)
 			log.Print(err)
+			return NewError(999 /*Internal Error*/)
 		}
 		if !transaction.Valid() || !balanced {
 			return NewError(3 /*Invalid Request*/)

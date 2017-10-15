@@ -162,7 +162,7 @@ func remove(client *http.Client, urlsuffix, key string) error {
 func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {
 	testdata, err := d.Initialize()
 	if err != nil {
-		t.Fatal("Failed to initialize test data: %s", err)
+		t.Fatalf("Failed to initialize test data: %s", err)
 	}
 	defer func() {
 		err := testdata.Teardown()
