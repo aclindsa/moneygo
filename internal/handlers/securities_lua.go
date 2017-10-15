@@ -13,9 +13,9 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 
 	ctx := L.Context()
 
-	db, ok := ctx.Value(dbContextKey).(*DB)
+	tx, ok := ctx.Value(dbContextKey).(*Tx)
 	if !ok {
-		return nil, errors.New("Couldn't find DB in lua's Context")
+		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
 
 	security_map, ok = ctx.Value(securitiesContextKey).(map[int64]*Security)
@@ -25,7 +25,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
 
-		securities, err := GetSecurities(db, user.UserId)
+		securities, err := GetSecurities(tx, user.UserId)
 		if err != nil {
 			return nil, err
 		}
@@ -155,12 +155,12 @@ func luaClosestPrice(L *lua.LState) int {
 	date := luaCheckTime(L, 3)
 
 	ctx := L.Context()
-	db, ok := ctx.Value(dbContextKey).(*DB)
+	tx, ok := ctx.Value(dbContextKey).(*Tx)
 	if !ok {
-		panic("Couldn't find DB in lua's Context")
+		panic("Couldn't find tx in lua's Context")
 	}
 
-	p, err := GetClosestPrice(db, s, c, date)
+	p, err := GetClosestPrice(tx, s, c, date)
 	if err != nil {
 		L.Push(lua.LNil)
 	} else {

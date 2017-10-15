@@ -2,30 +2,64 @@ package handlers
 
 import (
 	"gopkg.in/gorp.v1"
+	"log"
 	"net/http"
 )
 
-// Create a closure over db, allowing the handlers to look like a
-// http.HandlerFunc
-type DB = gorp.DbMap
-type DBHandler func(http.ResponseWriter, *http.Request, *DB)
+// But who writes the ResponseWriterWriter?
+type ResponseWriterWriter interface {
+	Write(http.ResponseWriter) error
+}
+type Tx = gorp.Transaction
+type TxHandler func(*http.Request, *Tx) ResponseWriterWriter
 
-func DBHandlerFunc(h DBHandler, db *DB) http.HandlerFunc {
+func TxHandlerFunc(t TxHandler, db *gorp.DbMap) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h(w, r, db)
+		tx, err := db.Begin()
+		if err != nil {
+			log.Print(err)
+			WriteError(w, 999 /*Internal Error*/)
+			return
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+				WriteError(w, 999 /*Internal Error*/)
+				panic(r)
+			}
+		}()
+
+		writer := t(r, tx)
+
+		if e, ok := writer.(*Error); ok {
+			tx.Rollback()
+			e.Write(w)
+		} else {
+			err = tx.Commit()
+			if err != nil {
+				log.Print(err)
+				WriteError(w, 999 /*Internal Error*/)
+			} else {
+				err = writer.Write(w)
+				if err != nil {
+					log.Print(err)
+					WriteError(w, 999 /*Internal Error*/)
+				}
+			}
+		}
 	}
 }
 
-func GetHandler(db *DB) *http.ServeMux {
+func GetHandler(db *gorp.DbMap) *http.ServeMux {
 	servemux := http.NewServeMux()
-	servemux.HandleFunc("/session/", DBHandlerFunc(SessionHandler, db))
-	servemux.HandleFunc("/user/", DBHandlerFunc(UserHandler, db))
-	servemux.HandleFunc("/security/", DBHandlerFunc(SecurityHandler, db))
+	servemux.HandleFunc("/session/", TxHandlerFunc(SessionHandler, db))
+	servemux.HandleFunc("/user/", TxHandlerFunc(UserHandler, db))
+	servemux.HandleFunc("/security/", TxHandlerFunc(SecurityHandler, db))
 	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
-	servemux.HandleFunc("/account/", DBHandlerFunc(AccountHandler, db))
-	servemux.HandleFunc("/transaction/", DBHandlerFunc(TransactionHandler, db))
-	servemux.HandleFunc("/import/gnucash", DBHandlerFunc(GnucashImportHandler, db))
-	servemux.HandleFunc("/report/", DBHandlerFunc(ReportHandler, db))
+	servemux.HandleFunc("/account/", TxHandlerFunc(AccountHandler, db))
+	servemux.HandleFunc("/transaction/", TxHandlerFunc(TransactionHandler, db))
+	servemux.HandleFunc("/import/gnucash", TxHandlerFunc(GnucashImportHandler, db))
+	servemux.HandleFunc("/report/", TxHandlerFunc(ReportHandler, db))
 
 	return servemux
 }

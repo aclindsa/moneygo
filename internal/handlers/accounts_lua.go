@@ -15,9 +15,9 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
 
 	ctx := L.Context()
 
-	db, ok := ctx.Value(dbContextKey).(*DB)
+	tx, ok := ctx.Value(dbContextKey).(*Tx)
 	if !ok {
-		return nil, errors.New("Couldn't find DB in lua's Context")
+		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
 
 	account_map, ok = ctx.Value(accountsContextKey).(map[int64]*Account)
@@ -27,7 +27,7 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
 
-		accounts, err := GetAccounts(db, user.UserId)
+		accounts, err := GetAccounts(tx, user.UserId)
 		if err != nil {
 			return nil, err
 		}
@@ -149,9 +149,9 @@ func luaAccountBalance(L *lua.LState) int {
 	a := luaCheckAccount(L, 1)
 
 	ctx := L.Context()
-	db, ok := ctx.Value(dbContextKey).(*DB)
+	tx, ok := ctx.Value(dbContextKey).(*Tx)
 	if !ok {
-		panic("Couldn't find DB in lua's Context")
+		panic("Couldn't find tx in lua's Context")
 	}
 	user, ok := ctx.Value(userContextKey).(*User)
 	if !ok {
@@ -171,12 +171,12 @@ func luaAccountBalance(L *lua.LState) int {
 	if date != nil {
 		end := luaWeakCheckTime(L, 3)
 		if end != nil {
-			rat, err = GetAccountBalanceDateRange(db, user, a.AccountId, date, end)
+			rat, err = GetAccountBalanceDateRange(tx, user, a.AccountId, date, end)
 		} else {
-			rat, err = GetAccountBalanceDate(db, user, a.AccountId, date)
+			rat, err = GetAccountBalanceDate(tx, user, a.AccountId, date)
 		}
 	} else {
-		rat, err = GetAccountBalance(db, user, a.AccountId)
+		rat, err = GetAccountBalance(tx, user, a.AccountId)
 	}
 	if err != nil {
 		panic("Failed to GetAccountBalance:" + err.Error())

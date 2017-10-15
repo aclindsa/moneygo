@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/gorp.v1"
 	"log"
 	"math/big"
 	"net/http"
@@ -78,8 +77,8 @@ func (s *Split) Valid() bool {
 	return err == nil
 }
 
-func (s *Split) AlreadyImportedTx(transaction *gorp.Transaction) (bool, error) {
-	count, err := transaction.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
+func (s *Split) AlreadyImported(tx *Tx) (bool, error) {
+	count, err := tx.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
 	return count == 1, err
 }
 
@@ -134,7 +133,7 @@ func (t *Transaction) Valid() bool {
 
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]big.Rat, error) {
+func (t *Transaction) GetImbalances(tx *Tx) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -146,7 +145,7 @@ func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]
 		if t.Splits[i].AccountId != -1 {
 			var err error
 			var account *Account
-			account, err = GetAccountTx(transaction, t.Splits[i].AccountId, t.UserId)
+			account, err = GetAccount(tx, t.Splits[i].AccountId, t.UserId)
 			if err != nil {
 				return nil, err
 			}
@@ -162,10 +161,10 @@ func (t *Transaction) GetImbalancesTx(transaction *gorp.Transaction) (map[int64]
 
 // Returns true if all securities contained in this transaction are balanced,
 // false otherwise
-func (t *Transaction) Balanced(transaction *gorp.Transaction) (bool, error) {
+func (t *Transaction) Balanced(tx *Tx) (bool, error) {
 	var zero big.Rat
 
-	sums, err := t.GetImbalancesTx(transaction)
+	sums, err := t.GetImbalances(tx)
 	if err != nil {
 		return false, err
 	}
@@ -178,72 +177,48 @@ func (t *Transaction) Balanced(transaction *gorp.Transaction) (bool, error) {
 	return true, nil
 }
 
-func GetTransaction(db *DB, transactionid int64, userid int64) (*Transaction, error) {
+func GetTransaction(tx *Tx, transactionid int64, userid int64) (*Transaction, error) {
 	var t Transaction
 
-	transaction, err := db.Begin()
+	err := tx.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
 	if err != nil {
 		return nil, err
 	}
 
-	err = transaction.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
+	_, err = tx.Select(&t.Splits, "SELECT * from splits where TransactionId=?", transactionid)
 	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
-	_, err = transaction.Select(&t.Splits, "SELECT * from splits where TransactionId=?", transactionid)
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
 	return &t, nil
 }
 
-func GetTransactions(db *DB, userid int64) (*[]Transaction, error) {
+func GetTransactions(tx *Tx, userid int64) (*[]Transaction, error) {
 	var transactions []Transaction
 
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = transaction.Select(&transactions, "SELECT * from transactions where UserId=?", userid)
+	_, err := tx.Select(&transactions, "SELECT * from transactions where UserId=?", userid)
 	if err != nil {
 		return nil, err
 	}
 
 	for i := range transactions {
-		_, err := transaction.Select(&transactions[i].Splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
+		_, err := tx.Select(&transactions[i].Splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
 	return &transactions, nil
 }
 
-func incrementAccountVersions(transaction *gorp.Transaction, user *User, accountids []int64) error {
+func incrementAccountVersions(tx *Tx, user *User, accountids []int64) error {
 	for i := range accountids {
-		account, err := GetAccountTx(transaction, accountids[i], user.UserId)
+		account, err := GetAccount(tx, accountids[i], user.UserId)
 		if err != nil {
 			return err
 		}
 		account.AccountVersion++
-		count, err := transaction.Update(account)
+		count, err := tx.Update(account)
 		if err != nil {
 			return err
 		}
@@ -260,12 +235,12 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *User) error {
+func InsertTransaction(tx *Tx, t *Transaction, user *User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
 		if t.Splits[i].AccountId != -1 {
-			existing, err := transaction.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
+			existing, err := tx.SelectInt("SELECT count(*) from accounts where AccountId=?", t.Splits[i].AccountId)
 			if err != nil {
 				return err
 			}
@@ -287,13 +262,13 @@ func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 	if len(a_ids) < 1 {
 		return AccountMissingError{}
 	}
-	err := incrementAccountVersions(transaction, user, a_ids)
+	err := incrementAccountVersions(tx, user, a_ids)
 	if err != nil {
 		return err
 	}
 
 	t.UserId = user.UserId
-	err = transaction.Insert(t)
+	err = tx.Insert(t)
 	if err != nil {
 		return err
 	}
@@ -301,7 +276,7 @@ func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 	for i := range t.Splits {
 		t.Splits[i].TransactionId = t.TransactionId
 		t.Splits[i].SplitId = -1
-		err = transaction.Insert(t.Splits[i])
+		err = tx.Insert(t.Splits[i])
 		if err != nil {
 			return err
 		}
@@ -310,31 +285,10 @@ func InsertTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 	return nil
 }
 
-func InsertTransaction(db *DB, t *Transaction, user *User) error {
-	transaction, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
-	err = InsertTransactionTx(transaction, t, user)
-	if err != nil {
-		transaction.Rollback()
-		return err
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return err
-	}
-
-	return nil
-}
-
-func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *User) error {
+func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
 	var existing_splits []*Split
 
-	_, err := transaction.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
+	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
 	if err != nil {
 		return err
 	}
@@ -353,7 +307,7 @@ func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 		t.Splits[i].TransactionId = t.TransactionId
 		_, ok := s_map[t.Splits[i].SplitId]
 		if ok {
-			count, err := transaction.Update(t.Splits[i])
+			count, err := tx.Update(t.Splits[i])
 			if err != nil {
 				return err
 			}
@@ -363,7 +317,7 @@ func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 			delete(s_map, t.Splits[i].SplitId)
 		} else {
 			t.Splits[i].SplitId = -1
-			err := transaction.Insert(t.Splits[i])
+			err := tx.Insert(t.Splits[i])
 			if err != nil {
 				return err
 			}
@@ -380,7 +334,7 @@ func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 			a_map[existing_splits[i].AccountId] = true
 		}
 		if ok {
-			_, err := transaction.Delete(existing_splits[i])
+			_, err := tx.Delete(existing_splits[i])
 			if err != nil {
 				return err
 			}
@@ -392,12 +346,12 @@ func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 	for id := range a_map {
 		a_ids = append(a_ids, id)
 	}
-	err = incrementAccountVersions(transaction, user, a_ids)
+	err = incrementAccountVersions(tx, user, a_ids)
 	if err != nil {
 		return err
 	}
 
-	count, err := transaction.Update(t)
+	count, err := tx.Update(t)
 	if err != nil {
 		return err
 	}
@@ -408,263 +362,171 @@ func UpdateTransactionTx(transaction *gorp.Transaction, t *Transaction, user *Us
 	return nil
 }
 
-func DeleteTransaction(db *DB, t *Transaction, user *User) error {
-	transaction, err := db.Begin()
-	if err != nil {
-		return err
-	}
-
+func DeleteTransaction(tx *Tx, t *Transaction, user *User) error {
 	var accountids []int64
-	_, err = transaction.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
+	_, err := tx.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
-	_, err = transaction.Exec("DELETE FROM splits WHERE TransactionId=?", t.TransactionId)
+	_, err = tx.Exec("DELETE FROM splits WHERE TransactionId=?", t.TransactionId)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
-	count, err := transaction.Delete(t)
+	count, err := tx.Delete(t)
 	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 	if count != 1 {
-		transaction.Rollback()
 		return errors.New("Deleted more than one transaction")
 	}
 
-	err = incrementAccountVersions(transaction, user, accountids)
+	err = incrementAccountVersions(tx, user, accountids)
 	if err != nil {
-		transaction.Rollback()
-		return err
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
 		return err
 	}
 
 	return nil
 }
 
-func TransactionHandler(w http.ResponseWriter, r *http.Request, db *DB) {
-	user, err := GetUserFromSession(db, r)
+func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+	user, err := GetUserFromSession(tx, r)
 	if err != nil {
-		WriteError(w, 1 /*Not Signed In*/)
-		return
+		return NewError(1 /*Not Signed In*/)
 	}
 
 	if r.Method == "POST" {
 		transaction_json := r.PostFormValue("transaction")
 		if transaction_json == "" {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		var transaction Transaction
 		err := transaction.Read(transaction_json)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		transaction.TransactionId = -1
 		transaction.UserId = user.UserId
 
-		sqltx, err := db.Begin()
+		balanced, err := transaction.Balanced(tx)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
+			return NewError(999 /*Internal Error*/)
 			log.Print(err)
-			return
-		}
-
-		balanced, err := transaction.Balanced(sqltx)
-		if err != nil {
-			sqltx.Rollback()
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
 		}
 		if !transaction.Valid() || !balanced {
-			sqltx.Rollback()
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
-			_, err := GetAccountTx(sqltx, transaction.Splits[i].AccountId, user.UserId)
+			_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
 			if err != nil {
-				sqltx.Rollback()
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 		}
 
-		err = InsertTransactionTx(sqltx, &transaction, user)
+		err = InsertTransaction(tx, &transaction, user)
 		if err != nil {
 			if _, ok := err.(AccountMissingError); ok {
-				WriteError(w, 3 /*Invalid Request*/)
+				return NewError(3 /*Invalid Request*/)
 			} else {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
+				return NewError(999 /*Internal Error*/)
 			}
-			sqltx.Rollback()
-			return
 		}
 
-		err = sqltx.Commit()
-		if err != nil {
-			sqltx.Rollback()
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
-
-		err = transaction.Write(w)
-		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
+		return &transaction
 	} else if r.Method == "GET" {
 		transactionid, err := GetURLID(r.URL.Path)
 
 		if err != nil {
 			//Return all Transactions
 			var al TransactionList
-			transactions, err := GetTransactions(db, user.UserId)
+			transactions, err := GetTransactions(tx, user.UserId)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 			al.Transactions = transactions
-			err = (&al).Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &al
 		} else {
 			//Return Transaction with this Id
-			transaction, err := GetTransaction(db, transactionid, user.UserId)
+			transaction, err := GetTransaction(tx, transactionid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
-			err = transaction.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return transaction
 		}
 	} else {
 		transactionid, err := GetURLID(r.URL.Path)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
 			transaction_json := r.PostFormValue("transaction")
 			if transaction_json == "" {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
 			var transaction Transaction
 			err := transaction.Read(transaction_json)
 			if err != nil || transaction.TransactionId != transactionid {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 			transaction.UserId = user.UserId
 
-			sqltx, err := db.Begin()
+			balanced, err := transaction.Balanced(tx)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
-			}
-
-			balanced, err := transaction.Balanced(sqltx)
-			if err != nil {
-				sqltx.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 			if !transaction.Valid() || !balanced {
-				sqltx.Rollback()
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
 			for i := range transaction.Splits {
-				_, err := GetAccountTx(sqltx, transaction.Splits[i].AccountId, user.UserId)
+				_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
 				if err != nil {
-					sqltx.Rollback()
-					WriteError(w, 3 /*Invalid Request*/)
-					return
+					return NewError(3 /*Invalid Request*/)
 				}
 			}
 
-			err = UpdateTransactionTx(sqltx, &transaction, user)
+			err = UpdateTransaction(tx, &transaction, user)
 			if err != nil {
-				sqltx.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			err = sqltx.Commit()
-			if err != nil {
-				sqltx.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
-
-			err = transaction.Write(w)
-			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
-				log.Print(err)
-				return
-			}
+			return &transaction
 		} else if r.Method == "DELETE" {
 			transactionid, err := GetURLID(r.URL.Path)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			transaction, err := GetTransaction(db, transactionid, user.UserId)
+			transaction, err := GetTransaction(tx, transactionid, user.UserId)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteTransaction(db, transaction, user)
+			err = DeleteTransaction(tx, transaction, user)
 			if err != nil {
-				WriteError(w, 999 /*Internal Error*/)
 				log.Print(err)
-				return
+				return NewError(999 /*Internal Error*/)
 			}
 
-			WriteSuccess(w)
+			return SuccessWriter{}
 		}
 	}
+	return NewError(3 /*Invalid Request*/)
 }
 
-func TransactionsBalanceDifference(transaction *gorp.Transaction, accountid int64, transactions []Transaction) (*big.Rat, error) {
+func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Transaction) (*big.Rat, error) {
 	var pageDifference, tmp big.Rat
 	for i := range transactions {
-		_, err := transaction.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
+		_, err := tx.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			return nil, err
 		}
@@ -685,17 +547,12 @@ func TransactionsBalanceDifference(transaction *gorp.Transaction, accountid int6
 	return &pageDifference, nil
 }
 
-func GetAccountBalance(db *DB, user *User, accountid int64) (*big.Rat, error) {
+func GetAccountBalance(tx *Tx, user *User, accountid int64) (*big.Rat, error) {
 	var splits []Split
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
-	_, err = transaction.Select(&splits, sql, accountid, user.UserId)
+	_, err := tx.Select(&splits, sql, accountid, user.UserId)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
@@ -703,34 +560,22 @@ func GetAccountBalance(db *DB, user *User, accountid int64) (*big.Rat, error) {
 	for _, s := range splits {
 		rat_amount, err := GetBigAmount(s.Amount)
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 		tmp.Add(&balance, rat_amount)
 		balance.Set(&tmp)
-	}
-
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
 	}
 
 	return &balance, nil
 }
 
 // Assumes accountid is valid and is owned by the current user
-func GetAccountBalanceDate(db *DB, user *User, accountid int64, date *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDate(tx *Tx, user *User, accountid int64, date *time.Time) (*big.Rat, error) {
 	var splits []Split
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
-	_, err = transaction.Select(&splits, sql, accountid, user.UserId, date)
+	_, err := tx.Select(&splits, sql, accountid, user.UserId, date)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
@@ -738,33 +583,21 @@ func GetAccountBalanceDate(db *DB, user *User, accountid int64, date *time.Time)
 	for _, s := range splits {
 		rat_amount, err := GetBigAmount(s.Amount)
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 		tmp.Add(&balance, rat_amount)
 		balance.Set(&tmp)
 	}
 
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
 	return &balance, nil
 }
 
-func GetAccountBalanceDateRange(db *DB, user *User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDateRange(tx *Tx, user *User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
 	var splits []Split
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
-	_, err = transaction.Select(&splits, sql, accountid, user.UserId, begin, end)
+	_, err := tx.Select(&splits, sql, accountid, user.UserId, begin, end)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
@@ -772,30 +605,18 @@ func GetAccountBalanceDateRange(db *DB, user *User, accountid int64, begin, end 
 	for _, s := range splits {
 		rat_amount, err := GetBigAmount(s.Amount)
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 		tmp.Add(&balance, rat_amount)
 		balance.Set(&tmp)
 	}
 
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
 	return &balance, nil
 }
 
-func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
+func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
 	var transactions []Transaction
 	var atl AccountTransactionsList
-
-	transaction, err := db.Begin()
-	if err != nil {
-		return nil, err
-	}
 
 	var sqlsort, balanceLimitOffset string
 	var balanceLimitOffsetArg uint64
@@ -804,9 +625,8 @@ func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, pa
 		balanceLimitOffset = " LIMIT ?"
 		balanceLimitOffsetArg = page * limit
 	} else if sort == "date-desc" {
-		numSplits, err := transaction.SelectInt("SELECT count(*) FROM splits")
+		numSplits, err := tx.SelectInt("SELECT count(*) FROM splits")
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 		sqlsort = " ORDER BY transactions.Date DESC"
@@ -819,41 +639,35 @@ func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, pa
 		sqloffset = fmt.Sprintf(" OFFSET %d", page*limit)
 	}
 
-	account, err := GetAccountTx(transaction, accountid, user.UserId)
+	account, err := GetAccount(tx, accountid, user.UserId)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 	atl.Account = account
 
 	sql := "SELECT DISTINCT transactions.* FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + " LIMIT ?" + sqloffset
-	_, err = transaction.Select(&transactions, sql, user.UserId, accountid, limit)
+	_, err = tx.Select(&transactions, sql, user.UserId, accountid, limit)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 	atl.Transactions = &transactions
 
-	pageDifference, err := TransactionsBalanceDifference(transaction, accountid, transactions)
+	pageDifference, err := TransactionsBalanceDifference(tx, accountid, transactions)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
-	count, err := transaction.SelectInt("SELECT count(DISTINCT transactions.TransactionId) FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?", user.UserId, accountid)
+	count, err := tx.SelectInt("SELECT count(DISTINCT transactions.TransactionId) FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?", user.UserId, accountid)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 	atl.TotalTransactions = count
 
-	security, err := GetSecurityTx(transaction, atl.Account.SecurityId, user.UserId)
+	security, err := GetSecurity(tx, atl.Account.SecurityId, user.UserId)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 	if security == nil {
-		transaction.Rollback()
 		return nil, errors.New("Security not found")
 	}
 
@@ -861,9 +675,8 @@ func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, pa
 	// occurred before the page we're returning
 	var amounts []string
 	sql = "SELECT splits.Amount FROM splits WHERE splits.AccountId=? AND splits.TransactionId IN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ")"
-	_, err = transaction.Select(&amounts, sql, accountid, user.UserId, accountid, balanceLimitOffsetArg)
+	_, err = tx.Select(&amounts, sql, accountid, user.UserId, accountid, balanceLimitOffsetArg)
 	if err != nil {
-		transaction.Rollback()
 		return nil, err
 	}
 
@@ -871,7 +684,6 @@ func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, pa
 	for _, amount := range amounts {
 		rat_amount, err := GetBigAmount(amount)
 		if err != nil {
-			transaction.Rollback()
 			return nil, err
 		}
 		tmp.Add(&balance, rat_amount)
@@ -880,20 +692,12 @@ func GetAccountTransactions(db *DB, user *User, accountid int64, sort string, pa
 	atl.BeginningBalance = balance.FloatString(security.Precision)
 	atl.EndingBalance = tmp.Add(&balance, pageDifference).FloatString(security.Precision)
 
-	err = transaction.Commit()
-	if err != nil {
-		transaction.Rollback()
-		return nil, err
-	}
-
 	return &atl, nil
 }
 
 // Return only those transactions which have at least one split pertaining to
 // an account
-func AccountTransactionsHandler(db *DB, w http.ResponseWriter, r *http.Request,
-	user *User, accountid int64) {
-
+func AccountTransactionsHandler(tx *Tx, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
 	var page uint64 = 0
 	var limit uint64 = 50
 	var sort string = "date-desc"
@@ -904,8 +708,7 @@ func AccountTransactionsHandler(db *DB, w http.ResponseWriter, r *http.Request,
 	if pagestring != "" {
 		p, err := strconv.ParseUint(pagestring, 10, 0)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		page = p
 	}
@@ -914,8 +717,7 @@ func AccountTransactionsHandler(db *DB, w http.ResponseWriter, r *http.Request,
 	if limitstring != "" {
 		l, err := strconv.ParseUint(limitstring, 10, 0)
 		if err != nil || l > 100 {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		limit = l
 	}
@@ -923,23 +725,16 @@ func AccountTransactionsHandler(db *DB, w http.ResponseWriter, r *http.Request,
 	sortstring := query.Get("sort")
 	if sortstring != "" {
 		if sortstring != "date-asc" && sortstring != "date-desc" {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 		sort = sortstring
 	}
 
-	accountTransactions, err := GetAccountTransactions(db, user, accountid, sort, page, limit)
+	accountTransactions, err := GetAccountTransactions(tx, user, accountid, sort, page, limit)
 	if err != nil {
-		WriteError(w, 999 /*Internal Error*/)
 		log.Print(err)
-		return
+		return NewError(999 /*Internal Error*/)
 	}
 
-	err = accountTransactions.Write(w)
-	if err != nil {
-		WriteError(w, 999 /*Internal Error*/)
-		log.Print(err)
-		return
-	}
+	return accountTransactions
 }

@@ -28,7 +28,7 @@ func (s *Session) Read(json_str string) error {
 	return dec.Decode(s)
 }
 
-func GetSession(db *DB, r *http.Request) (*Session, error) {
+func GetSession(tx *Tx, r *http.Request) (*Session, error) {
 	var s Session
 
 	cookie, err := r.Cookie("moneygo-session")
@@ -37,18 +37,17 @@ func GetSession(db *DB, r *http.Request) (*Session, error) {
 	}
 	s.SessionSecret = cookie.Value
 
-	err = db.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
+	err = tx.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
 	if err != nil {
 		return nil, err
 	}
 	return &s, nil
 }
 
-func DeleteSessionIfExists(db *DB, r *http.Request) error {
-	// TODO do this in one transaction
-	session, err := GetSession(db, r)
+func DeleteSessionIfExists(tx *Tx, r *http.Request) error {
+	session, err := GetSession(tx, r)
 	if err == nil {
-		_, err := db.Delete(session)
+		_, err := tx.Delete(session)
 		if err != nil {
 			return err
 		}
@@ -64,7 +63,17 @@ func NewSessionCookie() (string, error) {
 	return base64.StdEncoding.EncodeToString(bits), nil
 }
 
-func NewSession(db *DB, w http.ResponseWriter, r *http.Request, userid int64) (*Session, error) {
+type NewSessionWriter struct {
+	session *Session
+	cookie  *http.Cookie
+}
+
+func (n *NewSessionWriter) Write(w http.ResponseWriter) error {
+	http.SetCookie(w, n.cookie)
+	return n.session.Write(w)
+}
+
+func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error) {
 	s := Session{}
 
 	session_secret, err := NewSessionCookie()
@@ -81,79 +90,66 @@ func NewSession(db *DB, w http.ResponseWriter, r *http.Request, userid int64) (*
 		Secure:   true,
 		HttpOnly: true,
 	}
-	http.SetCookie(w, &cookie)
 
 	s.SessionSecret = session_secret
 	s.UserId = userid
 
-	err = db.Insert(&s)
+	err = tx.Insert(&s)
 	if err != nil {
 		return nil, err
 	}
-	return &s, nil
+	return &NewSessionWriter{&s, &cookie}, nil
 }
 
-func SessionHandler(w http.ResponseWriter, r *http.Request, db *DB) {
+func SessionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	if r.Method == "POST" || r.Method == "PUT" {
 		user_json := r.PostFormValue("user")
 		if user_json == "" {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		user := User{}
 		err := user.Read(user_json)
 		if err != nil {
-			WriteError(w, 3 /*Invalid Request*/)
-			return
+			return NewError(3 /*Invalid Request*/)
 		}
 
-		dbuser, err := GetUserByUsername(db, user.Username)
+		dbuser, err := GetUserByUsername(tx, user.Username)
 		if err != nil {
-			WriteError(w, 2 /*Unauthorized Access*/)
-			return
+			return NewError(2 /*Unauthorized Access*/)
 		}
 
 		user.HashPassword()
 		if user.PasswordHash != dbuser.PasswordHash {
-			WriteError(w, 2 /*Unauthorized Access*/)
-			return
+			return NewError(2 /*Unauthorized Access*/)
 		}
 
-		err = DeleteSessionIfExists(db, r)
+		err = DeleteSessionIfExists(tx, r)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
 
-		session, err := NewSession(db, w, r, dbuser.UserId)
+		sessionwriter, err := NewSession(tx, r, dbuser.UserId)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			return
-		}
-
-		err = session.Write(w)
-		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
+		return sessionwriter
 	} else if r.Method == "GET" {
-		s, err := GetSession(db, r)
+		s, err := GetSession(tx, r)
 		if err != nil {
-			WriteError(w, 1 /*Not Signed In*/)
-			return
+			return NewError(1 /*Not Signed In*/)
 		}
 
-		s.Write(w)
+		return s
 	} else if r.Method == "DELETE" {
-		err := DeleteSessionIfExists(db, r)
+		err := DeleteSessionIfExists(tx, r)
 		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
 			log.Print(err)
-			return
+			return NewError(999 /*Internal Error*/)
 		}
-		WriteSuccess(w)
+		return SuccessWriter{}
 	}
+	return NewError(3 /*Invalid Request*/)
 }
