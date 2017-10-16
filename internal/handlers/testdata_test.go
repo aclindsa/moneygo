@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Needed because handlers.User doesn't allow Password to be written to JSON
@@ -87,16 +88,32 @@ func (t *TestData) Initialize() (*TestData, error) {
 		t2.securities = append(t2.securities, *s2)
 	}
 
-	for i, account := range t.accounts {
-		account.SecurityId = t2.securities[t.accounts[i].SecurityId].SecurityId
+	for _, account := range t.accounts {
+		account.SecurityId = t2.securities[account.SecurityId].SecurityId
 		if account.ParentAccountId != -1 {
-			account.ParentAccountId = t2.accounts[t.accounts[i].ParentAccountId].AccountId
+			account.ParentAccountId = t2.accounts[account.ParentAccountId].AccountId
 		}
 		a2, err := createAccount(t2.clients[account.UserId], &account)
 		if err != nil {
 			return nil, err
 		}
 		t2.accounts = append(t2.accounts, *a2)
+	}
+
+	for i, transaction := range t.transactions {
+		transaction.Splits = []*handlers.Split{}
+		for _, s := range t.transactions[i].Splits {
+			// Make a copy of the split since Splits is a slice of pointers so
+			// copying the transaction doesn't
+			split := *s
+			split.AccountId = t2.accounts[split.AccountId].AccountId
+			transaction.Splits = append(transaction.Splits, &split)
+		}
+		tt2, err := createTransaction(t2.clients[transaction.UserId], &transaction)
+		if err != nil {
+			return nil, err
+		}
+		t2.transactions = append(t2.transactions, *tt2)
 	}
 
 	t2.initialized = true
@@ -175,6 +192,27 @@ var data = []TestData{
 				ParentAccountId: 2,
 				Type:            handlers.Expense,
 				Name:            "Groceries",
+			},
+		},
+		transactions: []handlers.Transaction{
+			handlers.Transaction{
+				UserId:      0,
+				Description: "blah",
+				Date:        time.Date(2017, time.October, 15, 1, 16, 59, 0, time.UTC),
+				Splits: []*handlers.Split{
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  1,
+						SecurityId: -1,
+						Amount:     "-5.6",
+					},
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  3,
+						SecurityId: -1,
+						Amount:     "5.6",
+					},
+				},
 			},
 		},
 	},

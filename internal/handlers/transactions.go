@@ -410,21 +410,20 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		transaction.TransactionId = -1
 		transaction.UserId = user.UserId
 
-		balanced, err := transaction.Balanced(tx)
-		if err != nil {
-			log.Print(err)
-			return NewError(999 /*Internal Error*/)
-		}
-		if !transaction.Valid() || !balanced {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
 			_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
+		}
+
+		balanced, err := transaction.Balanced(tx)
+		if err != nil {
+			return NewError(999 /*Internal Error*/)
+		}
+		if !transaction.Valid() || !balanced {
+			return NewError(3 /*Invalid Request*/)
 		}
 
 		err = InsertTransaction(tx, &transaction, user)
