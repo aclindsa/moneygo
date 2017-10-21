@@ -410,6 +410,10 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		transaction.TransactionId = -1
 		transaction.UserId = user.UserId
 
+		if len(transaction.Splits) == 0 {
+			return NewError(3 /*Invalid Request*/)
+		}
+
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
 			_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
@@ -482,6 +486,10 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(999 /*Internal Error*/)
 			}
 			if !transaction.Valid() || !balanced {
+				return NewError(3 /*Invalid Request*/)
+			}
+
+			if len(transaction.Splits) == 0 {
 				return NewError(3 /*Invalid Request*/)
 			}
 
