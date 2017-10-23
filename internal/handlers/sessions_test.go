@@ -17,12 +17,13 @@ func newSession(user *User) (*http.Client, error) {
 		return nil, err
 	}
 
-	client := server.Client()
+	var client http.Client
+	client = *server.Client()
 	client.Jar = jar
 
-	create(client, user, &u, "/session/", "user")
+	create(&client, user, &u, "/session/", "user")
 
-	return client, nil
+	return &client, nil
 }
 
 func getSession(client *http.Client) (*handlers.Session, error) {
