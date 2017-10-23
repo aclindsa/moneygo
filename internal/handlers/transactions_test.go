@@ -109,6 +109,66 @@ func TestCreateTransaction(t *testing.T) {
 
 			ensureTransactionsMatch(t, &orig, &transaction, &d.accounts, false, false)
 		}
+
+		// Don't allow imbalanced transactions
+		tran := handlers.Transaction{
+			UserId:      d.users[0].UserId,
+			Description: "Imbalanced",
+			Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
+			Splits: []*handlers.Split{
+				&handlers.Split{
+					Status:     handlers.Reconciled,
+					AccountId:  d.accounts[1].AccountId,
+					SecurityId: -1,
+					Amount:     "-39.98",
+				},
+				&handlers.Split{
+					Status:     handlers.Entered,
+					AccountId:  d.accounts[4].AccountId,
+					SecurityId: -1,
+					Amount:     "39.99",
+				},
+			},
+		}
+		_, err := createTransaction(d.clients[0], &tran)
+		if err == nil {
+			t.Fatalf("Expected error creating imbalanced transaction")
+		}
+		if herr, ok := err.(*handlers.Error); ok {
+			if herr.ErrorId != 3 { // Invalid requeset
+				t.Fatalf("Unexpected API error creating imbalanced transaction: %s", herr)
+			}
+		} else {
+			t.Fatalf("Unexpected error creating imbalanced transaction")
+		}
+
+		// Don't allow transactions with 0 splits
+		tran.Splits = []*handlers.Split{}
+		_, err = createTransaction(d.clients[0], &tran)
+		if err == nil {
+			t.Fatalf("Expected error creating with zero splits")
+		}
+		if herr, ok := err.(*handlers.Error); ok {
+			if herr.ErrorId != 3 { // Invalid requeset
+				t.Fatalf("Unexpected API error creating with zero splits: %s", herr)
+			}
+		} else {
+			t.Fatalf("Unexpected error creating zero splits")
+		}
+
+		// Don't allow creating a transaction for another user
+		tran.UserId = d.users[1].UserId
+		_, err = createTransaction(d.clients[0], &tran)
+		if err == nil {
+			t.Fatalf("Expected error creating transaction for another user")
+		}
+		if herr, ok := err.(*handlers.Error); ok {
+			if herr.ErrorId != 3 { // Invalid request
+				t.Fatalf("Unexpected API error creating transction for another user: %s", herr)
+			}
+		} else {
+			t.Fatalf("Unexpected error creating transaction for another user")
+		}
 	})
 }
 
@@ -144,24 +204,33 @@ func TestUpdateTransaction(t *testing.T) {
 
 			ensureTransactionsMatch(t, &curr, tran, nil, true, true)
 
-			// Make sure we can't create an unbalanced transaction
 			tran.Splits = []*handlers.Split{}
 			for _, s := range curr.Splits {
 				var split handlers.Split
 				split = *s
 				tran.Splits = append(tran.Splits, &split)
 			}
+
+			// Don't allow updating transactions for other/invalid users
+			tran.UserId = tran.UserId + 1
+			tran2, err := updateTransaction(d.clients[orig.UserId], tran)
+			if tran2.UserId != curr.UserId {
+				t.Fatalf("Allowed updating transaction to have wrong UserId\n")
+			}
+			tran.UserId = curr.UserId
+
+			// Make sure we can't create an unbalanced transaction
 			tran.Splits[len(tran.Splits)-1].Amount = "42"
 			_, err = updateTransaction(d.clients[orig.UserId], tran)
 			if err == nil {
-				t.Fatalf("Expected error updating imbalanced splits")
+				t.Fatalf("Expected error updating imbalanced transaction")
 			}
 			if herr, ok := err.(*handlers.Error); ok {
 				if herr.ErrorId != 3 { // Invalid requeset
-					t.Fatalf("Unexpected API error updating imbalanced splits: %s", herr)
+					t.Fatalf("Unexpected API error updating imbalanced transaction: %s", herr)
 				}
 			} else {
-				t.Fatalf("Unexpected error updating imbalanced splits")
+				t.Fatalf("Unexpected error updating imbalanced transaction")
 			}
 
 			// Don't allow transactions with 0 splits
