@@ -143,6 +143,13 @@ var data = []TestData{
 				Password:        "hunter2",
 				Email:           "jsmith@example.com",
 			},
+			User{
+				DefaultCurrency: 978, // Euro
+				Name:            "Billy Bob",
+				Username:        "bbob6",
+				Password:        "#)$&!KF(*ADAHK#@*(FAJSDkalsdf98af32klhf98sd8a'2938LKJD",
+				Email:           "bbob+moneygo@my-domain.com",
+			},
 		},
 		securities: []handlers.Security{
 			handlers.Security{
@@ -193,11 +200,18 @@ var data = []TestData{
 				Type:            handlers.Expense,
 				Name:            "Groceries",
 			},
+			handlers.Account{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: 2,
+				Type:            handlers.Expense,
+				Name:            "Cable",
+			},
 		},
 		transactions: []handlers.Transaction{
 			handlers.Transaction{
 				UserId:      0,
-				Description: "blah",
+				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 15, 1, 16, 59, 0, time.UTC),
 				Splits: []*handlers.Split{
 					&handlers.Split{
@@ -211,6 +225,25 @@ var data = []TestData{
 						AccountId:  3,
 						SecurityId: -1,
 						Amount:     "5.6",
+					},
+				},
+			},
+			handlers.Transaction{
+				UserId:      0,
+				Description: "Cable",
+				Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
+				Splits: []*handlers.Split{
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  1,
+						SecurityId: -1,
+						Amount:     "-39.99",
+					},
+					&handlers.Split{
+						Status:     handlers.Entered,
+						AccountId:  4,
+						SecurityId: -1,
+						Amount:     "39.99",
 					},
 				},
 			},
