@@ -23,6 +23,15 @@ func getTransaction(client *http.Client, transactionid int64) (*handlers.Transac
 	return &s, nil
 }
 
+func getTransactions(client *http.Client) (*handlers.TransactionList, error) {
+	var tl handlers.TransactionList
+	err := read(client, &tl, "/transaction/", "transactions")
+	if err != nil {
+		return nil, err
+	}
+	return &tl, nil
+}
+
 func updateTransaction(client *http.Client, transaction *handlers.Transaction) (*handlers.Transaction, error) {
 	var s handlers.Transaction
 	err := update(client, transaction, &s, "/transaction/"+strconv.FormatInt(transaction.TransactionId, 10), "transaction")
@@ -184,6 +193,47 @@ func TestGetTransaction(t *testing.T) {
 			}
 
 			ensureTransactionsMatch(t, &curr, tran, nil, true, true)
+		}
+	})
+}
+
+func TestGetTransactions(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		tl, err := getTransactions(d.clients[0])
+		if err != nil {
+			t.Fatalf("Error fetching transactions: %s\n", err)
+		}
+
+		numtransactions := 0
+		foundIds := make(map[int64]bool)
+		for i := 0; i < len(data[0].transactions); i++ {
+			orig := data[0].transactions[i]
+			curr := d.transactions[i]
+
+			if curr.UserId != d.users[0].UserId {
+				continue
+			}
+			numtransactions += 1
+
+			found := false
+			for _, tran := range *tl.Transactions {
+				if tran.TransactionId == curr.TransactionId {
+					ensureTransactionsMatch(t, &curr, &tran, nil, true, true)
+					if _, ok := foundIds[tran.TransactionId]; ok {
+						continue
+					}
+					foundIds[tran.TransactionId] = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Unable to find matching transaction: %+v", orig)
+			}
+		}
+
+		if numtransactions != len(*tl.Transactions) {
+			t.Fatalf("Expected %d transactions, received %d", numtransactions, len(*tl.Transactions))
 		}
 	})
 }

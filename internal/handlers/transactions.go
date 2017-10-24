@@ -117,6 +117,11 @@ func (tl *TransactionList) Write(w http.ResponseWriter) error {
 	return enc.Encode(tl)
 }
 
+func (tl *TransactionList) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(tl)
+}
+
 func (atl *AccountTransactionsList) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(atl)
