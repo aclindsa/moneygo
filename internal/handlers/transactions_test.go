@@ -246,7 +246,32 @@ func TestUpdateTransaction(t *testing.T) {
 			} else {
 				t.Fatalf("Unexpected error updating zero splits")
 			}
+		}
+	})
+}
 
+func TestDeleteTransaction(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for i := 1; i < len(data[0].transactions); i++ {
+			orig := data[0].transactions[i]
+			curr := d.transactions[i]
+
+			err := deleteTransaction(d.clients[orig.UserId], &curr)
+			if err != nil {
+				t.Fatalf("Error deleting transaction: %s\n", err)
+			}
+
+			_, err = getTransaction(d.clients[orig.UserId], curr.TransactionId)
+			if err == nil {
+				t.Fatalf("Expected error fetching deleted transaction")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 3 { // Invalid requeset
+					t.Fatalf("Unexpected API error fetching deleted transaction: %s", herr)
+				}
+			} else {
+				t.Fatalf("Unexpected error fetching deleted transaction")
+			}
 		}
 	})
 }
