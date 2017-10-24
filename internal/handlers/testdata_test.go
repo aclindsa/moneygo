@@ -61,6 +61,7 @@ func (t *TestData) initUser(user *User, userid int) error {
 	if err != nil {
 		return err
 	}
+
 	t.clients = append(t.clients, client)
 
 	// TODO initialize everything else owned by this user in the TestData struct
@@ -170,6 +171,15 @@ var data = []TestData{
 				Type:        handlers.Stock,
 				AlternateId: "78462F103",
 			},
+			handlers.Security{
+				UserId:      1,
+				Name:        "EUR",
+				Description: "Euro",
+				Symbol:      "€",
+				Precision:   2,
+				Type:        handlers.Currency,
+				AlternateId: "978",
+			},
 		},
 		accounts: []handlers.Account{
 			handlers.Account{
@@ -206,6 +216,20 @@ var data = []TestData{
 				ParentAccountId: 2,
 				Type:            handlers.Expense,
 				Name:            "Cable",
+			},
+			handlers.Account{
+				UserId:          1,
+				SecurityId:      2,
+				ParentAccountId: -1,
+				Type:            handlers.Asset,
+				Name:            "Assets",
+			},
+			handlers.Account{
+				UserId:          1,
+				SecurityId:      2,
+				ParentAccountId: -1,
+				Type:            handlers.Expense,
+				Name:            "Expenses",
 			},
 		},
 		transactions: []handlers.Transaction{
@@ -244,6 +268,25 @@ var data = []TestData{
 						AccountId:  4,
 						SecurityId: -1,
 						Amount:     "39.99",
+					},
+				},
+			},
+			handlers.Transaction{
+				UserId:      1,
+				Description: "Gas",
+				Date:        time.Date(2017, time.November, 1, 13, 19, 50, 0, time.UTC),
+				Splits: []*handlers.Split{
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  5,
+						SecurityId: -1,
+						Amount:     "-24.56",
+					},
+					&handlers.Split{
+						Status:     handlers.Entered,
+						AccountId:  6,
+						SecurityId: -1,
+						Amount:     "24.56",
 					},
 				},
 			},

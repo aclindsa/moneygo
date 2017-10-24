@@ -138,7 +138,12 @@ func TestUpdateAccount(t *testing.T) {
 
 			curr.Name = "blah"
 			curr.Type = handlers.Payable
-			curr.SecurityId = d.securities[1].SecurityId
+			for _, s := range d.securities {
+				if s.UserId == curr.UserId {
+					curr.SecurityId = s.SecurityId
+					break
+				}
+			}
 
 			a, err := updateAccount(d.clients[orig.UserId], &curr)
 			if err != nil {
