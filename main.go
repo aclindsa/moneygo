@@ -66,7 +66,8 @@ func staticHandler(w http.ResponseWriter, r *http.Request, basedir string) {
 }
 
 func main() {
-	database, err := sql.Open(cfg.MoneyGo.DBType.String(), cfg.MoneyGo.DSN)
+	dsn := db.GetDSN(cfg.MoneyGo.DbType, cfg.MoneyGo.DSN)
+	database, err := sql.Open(cfg.MoneyGo.DBType.String(), dsn)
 	if err != nil {
 		log.Fatal(err)
 	}

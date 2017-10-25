@@ -9,6 +9,8 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/gorp.v1"
+	"log"
+	"strings"
 )
 
 func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
@@ -42,4 +44,11 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	}
 
 	return dbmap, nil
+}
+
+func GetDSN(dbtype config.DbType, dsn string) string {
+	if dbtype == config.MySQL && !strings.Contains(dsn, "parseTime=true") {
+		log.Fatalf("The DSN for MySQL MUST contain 'parseTime=True' but does not!")
+	}
+	return dsn
 }

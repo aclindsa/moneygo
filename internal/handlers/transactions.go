@@ -316,8 +316,8 @@ func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
 			if err != nil {
 				return err
 			}
-			if count != 1 {
-				return errors.New("Updated more than one transaction split")
+			if count > 1 {
+				return fmt.Errorf("Updated %d transaction splits while attempting to update only 1", count)
 			}
 			delete(s_map, t.Splits[i].SplitId)
 		} else {
@@ -360,8 +360,8 @@ func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
 	if err != nil {
 		return err
 	}
-	if count != 1 {
-		return errors.New("Updated more than one transaction")
+	if count > 1 {
+		return fmt.Errorf("Updated %d transactions (expected 1)", count)
 	}
 
 	return nil

@@ -182,7 +182,8 @@ func RunTests(m *testing.M) int {
 	defer os.RemoveAll(tmpdir)
 
 	dbpath := path.Join(tmpdir, "moneygo.sqlite")
-	database, err := sql.Open("sqlite3", "file:"+dbpath+"?cache=shared&mode=rwc")
+	dsn := db.GetDSN(config.SQLite, "file:"+dbpath+"?cache=shared&mode=rwc")
+	database, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
