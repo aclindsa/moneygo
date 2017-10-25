@@ -5,6 +5,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -142,8 +143,8 @@ func UpdateSecurity(tx *Tx, s *Security) (err error) {
 	if err != nil {
 		return
 	}
-	if count != 1 {
-		return errors.New("Updated more than one security")
+	if count > 1 {
+		return fmt.Errorf("Updated %d securities (expected 1)", count)
 	}
 
 	return nil
