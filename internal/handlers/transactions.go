@@ -127,6 +127,11 @@ func (atl *AccountTransactionsList) Write(w http.ResponseWriter) error {
 	return enc.Encode(atl)
 }
 
+func (atl *AccountTransactionsList) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(atl)
+}
+
 func (t *Transaction) Valid() bool {
 	for i := range t.Splits {
 		if !t.Splits[i].Valid() {
@@ -686,8 +691,8 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 	// Sum all the splits for all transaction splits for this account that
 	// occurred before the page we're returning
 	var amounts []string
-	sql = "SELECT splits.Amount FROM splits WHERE splits.AccountId=? AND splits.TransactionId IN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ")"
-	_, err = tx.Select(&amounts, sql, accountid, user.UserId, accountid, balanceLimitOffsetArg)
+	sql = "SELECT s.Amount FROM splits AS s INNER JOIN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ") as t ON s.TransactionId = t.TransactionId WHERE s.AccountId=?"
+	_, err = tx.Select(&amounts, sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
 	if err != nil {
 		return nil, err
 	}
