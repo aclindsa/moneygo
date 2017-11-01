@@ -351,68 +351,101 @@ func TestDeleteTransaction(t *testing.T) {
 	})
 }
 
+func helperTestAccountTransactions(t *testing.T, d *TestData, account *handlers.Account, limit int64, sort string) {
+	if account.UserId != d.users[0].UserId {
+		return
+	}
+
+	var transactions []handlers.Transaction
+	var lastFetchCount int64
+
+	for page := int64(0); page == 0 || lastFetchCount > 0; page++ {
+		atl, err := getAccountTransactions(d.clients[0], account.AccountId, page, limit, sort)
+		if err != nil {
+			t.Fatalf("Error fetching account transactions: %s\n", err)
+		}
+		if limit != 0 && atl.Transactions != nil && int64(len(*atl.Transactions)) > limit {
+			t.Errorf("Exceeded limit of %d transactions (returned %d)\n", limit, len(*atl.Transactions))
+		}
+		if atl.Transactions != nil {
+			for _, tran := range *atl.Transactions {
+				transactions = append(transactions, tran)
+			}
+			lastFetchCount = int64(len(*atl.Transactions))
+		} else {
+			lastFetchCount = -1
+		}
+	}
+
+	var lastDate time.Time
+	for _, tran := range transactions {
+		if lastDate.IsZero() {
+			lastDate = tran.Date
+			continue
+		} else if sort == "date-desc" && lastDate.Before(tran.Date) {
+			t.Errorf("Sorted by date-desc, but later transaction has later date")
+		} else if sort == "date-asc" && lastDate.After(tran.Date) {
+			t.Errorf("Sorted by date-asc, but later transaction has earlier date")
+		}
+		lastDate = tran.Date
+	}
+
+	numtransactions := 0
+	foundIds := make(map[int64]bool)
+	for i := 0; i < len(d.transactions); i++ {
+		curr := d.transactions[i]
+
+		if curr.UserId != d.users[0].UserId {
+			continue
+		}
+
+		// Don't consider this transaction if we didn't find a split
+		// for the account we're considering
+		account_found := false
+		for _, s := range curr.Splits {
+			if s.AccountId == account.AccountId {
+				account_found = true
+				break
+			}
+		}
+		if !account_found {
+			continue
+		}
+
+		numtransactions += 1
+
+		found := false
+		for _, tran := range transactions {
+			if tran.TransactionId == curr.TransactionId {
+				ensureTransactionsMatch(t, &curr, &tran, nil, true, true)
+				if _, ok := foundIds[tran.TransactionId]; ok {
+					continue
+				}
+				foundIds[tran.TransactionId] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Unable to find matching transaction: %+v", curr)
+			t.Errorf("Transactions: %+v\n", transactions)
+		}
+	}
+
+	if numtransactions != len(transactions) {
+		t.Fatalf("Expected %d transactions, received %d", numtransactions, len(transactions))
+	}
+}
+
 func TestAccountTransactions(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		for _, account := range d.accounts {
-			if account.UserId != d.users[0].UserId {
-				continue
-			}
-			atl, err := getAccountTransactions(d.clients[0], account.AccountId, 0, 0, "date-desc")
-			if err != nil {
-				t.Fatalf("Error fetching account transactions: %s\n", err)
-			}
-
-			numtransactions := 0
-			foundIds := make(map[int64]bool)
-			for i := 0; i < len(d.transactions); i++ {
-				curr := d.transactions[i]
-
-				if curr.UserId != d.users[0].UserId {
-					continue
-				}
-
-				// Don't consider this transaction if we didn't find a split
-				// for the account we're considering
-				account_found := false
-				for _, s := range curr.Splits {
-					if s.AccountId == account.AccountId {
-						account_found = true
-						break
-					}
-				}
-				if !account_found {
-					continue
-				}
-
-				numtransactions += 1
-
-				found := false
-				if atl.Transactions != nil {
-					for _, tran := range *atl.Transactions {
-						if tran.TransactionId == curr.TransactionId {
-							ensureTransactionsMatch(t, &curr, &tran, nil, true, true)
-							if _, ok := foundIds[tran.TransactionId]; ok {
-								continue
-							}
-							foundIds[tran.TransactionId] = true
-							found = true
-							break
-						}
-					}
-				}
-				if !found {
-					t.Errorf("Unable to find matching transaction: %+v", curr)
-					t.Errorf("Transactions: %+v\n", atl.Transactions)
-				}
-			}
-
-			if atl.Transactions == nil {
-				if numtransactions != 0 {
-					t.Fatalf("Expected %d transactions, received 0", numtransactions)
-				}
-			} else if numtransactions != len(*atl.Transactions) {
-				t.Fatalf("Expected %d transactions, received %d", numtransactions, len(*atl.Transactions))
-			}
+			helperTestAccountTransactions(t, d, &account, 0, "date-desc")
+			helperTestAccountTransactions(t, d, &account, 0, "date-asc")
+			helperTestAccountTransactions(t, d, &account, 1, "date-desc")
+			helperTestAccountTransactions(t, d, &account, 1, "date-asc")
+			helperTestAccountTransactions(t, d, &account, 2, "date-desc")
+			helperTestAccountTransactions(t, d, &account, 2, "date-asc")
 		}
 	})
 }

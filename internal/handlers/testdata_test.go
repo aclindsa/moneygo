@@ -254,6 +254,25 @@ var data = []TestData{
 			},
 			handlers.Transaction{
 				UserId:      0,
+				Description: "weekly groceries",
+				Date:        time.Date(2017, time.October, 31, 19, 10, 14, 0, time.UTC),
+				Splits: []*handlers.Split{
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  1,
+						SecurityId: -1,
+						Amount:     "-81.59",
+					},
+					&handlers.Split{
+						Status:     handlers.Reconciled,
+						AccountId:  3,
+						SecurityId: -1,
+						Amount:     "81.59",
+					},
+				},
+			},
+			handlers.Transaction{
+				UserId:      0,
 				Description: "Cable",
 				Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
 				Splits: []*handlers.Split{
