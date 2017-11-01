@@ -136,12 +136,44 @@ func ensureTransactionsMatch(t *testing.T, expected, tran *handlers.Transaction,
 	}
 }
 
+func getAccountVersionMap(t *testing.T, client *http.Client, tran *handlers.Transaction) map[int64]*handlers.Account {
+	t.Helper()
+	accountMap := make(map[int64]*handlers.Account)
+	for _, split := range tran.Splits {
+		account, err := getAccount(client, split.AccountId)
+		if err != nil {
+			t.Fatalf("Error fetching split's account while updating transaction: %s\n", err)
+		}
+		accountMap[account.AccountId] = account
+	}
+	return accountMap
+}
+
+func checkAccountVersionsUpdated(t *testing.T, client *http.Client, accountMap map[int64]*handlers.Account, tran *handlers.Transaction) {
+	for _, split := range tran.Splits {
+		account, err := getAccount(client, split.AccountId)
+		if err != nil {
+			t.Fatalf("Error fetching split's account after updating transaction: %s\n", err)
+		}
+		if account.AccountVersion <= accountMap[split.AccountId].AccountVersion {
+			t.Errorf("Failed to update account version when updating transaction split\n")
+		}
+	}
+}
+
 func TestCreateTransaction(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		for i, orig := range data[0].transactions {
 			transaction := d.transactions[i]
 
 			ensureTransactionsMatch(t, &orig, &transaction, &d.accounts, false, false)
+
+			accountMap := getAccountVersionMap(t, d.clients[orig.UserId], &transaction)
+			_, err := createTransaction(d.clients[orig.UserId], &transaction)
+			if err != nil {
+				t.Fatalf("Unxpected error creating transaction")
+			}
+			checkAccountVersionsUpdated(t, d.clients[orig.UserId], accountMap, &transaction)
 		}
 
 		// Don't allow imbalanced transactions
@@ -272,29 +304,15 @@ func TestUpdateTransaction(t *testing.T) {
 			curr.Description = "more money"
 			curr.Date = time.Date(2017, time.October, 18, 10, 41, 40, 0, time.UTC)
 
-			accountMap := make(map[int64]*handlers.Account)
-			for _, split := range curr.Splits {
-				account, err := getAccount(d.clients[orig.UserId], split.AccountId)
-				if err != nil {
-					t.Fatalf("Error fetching split's account while updating transaction: %s\n", err)
-				}
-				accountMap[account.AccountId] = account
-			}
+			accountMap := getAccountVersionMap(t, d.clients[orig.UserId], &curr)
 
 			tran, err := updateTransaction(d.clients[orig.UserId], &curr)
 			if err != nil {
 				t.Fatalf("Error updating transaction: %s\n", err)
 			}
 
-			for _, split := range tran.Splits {
-				account, err := getAccount(d.clients[orig.UserId], split.AccountId)
-				if err != nil {
-					t.Fatalf("Error fetching split's account after updating transaction: %s\n", err)
-				}
-				if account.AccountVersion <= accountMap[split.AccountId].AccountVersion {
-					t.Errorf("Failed to update account version when updating transaction split\n")
-				}
-			}
+			checkAccountVersionsUpdated(t, d.clients[orig.UserId], accountMap, tran)
+			checkAccountVersionsUpdated(t, d.clients[orig.UserId], accountMap, &curr)
 
 			ensureTransactionsMatch(t, &curr, tran, nil, true, true)
 
@@ -350,10 +368,13 @@ func TestDeleteTransaction(t *testing.T) {
 			orig := data[0].transactions[i]
 			curr := d.transactions[i]
 
+			accountMap := getAccountVersionMap(t, d.clients[orig.UserId], &curr)
+
 			err := deleteTransaction(d.clients[orig.UserId], &curr)
 			if err != nil {
 				t.Fatalf("Error deleting transaction: %s\n", err)
 			}
+			checkAccountVersionsUpdated(t, d.clients[orig.UserId], accountMap, &curr)
 
 			_, err = getTransaction(d.clients[orig.UserId], curr.TransactionId)
 			if err == nil {
