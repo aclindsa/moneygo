@@ -272,9 +272,28 @@ func TestUpdateTransaction(t *testing.T) {
 			curr.Description = "more money"
 			curr.Date = time.Date(2017, time.October, 18, 10, 41, 40, 0, time.UTC)
 
+			accountMap := make(map[int64]*handlers.Account)
+			for _, split := range curr.Splits {
+				account, err := getAccount(d.clients[orig.UserId], split.AccountId)
+				if err != nil {
+					t.Fatalf("Error fetching split's account while updating transaction: %s\n", err)
+				}
+				accountMap[account.AccountId] = account
+			}
+
 			tran, err := updateTransaction(d.clients[orig.UserId], &curr)
 			if err != nil {
 				t.Fatalf("Error updating transaction: %s\n", err)
+			}
+
+			for _, split := range tran.Splits {
+				account, err := getAccount(d.clients[orig.UserId], split.AccountId)
+				if err != nil {
+					t.Fatalf("Error fetching split's account after updating transaction: %s\n", err)
+				}
+				if account.AccountVersion <= accountMap[split.AccountId].AccountVersion {
+					t.Errorf("Failed to update account version when updating transaction split\n")
+				}
 			}
 
 			ensureTransactionsMatch(t, &curr, tran, nil, true, true)
