@@ -202,5 +202,6 @@ func RunTests(m *testing.M) int {
 }
 
 func TestMain(m *testing.M) {
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	os.Exit(RunTests(m))
 }
