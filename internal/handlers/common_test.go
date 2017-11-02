@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"path"
 	"strings"
 	"testing"
 )
@@ -175,14 +174,7 @@ func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {
 }
 
 func RunTests(m *testing.M) int {
-	tmpdir, err := ioutil.TempDir("./", "handlertest")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
-
-	dbpath := path.Join(tmpdir, "moneygo.sqlite")
-	dsn := db.GetDSN(config.SQLite, "file:"+dbpath+"?cache=shared&mode=rwc")
+	dsn := db.GetDSN(config.SQLite, ":memory:")
 	database, err := sql.Open("sqlite3", dsn)
 	if err != nil {
 		log.Fatal(err)
