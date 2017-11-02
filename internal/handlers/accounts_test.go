@@ -55,7 +55,7 @@ func TestCreateAccount(t *testing.T) {
 			a := d.accounts[i]
 
 			if a.AccountId == 0 {
-				t.Errorf("Unable to create security: %+v", a)
+				t.Errorf("Unable to create account: %+v", a)
 			}
 			if a.Type != orig.Type {
 				t.Errorf("Type doesn't match")
