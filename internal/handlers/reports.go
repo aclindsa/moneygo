@@ -58,6 +58,11 @@ func (rl *ReportList) Write(w http.ResponseWriter) error {
 	return enc.Encode(rl)
 }
 
+func (rl *ReportList) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(rl)
+}
+
 type Series struct {
 	Values []float64
 	Series map[string]*Series
