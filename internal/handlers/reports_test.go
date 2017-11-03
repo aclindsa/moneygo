@@ -66,3 +66,76 @@ func TestCreateReport(t *testing.T) {
 		}
 	})
 }
+
+func TestGetReport(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for i := 1; i < len(data[0].reports); i++ {
+			orig := data[0].reports[i]
+			curr := d.reports[i]
+
+			r, err := getReport(d.clients[orig.UserId], curr.ReportId)
+			if err != nil {
+				t.Fatalf("Error fetching reports: %s\n", err)
+			}
+			if r.Name != orig.Name {
+				t.Errorf("Name doesn't match")
+			}
+			if r.Lua != orig.Lua {
+				t.Errorf("Lua doesn't match")
+			}
+		}
+	})
+}
+
+func TestUpdateReport(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for i := 1; i < len(data[0].reports); i++ {
+			orig := data[0].reports[i]
+			curr := d.reports[i]
+
+			curr.Name = "blah"
+			curr.Lua = "empty"
+
+			r, err := updateReport(d.clients[orig.UserId], &curr)
+			if err != nil {
+				t.Fatalf("Error updating report: %s\n", err)
+			}
+
+			if r.ReportId != curr.ReportId {
+				t.Errorf("ReportId doesn't match")
+			}
+			if r.Name != curr.Name {
+				t.Errorf("Name doesn't match")
+			}
+			if r.Lua != curr.Lua {
+				t.Errorf("Lua doesn't match")
+			}
+		}
+	})
+}
+
+func TestDeleteReport(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for i := 1; i < len(data[0].reports); i++ {
+			orig := data[0].reports[i]
+			curr := d.reports[i]
+
+			err := deleteReport(d.clients[orig.UserId], &curr)
+			if err != nil {
+				t.Fatalf("Error deleting report: %s\n", err)
+			}
+
+			_, err = getReport(d.clients[orig.UserId], curr.ReportId)
+			if err == nil {
+				t.Fatalf("Expected error fetching deleted report")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 3 { // Invalid requeset
+					t.Fatalf("Unexpected API error fetching deleted report: %s", herr)
+				}
+			} else {
+				t.Fatalf("Unexpected error fetching deleted report")
+			}
+		}
+	})
+}
