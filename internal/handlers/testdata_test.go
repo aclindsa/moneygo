@@ -41,6 +41,7 @@ type TestData struct {
 	transactions []handlers.Transaction
 	prices       []handlers.Price
 	reports      []handlers.Report
+	tabulations  []handlers.Tabulation
 }
 
 type TestDataFunc func(*testing.T, *TestData)
@@ -282,7 +283,7 @@ var data = []TestData{
 			handlers.Transaction{
 				UserId:      0,
 				Description: "Cable",
-				Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
+				Date:        time.Date(2017, time.September, 2, 0, 00, 00, 0, time.UTC),
 				Splits: []*handlers.Split{
 					&handlers.Split{
 						Status:     handlers.Reconciled,
@@ -321,7 +322,7 @@ var data = []TestData{
 		reports: []handlers.Report{
 			handlers.Report{
 				UserId: 0,
-				Name:   "Monthly Expenses",
+				Name:   "This Year's Monthly Expenses",
 				Lua: `
 function account_series_map(accounts, tabulation)
     map = {}
@@ -347,12 +348,14 @@ function account_series_map(accounts, tabulation)
 end
 
 function generate()
-    year = date.now().year
+    year = 2017
     account_type = account.Expense
 
     accounts = get_accounts()
     t = tabulation.new(12)
     t:title(year .. " Monthly Expenses")
+    t:subtitle("This is my subtitle")
+    t:units(get_default_currency().Symbol)
     series_map = account_series_map(accounts, t)
 
     for month=1,12 do
@@ -372,6 +375,39 @@ function generate()
 
     return t
 end`,
+			},
+		},
+		tabulations: []handlers.Tabulation{
+			handlers.Tabulation{
+				ReportId: 0,
+				Title:    "2017 Monthly Expenses",
+				Subtitle: "This is my subtitle",
+				Units:    "USD",
+				Labels:   []string{"2017-01-01", "2017-02-01", "2017-03-01", "2017-04-01", "2017-05-01", "2017-06-01", "2017-07-01", "2017-08-01", "2017-09-01", "2017-10-01", "2017-11-01", "2017-12-01"},
+				Series: map[string]*handlers.Series{
+					"Assets": &handlers.Series{
+						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+						Series: map[string]*handlers.Series{
+							"Credit Union Checking": &handlers.Series{
+								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+								Series: map[string]*handlers.Series{},
+							},
+						},
+					},
+					"Expenses": &handlers.Series{
+						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+						Series: map[string]*handlers.Series{
+							"Groceries": &handlers.Series{
+								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 87.19, 0, 0},
+								Series: map[string]*handlers.Series{},
+							},
+							"Cable": &handlers.Series{
+								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 39.99, 0, 0, 0},
+								Series: map[string]*handlers.Series{},
+							},
+						},
+					},
+				},
 			},
 		},
 	},

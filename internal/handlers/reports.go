@@ -81,9 +81,14 @@ type Tabulation struct {
 	Series   map[string]*Series
 }
 
-func (r *Tabulation) Write(w http.ResponseWriter) error {
+func (t *Tabulation) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
-	return enc.Encode(r)
+	return enc.Encode(t)
+}
+
+func (t *Tabulation) Read(json_str string) error {
+	dec := json.NewDecoder(strings.NewReader(json_str))
+	return dec.Decode(t)
 }
 
 func GetReport(tx *Tx, reportid int64, userid int64) (*Report, error) {

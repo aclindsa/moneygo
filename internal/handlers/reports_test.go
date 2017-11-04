@@ -48,6 +48,15 @@ func deleteReport(client *http.Client, r *handlers.Report) error {
 	return nil
 }
 
+func tabulateReport(client *http.Client, reportid int64) (*handlers.Tabulation, error) {
+	var t handlers.Tabulation
+	err := read(client, &t, "/report/"+strconv.FormatInt(reportid, 10)+"/tabulation", "tabulation")
+	if err != nil {
+		return nil, err
+	}
+	return &t, nil
+}
+
 func TestCreateReport(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		for i := 0; i < len(data[0].reports); i++ {
@@ -202,6 +211,71 @@ func TestDeleteReport(t *testing.T) {
 			} else {
 				t.Fatalf("Unexpected error fetching deleted report")
 			}
+		}
+	})
+}
+func seriesEqualityHelper(t *testing.T, orig, curr map[string]*handlers.Series, name string) {
+	if orig == nil || curr == nil {
+		if orig != nil {
+			t.Fatalf("`%s` series unexpectedly nil", name)
+		}
+		if curr != nil {
+			t.Fatalf("`%s` series unexpectedly non-nil", name)
+		}
+		return
+	}
+	if len(orig) != len(curr) {
+		t.Errorf("Series in question: %v\n", curr)
+		t.Fatalf("Series' don't contain the same number of sub-series (found %d, expected %d)", len(curr), len(orig))
+	}
+	for k, os := range orig {
+		cs := curr[k]
+		if len(os.Values) != len(cs.Values) {
+			t.Fatalf("`%s` series doesn't contain the same number of Values (found %d, expected %d)", k, len(cs.Values), len(os.Values))
+		}
+		for i, v := range os.Values {
+			if v != cs.Values[i] {
+				t.Errorf("Series doesn't contain the same values (found %f, expected %f)", cs.Values[i], v)
+			}
+		}
+		seriesEqualityHelper(t, os.Series, cs.Series, k)
+	}
+}
+
+func tabulationEqualityHelper(t *testing.T, orig, curr *handlers.Tabulation) {
+	if orig.Title != curr.Title {
+		t.Errorf("Tabulation Title doesn't match")
+	}
+	if orig.Subtitle != curr.Subtitle {
+		t.Errorf("Tabulation Subtitle doesn't match")
+	}
+	if orig.Units != curr.Units {
+		t.Errorf("Tabulation Units doesn't match")
+	}
+	if len(orig.Labels) != len(curr.Labels) {
+		t.Fatalf("Tabulation doesn't contain the same number of labels")
+	}
+	for i, label := range orig.Labels {
+		if label != curr.Labels[i] {
+			t.Errorf("Label %d doesn't match", i)
+		}
+	}
+	seriesEqualityHelper(t, orig.Series, curr.Series, "top-level")
+}
+
+func TestTabulateReport(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		for i := 0; i < len(data[0].tabulations); i++ {
+			orig := data[0].tabulations[i]
+			origReport := data[0].reports[orig.ReportId]
+			report := d.reports[orig.ReportId]
+
+			rt2, err := tabulateReport(d.clients[origReport.UserId], report.ReportId)
+			if err != nil {
+				t.Fatalf("Unexpected error tabulating report")
+			}
+
+			tabulationEqualityHelper(t, &orig, rt2)
 		}
 	})
 }
