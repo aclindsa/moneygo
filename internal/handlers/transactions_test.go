@@ -364,7 +364,7 @@ func TestUpdateTransaction(t *testing.T) {
 
 func TestDeleteTransaction(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].transactions); i++ {
+		for i := 0; i < len(data[0].transactions); i++ {
 			orig := data[0].transactions[i]
 			curr := d.transactions[i]
 

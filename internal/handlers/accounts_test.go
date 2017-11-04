@@ -50,7 +50,7 @@ func deleteAccount(client *http.Client, a *handlers.Account) error {
 
 func TestCreateAccount(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].accounts); i++ {
+		for i := 0; i < len(data[0].accounts); i++ {
 			orig := data[0].accounts[i]
 			a := d.accounts[i]
 
@@ -69,7 +69,7 @@ func TestCreateAccount(t *testing.T) {
 
 func TestGetAccount(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].accounts); i++ {
+		for i := 0; i < len(data[0].accounts); i++ {
 			orig := data[0].accounts[i]
 			curr := d.accounts[i]
 
@@ -132,7 +132,7 @@ func TestGetAccounts(t *testing.T) {
 
 func TestUpdateAccount(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].accounts); i++ {
+		for i := 0; i < len(data[0].accounts); i++ {
 			orig := data[0].accounts[i]
 			curr := d.accounts[i]
 
@@ -196,7 +196,7 @@ func TestUpdateAccount(t *testing.T) {
 
 func TestDeleteAccount(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].accounts); i++ {
+		for i := 0; i < len(data[0].accounts); i++ {
 			orig := data[0].accounts[i]
 			curr := d.accounts[i]
 
