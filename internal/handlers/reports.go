@@ -39,6 +39,10 @@ type Report struct {
 	Lua      string
 }
 
+// The maximum length (in bytes) the Lua code may be. This is used to set the
+// max size of the database columns (with an added fudge factor)
+const LuaMaxLength int = 65536
+
 func (r *Report) Write(w http.ResponseWriter) error {
 	enc := json.NewEncoder(w)
 	return enc.Encode(r)
@@ -234,6 +238,10 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		report.ReportId = -1
 		report.UserId = user.UserId
 
+		if len(report.Lua) >= LuaMaxLength {
+			return NewError(3 /*Invalid Request*/)
+		}
+
 		err = InsertReport(tx, &report)
 		if err != nil {
 			log.Print(err)
@@ -291,6 +299,10 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 			report.UserId = user.UserId
+
+			if len(report.Lua) >= LuaMaxLength {
+				return NewError(3 /*Invalid Request*/)
+			}
 
 			err = UpdateReport(tx, &report)
 			if err != nil {

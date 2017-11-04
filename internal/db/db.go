@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+const luaMaxLengthBuffer int = 4096
+
 func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	var dialect gorp.Dialect
 	if dbtype == config.SQLite {
@@ -36,7 +38,8 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(handlers.Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(handlers.Split{}, "splits").SetKeys(true, "SplitId")
 	dbmap.AddTableWithName(handlers.Price{}, "prices").SetKeys(true, "PriceId")
-	dbmap.AddTableWithName(handlers.Report{}, "reports").SetKeys(true, "ReportId")
+	rtable := dbmap.AddTableWithName(handlers.Report{}, "reports").SetKeys(true, "ReportId")
+	rtable.ColMap("Lua").SetMaxSize(handlers.LuaMaxLength + luaMaxLengthBuffer)
 
 	err := dbmap.CreateTablesIfNotExists()
 	if err != nil {

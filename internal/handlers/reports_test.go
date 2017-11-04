@@ -50,7 +50,7 @@ func deleteReport(client *http.Client, r *handlers.Report) error {
 
 func TestCreateReport(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].reports); i++ {
+		for i := 0; i < len(data[0].reports); i++ {
 			orig := data[0].reports[i]
 			r := d.reports[i]
 
@@ -63,13 +63,26 @@ func TestCreateReport(t *testing.T) {
 			if r.Lua != orig.Lua {
 				t.Errorf("Lua doesn't match")
 			}
+
+			r.Lua = string(make([]byte, handlers.LuaMaxLength+1))
+			_, err := createReport(d.clients[orig.UserId], &r)
+			if err == nil {
+				t.Fatalf("Expected error creating report with too-long Lua")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 3 { // Invalid requeset
+					t.Fatalf("Unexpected API error creating report with too-long Lua: %s", herr)
+				}
+			} else {
+				t.Fatalf("Unexpected error creating report with too-long Lua")
+			}
 		}
 	})
 }
 
 func TestGetReport(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].reports); i++ {
+		for i := 0; i < len(data[0].reports); i++ {
 			orig := data[0].reports[i]
 			curr := d.reports[i]
 
@@ -87,9 +100,49 @@ func TestGetReport(t *testing.T) {
 	})
 }
 
+func TestGetReports(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		rl, err := getReports(d.clients[0])
+		if err != nil {
+			t.Fatalf("Error fetching reports: %s\n", err)
+		}
+
+		numreports := 0
+		foundIds := make(map[int64]bool)
+		for i := 0; i < len(data[0].reports); i++ {
+			orig := data[0].reports[i]
+			curr := d.reports[i]
+
+			if curr.UserId != d.users[0].UserId {
+				continue
+			}
+			numreports += 1
+
+			found := false
+			for _, r := range *rl.Reports {
+				if orig.Name == r.Name && orig.Lua == r.Lua {
+					if _, ok := foundIds[r.ReportId]; ok {
+						continue
+					}
+					foundIds[r.ReportId] = true
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("Unable to find matching report: %+v", orig)
+			}
+		}
+
+		if numreports != len(*rl.Reports) {
+			t.Fatalf("Expected %d reports, received %d", numreports, len(*rl.Reports))
+		}
+	})
+}
+
 func TestUpdateReport(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].reports); i++ {
+		for i := 0; i < len(data[0].reports); i++ {
 			orig := data[0].reports[i]
 			curr := d.reports[i]
 
@@ -110,13 +163,26 @@ func TestUpdateReport(t *testing.T) {
 			if r.Lua != curr.Lua {
 				t.Errorf("Lua doesn't match")
 			}
+
+			r.Lua = string(make([]byte, handlers.LuaMaxLength+1))
+			_, err = updateReport(d.clients[orig.UserId], r)
+			if err == nil {
+				t.Fatalf("Expected error updating report with too-long Lua")
+			}
+			if herr, ok := err.(*handlers.Error); ok {
+				if herr.ErrorId != 3 { // Invalid requeset
+					t.Fatalf("Unexpected API error updating report with too-long Lua: %s", herr)
+				}
+			} else {
+				t.Fatalf("Unexpected error updating report with too-long Lua")
+			}
 		}
 	})
 }
 
 func TestDeleteReport(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		for i := 1; i < len(data[0].reports); i++ {
+		for i := 0; i < len(data[0].reports); i++ {
 			orig := data[0].reports[i]
 			curr := d.reports[i]
 

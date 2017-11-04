@@ -321,7 +321,7 @@ var data = []TestData{
 		reports: []handlers.Report{
 			handlers.Report{
 				UserId: 0,
-				Name:   "",
+				Name:   "Monthly Expenses",
 				Lua: `
 function account_series_map(accounts, tabulation)
     map = {}
