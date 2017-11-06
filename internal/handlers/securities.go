@@ -13,12 +13,14 @@ import (
 	"strings"
 )
 
+type SecurityType int64
+
 const (
-	Currency int64 = 1
-	Stock          = 2
+	Currency SecurityType = 1
+	Stock                 = 2
 )
 
-func GetSecurityType(typestring string) int64 {
+func GetSecurityType(typestring string) SecurityType {
 	if strings.EqualFold(typestring, "currency") {
 		return Currency
 	} else if strings.EqualFold(typestring, "stock") {
@@ -37,7 +39,7 @@ type Security struct {
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
 	Precision int
-	Type      int64
+	Type      SecurityType
 	// AlternateId is CUSIP for Type=Stock, ISO4217 for Type=Currency
 	AlternateId string
 }
@@ -66,7 +68,7 @@ func (sl *SecurityList) Write(w http.ResponseWriter) error {
 	return enc.Encode(sl)
 }
 
-func SearchSecurityTemplates(search string, _type int64, limit int64) []*Security {
+func SearchSecurityTemplates(search string, _type SecurityType, limit int64) []*Security {
 	upperSearch := strings.ToUpper(search)
 	var results []*Security
 	for i, security := range SecurityTemplates {
@@ -84,7 +86,7 @@ func SearchSecurityTemplates(search string, _type int64, limit int64) []*Securit
 	return results
 }
 
-func FindSecurityTemplate(name string, _type int64) *Security {
+func FindSecurityTemplate(name string, _type SecurityType) *Security {
 	for _, security := range SecurityTemplates {
 		if name == security.Name && _type == security.Type {
 			return &security
@@ -349,7 +351,7 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		var limit int64 = -1
 		search := query.Get("search")
 
-		var _type int64 = 0
+		var _type SecurityType = 0
 		typestring := query.Get("type")
 		if len(typestring) > 0 {
 			_type = GetSecurityType(typestring)

@@ -22,7 +22,7 @@ func (i *OFXImport) GetSecurity(ofxsecurityid int64) (*Security, error) {
 	return &i.Securities[ofxsecurityid], nil
 }
 
-func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType int64) (*Security, error) {
+func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType SecurityType) (*Security, error) {
 	for _, security := range i.Securities {
 		if alternateid == security.AlternateId && securityType == security.Type {
 			return &security, nil
