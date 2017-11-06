@@ -33,7 +33,19 @@ func TestLuaSecurities(t *testing.T) {
 		}
 		securityids.Sort()
 
+		equalityString := ""
+		for i, _ := range securityids {
+			for j, _ := range securityids {
+				if i == j {
+					equalityString += "true"
+				} else {
+					equalityString += "false"
+				}
+			}
+		}
+
 		simpleLuaTest(t, d.clients[0], []LuaTest{
+			{"__tostring", `return get_default_currency()`, fmt.Sprintf("%s - %s (%s)", defaultSecurity.Name, defaultSecurity.Description, defaultSecurity.Symbol)},
 			{"SecurityId", `return get_default_currency().SecurityId`, strconv.FormatInt(defaultSecurity.SecurityId, 10)},
 			{"Name", `return get_default_currency().Name`, defaultSecurity.Name},
 			{"Description", `return get_default_currency().Description`, defaultSecurity.Description},
@@ -41,6 +53,24 @@ func TestLuaSecurities(t *testing.T) {
 			{"Precision", `return get_default_currency().Precision`, strconv.FormatInt(int64(defaultSecurity.Precision), 10)},
 			{"Type", `return get_default_currency().Type`, strconv.FormatInt(int64(defaultSecurity.Type), 10)},
 			{"AlternateId", `return get_default_currency().AlternateId`, defaultSecurity.AlternateId},
+			{"__eq", `
+securities = get_securities()
+sorted = {}
+for id in pairs(securities) do
+	table.insert(sorted, id)
+end
+str = ""
+table.sort(sorted)
+for i,idi in ipairs(sorted) do
+	for j,idj in ipairs(sorted) do
+		if securities[idi] == securities[idj] then
+			str = str .. "true"
+		else
+			str = str .. "false"
+		end
+	end
+end
+return str`, equalityString},
 			{"get_securities()", `
 sorted = {}
 for id in pairs(get_securities()) do
