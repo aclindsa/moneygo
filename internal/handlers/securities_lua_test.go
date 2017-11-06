@@ -2,17 +2,10 @@ package handlers_test
 
 import (
 	"fmt"
-	"github.com/aclindsa/moneygo/internal/handlers"
 	"sort"
 	"strconv"
 	"testing"
 )
-
-type LuaTest struct {
-	Name     string
-	Lua      string
-	Expected string
-}
 
 // Int64Slice attaches the methods of int64 to []int64, sorting in increasing order.
 type Int64Slice []int64
@@ -40,7 +33,7 @@ func TestLuaSecurities(t *testing.T) {
 		}
 		securityids.Sort()
 
-		for _, lt := range []LuaTest{
+		simpleLuaTest(t, d.clients[0], []LuaTest{
 			{"SecurityId", `return get_default_currency().SecurityId`, strconv.FormatInt(defaultSecurity.SecurityId, 10)},
 			{"Name", `return get_default_currency().Name`, defaultSecurity.Name},
 			{"Description", `return get_default_currency().Description`, defaultSecurity.Description},
@@ -59,33 +52,6 @@ for i,id in ipairs(sorted) do
 	str = str .. id .. " "
 end
 return string.sub(str, 1, -2) .. "]"`, fmt.Sprint(securityids)},
-		} {
-			lua := fmt.Sprintf(`function test()
-	%s
-end
-
-function generate()
-    t = tabulation.new(0)
-    t:title(tostring(test()))
-	return t
-end`, lt.Lua)
-			r := handlers.Report{
-				Name: lt.Name,
-				Lua:  lua,
-			}
-			report, err := createReport(d.clients[0], &r)
-			if err != nil {
-				t.Fatalf("Error creating report: %s", err)
-			}
-
-			tab, err := tabulateReport(d.clients[0], report.ReportId)
-			if err != nil {
-				t.Fatalf("Error tabulating report: %s", err)
-			}
-
-			if tab.Title != lt.Expected {
-				t.Errorf("%s: Returned '%s', expected '%s'", lt.Name, tab.Title, lt.Expected)
-			}
-		}
+		})
 	})
 }
