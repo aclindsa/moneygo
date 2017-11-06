@@ -142,6 +142,8 @@ func luaSecurity__index(L *lua.LState) int {
 		L.Push(lua.LNumber(float64(a.Type)))
 	case "ClosestPrice", "closestprice":
 		L.Push(L.NewFunction(luaClosestPrice))
+	case "AlternateId", "alternateid":
+		L.Push(lua.LString(a.AlternateId))
 	default:
 		L.ArgError(2, "unexpected security attribute: "+field)
 	}
