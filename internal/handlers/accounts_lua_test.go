@@ -41,7 +41,7 @@ func TestLuaAccounts(t *testing.T) {
 			{"typename", fmt.Sprintf("return get_accounts()[%d].typename", id), strings.ToLower(d.accounts[3].Type.String())},
 			{"Balance()", fmt.Sprintf("return get_accounts()[%d]:Balance().Amount", id), "87.19"},
 			{"Balance(1)", fmt.Sprintf("return get_accounts()[%d]:Balance(date.new('2017-10-30')).Amount", id), "5.6"},
-			{"Balance(2)", fmt.Sprintf("return get_accounts()[%d]:Balance(date.new('2017-10-30'), date.new('2017-11-01')).Amount", id), "81.59"},
+			{"Balance(2)", fmt.Sprintf("return get_accounts()[%d]:Balance(date.new(2017, 10, 30), date.new('2017-11-01')).Amount", id), "81.59"},
 			{"__tostring", fmt.Sprintf("return get_accounts()[%d]", id), "Expenses/Groceries"},
 			{"__eq", `
 accounts = get_accounts()
