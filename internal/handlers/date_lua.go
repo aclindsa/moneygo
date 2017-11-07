@@ -63,9 +63,10 @@ func luaWeakCheckTableFieldInt(L *lua.LState, T *lua.LTable, n int, name string,
 }
 
 func luaDateNew(L *lua.LState) int {
+	// TODO make this track the user's timezone
 	v := L.Get(1)
 	if s, ok := v.(lua.LString); ok {
-		date, err := time.Parse(timeFormat, s.String())
+		date, err := time.ParseInLocation(timeFormat, s.String(), time.Local)
 		if err != nil {
 			L.ArgError(1, "error parsing date string: "+err.Error())
 			return 0
