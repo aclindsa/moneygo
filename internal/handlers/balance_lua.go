@@ -56,23 +56,12 @@ func luaWeakCheckBalance(L *lua.LState, n int) *Balance {
 	return nil
 }
 
-func luaGetBalanceOperands(L *lua.LState, n int, m int) (*Balance, *Balance) {
-	bn := luaWeakCheckBalance(L, n)
+func luaGetBalanceOperands(L *lua.LState, m int, n int) (*Balance, *Balance) {
 	bm := luaWeakCheckBalance(L, m)
+	bn := luaWeakCheckBalance(L, n)
 
-	if bn != nil && bm != nil {
-		return bn, bm
-	} else if bn != nil {
-		nm := L.CheckNumber(m)
-		var balance Balance
-		var rat big.Rat
-		balance.Security = bn.Security
-		balance.Amount = rat.SetFloat64(float64(nm))
-		if balance.Amount == nil {
-			L.ArgError(n, "non-finite float invalid for operand to balance arithemetic")
-			return nil, nil
-		}
-		return bn, &balance
+	if bm != nil && bn != nil {
+		return bm, bn
 	} else if bm != nil {
 		nn := L.CheckNumber(n)
 		var balance Balance
@@ -84,8 +73,19 @@ func luaGetBalanceOperands(L *lua.LState, n int, m int) (*Balance, *Balance) {
 			return nil, nil
 		}
 		return bm, &balance
+	} else if bn != nil {
+		nm := L.CheckNumber(m)
+		var balance Balance
+		var rat big.Rat
+		balance.Security = bn.Security
+		balance.Amount = rat.SetFloat64(float64(nm))
+		if balance.Amount == nil {
+			L.ArgError(m, "non-finite float invalid for operand to balance arithemetic")
+			return nil, nil
+		}
+		return &balance, bn
 	}
-	L.ArgError(n, "balance expected")
+	L.ArgError(m, "balance expected")
 	return nil, nil
 }
 
