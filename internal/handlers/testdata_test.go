@@ -37,9 +37,9 @@ type TestData struct {
 	users        []User
 	clients      []*http.Client
 	securities   []handlers.Security
+	prices       []handlers.Price
 	accounts     []handlers.Account // accounts must appear after their parents in this slice
 	transactions []handlers.Transaction
-	prices       []handlers.Price
 	reports      []handlers.Report
 	tabulations  []handlers.Tabulation
 }
@@ -88,6 +88,17 @@ func (t *TestData) Initialize() (*TestData, error) {
 			return nil, err
 		}
 		t2.securities = append(t2.securities, *s2)
+	}
+
+	for _, price := range t.prices {
+		userid := t.securities[price.SecurityId].UserId
+		price.SecurityId = t2.securities[price.SecurityId].SecurityId
+		price.CurrencyId = t2.securities[price.CurrencyId].SecurityId
+		p2, err := createPrice(t2.clients[userid], &price)
+		if err != nil {
+			return nil, err
+		}
+		t2.prices = append(t2.prices, *p2)
 	}
 
 	for _, account := range t.accounts {
@@ -188,6 +199,36 @@ var data = []TestData{
 				Precision:   2,
 				Type:        handlers.Currency,
 				AlternateId: "978",
+			},
+		},
+		prices: []handlers.Price{
+			handlers.Price{
+				SecurityId: 1,
+				CurrencyId: 0,
+				Date:       time.Date(2017, time.January, 2, 21, 0, 0, 0, time.UTC),
+				Value:      "225.24",
+				RemoteId:   "12387-129831-1238",
+			},
+			handlers.Price{
+				SecurityId: 1,
+				CurrencyId: 0,
+				Date:       time.Date(2017, time.January, 3, 21, 0, 0, 0, time.UTC),
+				Value:      "226.58",
+				RemoteId:   "12387-129831-1239",
+			},
+			handlers.Price{
+				SecurityId: 1,
+				CurrencyId: 0,
+				Date:       time.Date(2017, time.January, 4, 21, 0, 0, 0, time.UTC),
+				Value:      "226.40",
+				RemoteId:   "12387-129831-1240",
+			},
+			handlers.Price{
+				SecurityId: 1,
+				CurrencyId: 0,
+				Date:       time.Date(2017, time.January, 5, 21, 0, 0, 0, time.UTC),
+				Value:      "227.21",
+				RemoteId:   "12387-129831-1241",
 			},
 		},
 		accounts: []handlers.Account{

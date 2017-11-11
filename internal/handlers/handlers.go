@@ -55,6 +55,7 @@ func GetHandler(db *gorp.DbMap) *http.ServeMux {
 	servemux.HandleFunc("/session/", TxHandlerFunc(SessionHandler, db))
 	servemux.HandleFunc("/user/", TxHandlerFunc(UserHandler, db))
 	servemux.HandleFunc("/security/", TxHandlerFunc(SecurityHandler, db))
+	servemux.HandleFunc("/price/", TxHandlerFunc(PriceHandler, db))
 	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
 	servemux.HandleFunc("/account/", TxHandlerFunc(AccountHandler, db))
 	servemux.HandleFunc("/transaction/", TxHandlerFunc(TransactionHandler, db))
