@@ -9,13 +9,13 @@ import (
 
 func createAccount(client *http.Client, account *handlers.Account) (*handlers.Account, error) {
 	var a handlers.Account
-	err := create(client, account, &a, "/account/", "account")
+	err := create(client, account, &a, "/v1/accounts/", "account")
 	return &a, err
 }
 
 func getAccount(client *http.Client, accountid int64) (*handlers.Account, error) {
 	var a handlers.Account
-	err := read(client, &a, "/account/"+strconv.FormatInt(accountid, 10), "account")
+	err := read(client, &a, "/v1/accounts/"+strconv.FormatInt(accountid, 10), "account")
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func getAccount(client *http.Client, accountid int64) (*handlers.Account, error)
 
 func getAccounts(client *http.Client) (*handlers.AccountList, error) {
 	var al handlers.AccountList
-	err := read(client, &al, "/account/", "accounts")
+	err := read(client, &al, "/v1/accounts/", "accounts")
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func getAccounts(client *http.Client) (*handlers.AccountList, error) {
 
 func updateAccount(client *http.Client, account *handlers.Account) (*handlers.Account, error) {
 	var a handlers.Account
-	err := update(client, account, &a, "/account/"+strconv.FormatInt(account.AccountId, 10), "account")
+	err := update(client, account, &a, "/v1/accounts/"+strconv.FormatInt(account.AccountId, 10), "account")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func updateAccount(client *http.Client, account *handlers.Account) (*handlers.Ac
 }
 
 func deleteAccount(client *http.Client, a *handlers.Account) error {
-	err := remove(client, "/account/"+strconv.FormatInt(a.AccountId, 10), "account")
+	err := remove(client, "/v1/accounts/"+strconv.FormatInt(a.AccountId, 10), "account")
 	if err != nil {
 		return err
 	}

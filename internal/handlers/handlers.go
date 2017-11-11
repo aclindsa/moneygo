@@ -52,15 +52,15 @@ func TxHandlerFunc(t TxHandler, db *gorp.DbMap) http.HandlerFunc {
 
 func GetHandler(db *gorp.DbMap) *http.ServeMux {
 	servemux := http.NewServeMux()
-	servemux.HandleFunc("/session/", TxHandlerFunc(SessionHandler, db))
-	servemux.HandleFunc("/user/", TxHandlerFunc(UserHandler, db))
-	servemux.HandleFunc("/security/", TxHandlerFunc(SecurityHandler, db))
-	servemux.HandleFunc("/price/", TxHandlerFunc(PriceHandler, db))
-	servemux.HandleFunc("/securitytemplate/", SecurityTemplateHandler)
-	servemux.HandleFunc("/account/", TxHandlerFunc(AccountHandler, db))
-	servemux.HandleFunc("/transaction/", TxHandlerFunc(TransactionHandler, db))
-	servemux.HandleFunc("/import/gnucash", TxHandlerFunc(GnucashImportHandler, db))
-	servemux.HandleFunc("/report/", TxHandlerFunc(ReportHandler, db))
+	servemux.HandleFunc("/v1/sessions/", TxHandlerFunc(SessionHandler, db))
+	servemux.HandleFunc("/v1/users/", TxHandlerFunc(UserHandler, db))
+	servemux.HandleFunc("/v1/securities/", TxHandlerFunc(SecurityHandler, db))
+	servemux.HandleFunc("/v1/prices/", TxHandlerFunc(PriceHandler, db))
+	servemux.HandleFunc("/v1/securitytemplates/", SecurityTemplateHandler)
+	servemux.HandleFunc("/v1/accounts/", TxHandlerFunc(AccountHandler, db))
+	servemux.HandleFunc("/v1/transactions/", TxHandlerFunc(TransactionHandler, db))
+	servemux.HandleFunc("/v1/imports/gnucash", TxHandlerFunc(GnucashImportHandler, db))
+	servemux.HandleFunc("/v1/reports/", TxHandlerFunc(ReportHandler, db))
 
 	return servemux
 }

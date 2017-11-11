@@ -16,7 +16,7 @@ import (
 var reportTabulationRE *regexp.Regexp
 
 func init() {
-	reportTabulationRE = regexp.MustCompile(`^/report/[0-9]+/tabulation/?$`)
+	reportTabulationRE = regexp.MustCompile(`^/v1/reports/[0-9]+/tabulations/?$`)
 }
 
 //type and value to store user in lua's Context
@@ -257,7 +257,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	} else if r.Method == "GET" {
 		if reportTabulationRE.MatchString(r.URL.Path) {
 			var reportid int64
-			n, err := GetURLPieces(r.URL.Path, "/report/%d/tabulation", &reportid)
+			n, err := GetURLPieces(r.URL.Path, "/v1/reports/%d/tabulations", &reportid)
 			if err != nil || n != 1 {
 				log.Print(err)
 				return NewError(999 /*InternalError*/)
@@ -266,7 +266,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		}
 
 		var reportid int64
-		n, err := GetURLPieces(r.URL.Path, "/report/%d", &reportid)
+		n, err := GetURLPieces(r.URL.Path, "/v1/reports/%d", &reportid)
 		if err != nil || n != 1 {
 			//Return all Reports
 			var rl ReportList

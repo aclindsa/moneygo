@@ -104,8 +104,8 @@ var accountTransactionsRE *regexp.Regexp
 var accountImportRE *regexp.Regexp
 
 func init() {
-	accountTransactionsRE = regexp.MustCompile(`^/account/[0-9]+/transactions/?$`)
-	accountImportRE = regexp.MustCompile(`^/account/[0-9]+/import/[a-z]+/?$`)
+	accountTransactionsRE = regexp.MustCompile(`^/v1/accounts/[0-9]+/transactions/?$`)
+	accountImportRE = regexp.MustCompile(`^/v1/accounts/[0-9]+/imports/[a-z]+/?$`)
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {
@@ -384,12 +384,12 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
-		// if URL looks like /account/[0-9]+/import, use the account
+		// if URL looks like /v1/accounts/[0-9]+/imports, use the account
 		// import handler
 		if accountImportRE.MatchString(r.URL.Path) {
 			var accountid int64
 			var importtype string
-			n, err := GetURLPieces(r.URL.Path, "/account/%d/import/%s", &accountid, &importtype)
+			n, err := GetURLPieces(r.URL.Path, "/v1/accounts/%d/imports/%s", &accountid, &importtype)
 
 			if err != nil || n != 2 {
 				log.Print(err)
@@ -434,7 +434,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		return ResponseWrapper{201, &account}
 	} else if r.Method == "GET" {
 		var accountid int64
-		n, err := GetURLPieces(r.URL.Path, "/account/%d", &accountid)
+		n, err := GetURLPieces(r.URL.Path, "/v1/accounts/%d", &accountid)
 
 		if err != nil || n != 1 {
 			//Return all Accounts

@@ -10,13 +10,13 @@ import (
 
 func createPrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
 	var p handlers.Price
-	err := create(client, price, &p, "/price/", "price")
+	err := create(client, price, &p, "/v1/prices/", "price")
 	return &p, err
 }
 
 func getPrice(client *http.Client, priceid int64) (*handlers.Price, error) {
 	var p handlers.Price
-	err := read(client, &p, "/price/"+strconv.FormatInt(priceid, 10), "price")
+	err := read(client, &p, "/v1/prices/"+strconv.FormatInt(priceid, 10), "price")
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func getPrice(client *http.Client, priceid int64) (*handlers.Price, error) {
 
 func getPrices(client *http.Client) (*handlers.PriceList, error) {
 	var pl handlers.PriceList
-	err := read(client, &pl, "/price/", "prices")
+	err := read(client, &pl, "/v1/prices/", "prices")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func getPrices(client *http.Client) (*handlers.PriceList, error) {
 
 func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
 	var p handlers.Price
-	err := update(client, price, &p, "/price/"+strconv.FormatInt(price.PriceId, 10), "price")
+	err := update(client, price, &p, "/v1/prices/"+strconv.FormatInt(price.PriceId, 10), "price")
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, e
 }
 
 func deletePrice(client *http.Client, p *handlers.Price) error {
-	err := remove(client, "/price/"+strconv.FormatInt(p.PriceId, 10), "price")
+	err := remove(client, "/v1/prices/"+strconv.FormatInt(p.PriceId, 10), "price")
 	if err != nil {
 		return err
 	}

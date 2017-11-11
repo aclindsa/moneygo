@@ -90,7 +90,7 @@ function fetchPage(account, pageSize, page) {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "account/"+account.AccountId+"/transactions?sort=date-desc&limit="+pageSize+"&page="+page,
+			url: "v1/accounts/"+account.AccountId+"/transactions?sort=date-desc&limit="+pageSize+"&page="+page,
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -138,7 +138,7 @@ function create(transaction) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "transaction/",
+			url: "v1/transactions/",
 			data: {transaction: transaction.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -165,7 +165,7 @@ function update(transaction) {
 		$.ajax({
 			type: "PUT",
 			dataType: "json",
-			url: "transaction/"+transaction.TransactionId+"/",
+			url: "v1/transactions/"+transaction.TransactionId+"/",
 			data: {transaction: transaction.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -192,7 +192,7 @@ function remove(transaction) {
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
-			url: "transaction/"+transaction.TransactionId+"/",
+			url: "v1/transactions/"+transaction.TransactionId+"/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

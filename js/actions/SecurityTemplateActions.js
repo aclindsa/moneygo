@@ -47,7 +47,7 @@ function search(searchString, searchType, limit) {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "securitytemplate/?search="+searchString+"&type="+searchType+"&limit="+limit,
+			url: "v1/securitytemplates/?search="+searchString+"&type="+searchType+"&limit="+limit,
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -78,7 +78,7 @@ function fetchCurrencies() {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "securitytemplate/?search=&type=currency",
+			url: "v1/securitytemplates/?search=&type=currency",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

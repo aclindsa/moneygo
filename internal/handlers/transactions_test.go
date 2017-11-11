@@ -12,13 +12,13 @@ import (
 
 func createTransaction(client *http.Client, transaction *handlers.Transaction) (*handlers.Transaction, error) {
 	var s handlers.Transaction
-	err := create(client, transaction, &s, "/transaction/", "transaction")
+	err := create(client, transaction, &s, "/v1/transactions/", "transaction")
 	return &s, err
 }
 
 func getTransaction(client *http.Client, transactionid int64) (*handlers.Transaction, error) {
 	var s handlers.Transaction
-	err := read(client, &s, "/transaction/"+strconv.FormatInt(transactionid, 10), "transaction")
+	err := read(client, &s, "/v1/transactions/"+strconv.FormatInt(transactionid, 10), "transaction")
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +27,7 @@ func getTransaction(client *http.Client, transactionid int64) (*handlers.Transac
 
 func getTransactions(client *http.Client) (*handlers.TransactionList, error) {
 	var tl handlers.TransactionList
-	err := read(client, &tl, "/transaction/", "transactions")
+	err := read(client, &tl, "/v1/transactions/", "transactions")
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func getAccountTransactions(client *http.Client, accountid, page, limit int64, s
 	var atl handlers.AccountTransactionsList
 	params := url.Values{}
 
-	query := fmt.Sprintf("/account/%d/transactions/", accountid)
+	query := fmt.Sprintf("/v1/accounts/%d/transactions/", accountid)
 	if page != 0 {
 		params.Set("page", fmt.Sprintf("%d", page))
 	}
@@ -59,7 +59,7 @@ func getAccountTransactions(client *http.Client, accountid, page, limit int64, s
 
 func updateTransaction(client *http.Client, transaction *handlers.Transaction) (*handlers.Transaction, error) {
 	var s handlers.Transaction
-	err := update(client, transaction, &s, "/transaction/"+strconv.FormatInt(transaction.TransactionId, 10), "transaction")
+	err := update(client, transaction, &s, "/v1/transactions/"+strconv.FormatInt(transaction.TransactionId, 10), "transaction")
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func updateTransaction(client *http.Client, transaction *handlers.Transaction) (
 }
 
 func deleteTransaction(client *http.Client, s *handlers.Transaction) error {
-	err := remove(client, "/transaction/"+strconv.FormatInt(s.TransactionId, 10), "transaction")
+	err := remove(client, "/v1/transactions/"+strconv.FormatInt(s.TransactionId, 10), "transaction")
 	if err != nil {
 		return err
 	}

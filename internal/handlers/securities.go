@@ -275,7 +275,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		return ResponseWrapper{201, &security}
 	} else if r.Method == "GET" {
 		var securityid int64
-		n, err := GetURLPieces(r.URL.Path, "/security/%d", &securityid)
+		n, err := GetURLPieces(r.URL.Path, "/v1/securities/%d", &securityid)
 
 		if err != nil || n != 1 {
 			//Return all securities

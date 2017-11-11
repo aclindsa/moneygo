@@ -9,13 +9,13 @@ import (
 
 func createSecurity(client *http.Client, security *handlers.Security) (*handlers.Security, error) {
 	var s handlers.Security
-	err := create(client, security, &s, "/security/", "security")
+	err := create(client, security, &s, "/v1/securities/", "security")
 	return &s, err
 }
 
 func getSecurity(client *http.Client, securityid int64) (*handlers.Security, error) {
 	var s handlers.Security
-	err := read(client, &s, "/security/"+strconv.FormatInt(securityid, 10), "security")
+	err := read(client, &s, "/v1/securities/"+strconv.FormatInt(securityid, 10), "security")
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func getSecurity(client *http.Client, securityid int64) (*handlers.Security, err
 
 func getSecurities(client *http.Client) (*handlers.SecurityList, error) {
 	var sl handlers.SecurityList
-	err := read(client, &sl, "/security/", "securities")
+	err := read(client, &sl, "/v1/securities/", "securities")
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func getSecurities(client *http.Client) (*handlers.SecurityList, error) {
 
 func updateSecurity(client *http.Client, security *handlers.Security) (*handlers.Security, error) {
 	var s handlers.Security
-	err := update(client, security, &s, "/security/"+strconv.FormatInt(security.SecurityId, 10), "security")
+	err := update(client, security, &s, "/v1/securities/"+strconv.FormatInt(security.SecurityId, 10), "security")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func updateSecurity(client *http.Client, security *handlers.Security) (*handlers
 }
 
 func deleteSecurity(client *http.Client, s *handlers.Security) error {
-	err := remove(client, "/security/"+strconv.FormatInt(s.SecurityId, 10), "security")
+	err := remove(client, "/v1/securities/"+strconv.FormatInt(s.SecurityId, 10), "security")
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func TestGetSecurity(t *testing.T) {
 				t.Fatalf("Error fetching security: %s\n", err)
 			}
 			if s.SecurityId != curr.SecurityId {
-				t.Errorf("SecurityId doesn't match")
+				t.Errorf("SecurityId doesn't match %+v %+v", s, curr)
 			}
 			if s.Name != orig.Name {
 				t.Errorf("Name doesn't match")

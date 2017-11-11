@@ -101,7 +101,7 @@ function fetchAll() {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "report/",
+			url: "v1/reports/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -129,7 +129,7 @@ function create(report) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "report/",
+			url: "v1/reports/",
 			data: {report: report.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -156,7 +156,7 @@ function update(report) {
 		$.ajax({
 			type: "PUT",
 			dataType: "json",
-			url: "report/"+report.ReportId+"/",
+			url: "v1/reports/"+report.ReportId+"/",
 			data: {report: report.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -184,7 +184,7 @@ function remove(report) {
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
-			url: "report/"+report.ReportId+"/",
+			url: "v1/reports/"+report.ReportId+"/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -208,7 +208,7 @@ function tabulate(report) {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "report/"+report.ReportId+"/tabulation/",
+			url: "v1/reports/"+report.ReportId+"/tabulations/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

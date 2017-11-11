@@ -8,7 +8,7 @@ import (
 
 func TestSecurityTemplates(t *testing.T) {
 	var sl handlers.SecurityList
-	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=USD&type=currency")
+	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=USD&type=currency")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestSecurityTemplates(t *testing.T) {
 
 func TestSecurityTemplateLimit(t *testing.T) {
 	var sl handlers.SecurityList
-	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&limit=5")
+	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=e&limit=5")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +71,7 @@ func TestSecurityTemplateLimit(t *testing.T) {
 
 func TestSecurityTemplateInvalidType(t *testing.T) {
 	var e handlers.Error
-	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&type=blah")
+	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=e&type=blah")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestSecurityTemplateInvalidType(t *testing.T) {
 
 func TestSecurityTemplateInvalidLimit(t *testing.T) {
 	var e handlers.Error
-	response, err := server.Client().Get(server.URL + "/securitytemplate/?search=e&type=Currency&limit=foo")
+	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=e&type=Currency&limit=foo")
 	if err != nil {
 		t.Fatal(err)
 	}

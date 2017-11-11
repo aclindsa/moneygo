@@ -72,7 +72,7 @@ function fetchAll() {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "security/",
+			url: "v1/securities/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -100,7 +100,7 @@ function create(security) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "security/",
+			url: "v1/securities/",
 			data: {security: security.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -127,7 +127,7 @@ function update(security) {
 		$.ajax({
 			type: "PUT",
 			dataType: "json",
-			url: "security/"+security.SecurityId+"/",
+			url: "v1/securities/"+security.SecurityId+"/",
 			data: {security: security.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -154,7 +154,7 @@ function remove(security) {
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
-			url: "security/"+security.SecurityId+"/",
+			url: "v1/securities/"+security.SecurityId+"/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

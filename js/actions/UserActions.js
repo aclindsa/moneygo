@@ -83,7 +83,7 @@ function fetch(userId) {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "user/"+userId+"/",
+			url: "v1/users/"+userId+"/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -115,7 +115,7 @@ function create(user) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "user/",
+			url: "v1/users/",
 			data: {user: user.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -142,7 +142,7 @@ function login(user) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "session/",
+			url: "v1/sessions/",
 			data: {user: user.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -167,7 +167,7 @@ function tryResumingSession() {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "session/",
+			url: "v1/sessions/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -195,7 +195,7 @@ function logout() {
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
-			url: "session/",
+			url: "v1/sessions/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -219,7 +219,7 @@ function update(user) {
 		$.ajax({
 			type: "PUT",
 			dataType: "json",
-			url: "user/"+user.UserId+"/",
+			url: "v1/users/"+user.UserId+"/",
 			data: {user: user.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();

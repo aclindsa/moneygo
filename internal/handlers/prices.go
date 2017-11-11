@@ -166,7 +166,7 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		return ResponseWrapper{201, &price}
 	} else if r.Method == "GET" {
 		var priceid int64
-		n, err := GetURLPieces(r.URL.Path, "/price/%d", &priceid)
+		n, err := GetURLPieces(r.URL.Path, "/v1/prices/%d", &priceid)
 
 		if err != nil || n != 1 {
 			//Return all prices

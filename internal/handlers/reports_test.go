@@ -9,13 +9,13 @@ import (
 
 func createReport(client *http.Client, report *handlers.Report) (*handlers.Report, error) {
 	var r handlers.Report
-	err := create(client, report, &r, "/report/", "report")
+	err := create(client, report, &r, "/v1/reports/", "report")
 	return &r, err
 }
 
 func getReport(client *http.Client, reportid int64) (*handlers.Report, error) {
 	var r handlers.Report
-	err := read(client, &r, "/report/"+strconv.FormatInt(reportid, 10), "report")
+	err := read(client, &r, "/v1/reports/"+strconv.FormatInt(reportid, 10), "report")
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func getReport(client *http.Client, reportid int64) (*handlers.Report, error) {
 
 func getReports(client *http.Client) (*handlers.ReportList, error) {
 	var rl handlers.ReportList
-	err := read(client, &rl, "/report/", "reports")
+	err := read(client, &rl, "/v1/reports/", "reports")
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func getReports(client *http.Client) (*handlers.ReportList, error) {
 
 func updateReport(client *http.Client, report *handlers.Report) (*handlers.Report, error) {
 	var r handlers.Report
-	err := update(client, report, &r, "/report/"+strconv.FormatInt(report.ReportId, 10), "report")
+	err := update(client, report, &r, "/v1/reports/"+strconv.FormatInt(report.ReportId, 10), "report")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func updateReport(client *http.Client, report *handlers.Report) (*handlers.Repor
 }
 
 func deleteReport(client *http.Client, r *handlers.Report) error {
-	err := remove(client, "/report/"+strconv.FormatInt(r.ReportId, 10), "report")
+	err := remove(client, "/v1/reports/"+strconv.FormatInt(r.ReportId, 10), "report")
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func deleteReport(client *http.Client, r *handlers.Report) error {
 
 func tabulateReport(client *http.Client, reportid int64) (*handlers.Tabulation, error) {
 	var t handlers.Tabulation
-	err := read(client, &t, "/report/"+strconv.FormatInt(reportid, 10)+"/tabulation", "tabulation")
+	err := read(client, &t, "/v1/reports/"+strconv.FormatInt(reportid, 10)+"/tabulations", "tabulation")
 	if err != nil {
 		return nil, err
 	}

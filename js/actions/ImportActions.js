@@ -59,7 +59,7 @@ function importOFX(account, password, startDate, endDate) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "account/"+account.AccountId+"/import/ofx",
+			url: "v1/accounts/"+account.AccountId+"/imports/ofx",
 			data: {ofxdownload: ofxdownload.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -145,12 +145,12 @@ function importFile(url, inputElement) {
 }
 
 function importOFXFile(inputElement, account) {
-	var url = "account/"+account.AccountId+"/import/ofxfile";
+	var url = "v1/accounts/"+account.AccountId+"/imports/ofxfile";
 	return importFile(url, inputElement);
 }
 
 function importGnucash(inputElement) {
-	var url = "import/gnucash";
+	var url = "v1/imports/gnucash";
 	return importFile(url, inputElement);
 }
 

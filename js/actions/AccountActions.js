@@ -72,7 +72,7 @@ function fetchAll() {
 		$.ajax({
 			type: "GET",
 			dataType: "json",
-			url: "account/",
+			url: "v1/accounts/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -100,7 +100,7 @@ function create(account) {
 		$.ajax({
 			type: "POST",
 			dataType: "json",
-			url: "account/",
+			url: "v1/accounts/",
 			data: {account: account.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -127,7 +127,7 @@ function update(account) {
 		$.ajax({
 			type: "PUT",
 			dataType: "json",
-			url: "account/"+account.AccountId+"/",
+			url: "v1/accounts/"+account.AccountId+"/",
 			data: {account: account.toJSON()},
 			success: function(data, status, jqXHR) {
 				var e = new Error();
@@ -154,7 +154,7 @@ function remove(account) {
 		$.ajax({
 			type: "DELETE",
 			dataType: "json",
-			url: "account/"+account.AccountId+"/",
+			url: "v1/accounts/"+account.AccountId+"/",
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
