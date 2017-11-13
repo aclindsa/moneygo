@@ -8,16 +8,9 @@ import (
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 )
-
-var reportTabulationRE *regexp.Regexp
-
-func init() {
-	reportTabulationRE = regexp.MustCompile(`^/v1/reports/[0-9]+/tabulations/?$`)
-}
 
 //type and value to store user in lua's Context
 type key int
@@ -255,19 +248,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 		return ResponseWrapper{201, &report}
 	} else if r.Method == "GET" {
-		if reportTabulationRE.MatchString(r.URL.Path) {
-			var reportid int64
-			n, err := GetURLPieces(r.URL.Path, "/v1/reports/%d/tabulations", &reportid)
-			if err != nil || n != 1 {
-				log.Print(err)
-				return NewError(999 /*InternalError*/)
-			}
-			return ReportTabulationHandler(context.Tx, r, user, reportid)
-		}
-
-		var reportid int64
-		n, err := GetURLPieces(r.URL.Path, "/v1/reports/%d", &reportid)
-		if err != nil || n != 1 {
+		if context.LastLevel() {
 			//Return all Reports
 			var rl ReportList
 			reports, err := GetReports(context.Tx, user.UserId)
@@ -277,6 +258,15 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 			rl.Reports = reports
 			return &rl
+		}
+
+		reportid, err := context.NextID()
+		if err != nil {
+			return NewError(3 /*Invalid Request*/)
+		}
+
+		if context.NextLevel() == "tabulations" {
+			return ReportTabulationHandler(context.Tx, r, user, reportid)
 		} else {
 			// Return Report with this Id
 			report, err := GetReport(context.Tx, reportid, user.UserId)
@@ -287,7 +277,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return report
 		}
 	} else {
-		reportid, err := GetURLID(r.URL.Path)
+		reportid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

@@ -335,9 +335,10 @@ func OFXFileImportHandler(context *Context, r *http.Request, user *User, account
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(context *Context, r *http.Request, user *User, accountid int64, importtype string) ResponseWriterWriter {
+func AccountImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
 
-	switch importtype {
+	importType := context.NextLevel()
+	switch importType {
 	case "ofx":
 		return OFXImportHandler(context, r, user, accountid)
 	case "ofxfile":

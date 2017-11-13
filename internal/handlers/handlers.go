@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strconv"
 	"strings"
 )
 
@@ -33,6 +34,14 @@ func (c *Context) NextLevel() string {
 		c.remainingURL = ""
 	}
 	return split[0]
+}
+
+func (c *Context) NextID() (int64, error) {
+	return strconv.ParseInt(c.NextLevel(), 0, 64)
+}
+
+func (c *Context) LastLevel() bool {
+	return len(c.remainingURL) == 0
 }
 
 type Handler func(*http.Request, *Context) ResponseWriterWriter

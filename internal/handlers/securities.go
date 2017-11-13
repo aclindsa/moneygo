@@ -274,10 +274,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 		return ResponseWrapper{201, &security}
 	} else if r.Method == "GET" {
-		var securityid int64
-		n, err := GetURLPieces(r.URL.Path, "/v1/securities/%d", &securityid)
-
-		if err != nil || n != 1 {
+		if context.LastLevel() {
 			//Return all securities
 			var sl SecurityList
 
@@ -290,6 +287,10 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			sl.Securities = securities
 			return &sl
 		} else {
+			securityid, err := context.NextID()
+			if err != nil {
+				return NewError(3 /*Invalid Request*/)
+			}
 			security, err := GetSecurity(context.Tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
@@ -298,7 +299,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return security
 		}
 	} else {
-		securityid, err := GetURLID(r.URL.Path)
+		securityid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

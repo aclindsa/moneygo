@@ -165,10 +165,7 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 		return ResponseWrapper{201, &price}
 	} else if r.Method == "GET" {
-		var priceid int64
-		n, err := GetURLPieces(r.URL.Path, "/v1/prices/%d", &priceid)
-
-		if err != nil || n != 1 {
+		if context.LastLevel() {
 			//Return all prices
 			var pl PriceList
 
@@ -180,16 +177,21 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 			pl.Prices = prices
 			return &pl
-		} else {
-			price, err := GetPrice(context.Tx, priceid, user.UserId)
-			if err != nil {
-				return NewError(3 /*Invalid Request*/)
-			}
-
-			return price
 		}
+
+		priceid, err := context.NextID()
+		if err != nil {
+			return NewError(3 /*Invalid Request*/)
+		}
+
+		price, err := GetPrice(context.Tx, priceid, user.UserId)
+		if err != nil {
+			return NewError(3 /*Invalid Request*/)
+		}
+
+		return price
 	} else {
-		priceid, err := GetURLID(r.URL.Path)
+		priceid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

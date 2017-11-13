@@ -207,7 +207,7 @@ func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(1 /*Not Signed In*/)
 		}
 
-		userid, err := GetURLID(r.URL.Path)
+		userid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

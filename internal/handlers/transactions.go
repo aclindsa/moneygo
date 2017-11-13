@@ -452,9 +452,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 
 		return &transaction
 	} else if r.Method == "GET" {
-		transactionid, err := GetURLID(r.URL.Path)
-
-		if err != nil {
+		if context.LastLevel() {
 			//Return all Transactions
 			var al TransactionList
 			transactions, err := GetTransactions(context.Tx, user.UserId)
@@ -466,6 +464,10 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			return &al
 		} else {
 			//Return Transaction with this Id
+			transactionid, err := context.NextID()
+			if err != nil {
+				return NewError(3 /*Invalid Request*/)
+			}
 			transaction, err := GetTransaction(context.Tx, transactionid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
@@ -473,7 +475,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			return transaction
 		}
 	} else {
-		transactionid, err := GetURLID(r.URL.Path)
+		transactionid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -518,11 +520,6 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 
 			return &transaction
 		} else if r.Method == "DELETE" {
-			transactionid, err := GetURLID(r.URL.Path)
-			if err != nil {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			transaction, err := GetTransaction(context.Tx, transactionid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)

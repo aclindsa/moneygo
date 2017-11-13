@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"regexp"
 	"strings"
 )
 
@@ -98,14 +97,6 @@ type Account struct {
 
 type AccountList struct {
 	Accounts *[]Account `json:"accounts"`
-}
-
-var accountTransactionsRE *regexp.Regexp
-var accountImportRE *regexp.Regexp
-
-func init() {
-	accountTransactionsRE = regexp.MustCompile(`^/v1/accounts/[0-9]+/transactions/?$`)
-	accountImportRE = regexp.MustCompile(`^/v1/accounts/[0-9]+/imports/[a-z]+/?$`)
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {
@@ -384,18 +375,12 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
-		// if URL looks like /v1/accounts/[0-9]+/imports, use the account
-		// import handler
-		if accountImportRE.MatchString(r.URL.Path) {
-			var accountid int64
-			var importtype string
-			n, err := GetURLPieces(r.URL.Path, "/v1/accounts/%d/imports/%s", &accountid, &importtype)
-
-			if err != nil || n != 2 {
-				log.Print(err)
-				return NewError(999 /*Internal Error*/)
+		if !context.LastLevel() {
+			accountid, err := context.NextID()
+			if err != nil || context.NextLevel() != "imports" {
+				return NewError(3 /*Invalid Request*/)
 			}
-			return AccountImportHandler(context, r, user, accountid, importtype)
+			return AccountImportHandler(context, r, user, accountid)
 		}
 
 		account_json := r.PostFormValue("account")
@@ -433,10 +418,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 		return ResponseWrapper{201, &account}
 	} else if r.Method == "GET" {
-		var accountid int64
-		n, err := GetURLPieces(r.URL.Path, "/v1/accounts/%d", &accountid)
-
-		if err != nil || n != 1 {
+		if context.LastLevel() {
 			//Return all Accounts
 			var al AccountList
 			accounts, err := GetAccounts(context.Tx, user.UserId)
@@ -446,13 +428,14 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 			al.Accounts = accounts
 			return &al
-		} else {
-			// if URL looks like /account/[0-9]+/transactions, use the account
-			// transaction handler
-			if accountTransactionsRE.MatchString(r.URL.Path) {
-				return AccountTransactionsHandler(context, r, user, accountid)
-			}
+		}
 
+		accountid, err := context.NextID()
+		if err != nil {
+			return NewError(3 /*Invalid Request*/)
+		}
+
+		if context.LastLevel() {
 			// Return Account with this Id
 			account, err := GetAccount(context.Tx, accountid, user.UserId)
 			if err != nil {
@@ -460,9 +443,11 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 
 			return account
+		} else if context.NextLevel() == "transactions" {
+			return AccountTransactionsHandler(context, r, user, accountid)
 		}
 	} else {
-		accountid, err := GetURLID(r.URL.Path)
+		accountid, err := context.NextID()
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
