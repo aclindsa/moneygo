@@ -348,10 +348,9 @@ func AccountImportHandler(context *Context, r *http.Request, user *User, account
 }
 
 func ImportHandler(r *http.Request, context *Context) ResponseWriterWriter {
-	current, remaining := NextLevel(context.Remaining)
-	if current != "gnucash" {
+	route := context.NextLevel()
+	if route != "gnucash" {
 		return NewError(3 /*Invalid Request*/)
 	}
-	context.Remaining = remaining
 	return GnucashImportHandler(r, context)
 }

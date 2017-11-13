@@ -12,21 +12,30 @@ import (
 type ResponseWriterWriter interface {
 	Write(http.ResponseWriter) error
 }
-type Tx = gorp.Transaction
-type Context struct {
-	Tx        *Tx
-	User      *User
-	Remaining string // portion of URL not yet reached in the hierarchy
-}
-type Handler func(*http.Request, *Context) ResponseWriterWriter
 
-func NextLevel(previous string) (current, remaining string) {
-	split := strings.SplitN(previous, "/", 2)
-	if len(split) == 2 {
-		return split[0], split[1]
-	}
-	return split[0], ""
+type Tx = gorp.Transaction
+
+type Context struct {
+	Tx           *Tx
+	User         *User
+	remainingURL string // portion of URL path not yet reached in the hierarchy
 }
+
+func (c *Context) SetURL(url string) {
+	c.remainingURL = path.Clean("/" + url)[1:]
+}
+
+func (c *Context) NextLevel() string {
+	split := strings.SplitN(c.remainingURL, "/", 2)
+	if len(split) == 2 {
+		c.remainingURL = split[1]
+	} else {
+		c.remainingURL = ""
+	}
+	return split[0]
+}
+
+type Handler func(*http.Request, *Context) ResponseWriterWriter
 
 type APIHandler struct {
 	DB *gorp.DbMap
@@ -59,15 +68,15 @@ func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (w
 }
 
 func (ah *APIHandler) route(r *http.Request) ResponseWriterWriter {
-	current, remaining := NextLevel(path.Clean("/" + r.URL.Path)[1:])
-	if current != "v1" {
+	context := &Context{}
+	context.SetURL(r.URL.Path)
+	if context.NextLevel() != "v1" {
 		return NewError(3 /*Invalid Request*/)
 	}
 
-	current, remaining = NextLevel(remaining)
-	context := &Context{Remaining: remaining}
+	route := context.NextLevel()
 
-	switch current {
+	switch route {
 	case "sessions":
 		return ah.txWrapper(SessionHandler, r, context)
 	case "users":
