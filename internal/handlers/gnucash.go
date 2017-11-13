@@ -308,8 +308,8 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	return &gncimport, nil
 }
 
-func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func GnucashImportHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -363,7 +363,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	securityMap := make(map[int64]int64)
 	for _, security := range gnucashImport.Securities {
 		securityId := security.SecurityId // save off because it could be updated
-		s, err := ImportGetCreateSecurity(tx, user.UserId, &security)
+		s, err := ImportGetCreateSecurity(context.Tx, user.UserId, &security)
 		if err != nil {
 			log.Print(err)
 			log.Print(security)
@@ -378,7 +378,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		price.CurrencyId = securityMap[price.CurrencyId]
 		price.PriceId = 0
 
-		err := CreatePriceIfNotExist(tx, &price)
+		err := CreatePriceIfNotExist(context.Tx, &price)
 		if err != nil {
 			log.Print(err)
 			return NewError(6 /*Import Error*/)
@@ -407,7 +407,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 					account.ParentAccountId = accountMap[account.ParentAccountId]
 				}
 				account.SecurityId = securityMap[account.SecurityId]
-				a, err := GetCreateAccount(tx, account)
+				a, err := GetCreateAccount(context.Tx, account)
 				if err != nil {
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)
@@ -436,7 +436,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 			split.AccountId = acctId
 
-			exists, err := split.AlreadyImported(tx)
+			exists, err := split.AlreadyImported(context.Tx)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -445,7 +445,7 @@ func GnucashImportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 		}
 		if !already_imported {
-			err := InsertTransaction(tx, &transaction, user)
+			err := InsertTransaction(context.Tx, &transaction, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

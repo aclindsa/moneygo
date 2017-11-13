@@ -246,8 +246,8 @@ func ImportGetCreateSecurity(tx *Tx, userid int64, security *Security) (*Securit
 	return security, nil
 }
 
-func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -266,7 +266,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		security.SecurityId = -1
 		security.UserId = user.UserId
 
-		err = InsertSecurity(tx, &security)
+		err = InsertSecurity(context.Tx, &security)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -281,7 +281,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			//Return all securities
 			var sl SecurityList
 
-			securities, err := GetSecurities(tx, user.UserId)
+			securities, err := GetSecurities(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -290,7 +290,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			sl.Securities = securities
 			return &sl
 		} else {
-			security, err := GetSecurity(tx, securityid, user.UserId)
+			security, err := GetSecurity(context.Tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -315,7 +315,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 			security.UserId = user.UserId
 
-			err = UpdateSecurity(tx, &security)
+			err = UpdateSecurity(context.Tx, &security)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -323,12 +323,12 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return &security
 		} else if r.Method == "DELETE" {
-			security, err := GetSecurity(tx, securityid, user.UserId)
+			security, err := GetSecurity(context.Tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteSecurity(tx, security)
+			err = DeleteSecurity(context.Tx, security)
 			if _, ok := err.(SecurityInUseError); ok {
 				return NewError(7 /*In Use Error*/)
 			} else if err != nil {
@@ -342,7 +342,7 @@ func SecurityHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 	return NewError(3 /*Invalid Request*/)
 }
 
-func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
+func SecurityTemplateHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "GET" {
 		var sl SecurityList
 
@@ -356,8 +356,7 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		if len(typestring) > 0 {
 			_type = GetSecurityType(typestring)
 			if _type == 0 {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 		}
 
@@ -365,8 +364,7 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		if limitstring != "" {
 			limitint, err := strconv.ParseInt(limitstring, 10, 0)
 			if err != nil {
-				WriteError(w, 3 /*Invalid Request*/)
-				return
+				return NewError(3 /*Invalid Request*/)
 			}
 			limit = limitint
 		}
@@ -374,13 +372,8 @@ func SecurityTemplateHandler(w http.ResponseWriter, r *http.Request) {
 		securities := SearchSecurityTemplates(search, _type, limit)
 
 		sl.Securities = &securities
-		err := (&sl).Write(w)
-		if err != nil {
-			WriteError(w, 999 /*Internal Error*/)
-			log.Print(err)
-			return
-		}
+		return &sl
 	} else {
-		WriteError(w, 3 /*Invalid Request*/)
+		return NewError(3 /*Invalid Request*/)
 	}
 }

@@ -28,13 +28,15 @@ func TestSecurityTemplates(t *testing.T) {
 	}
 
 	num_usd := 0
-	for _, s := range *sl.Securities {
-		if s.Type != handlers.Currency {
-			t.Fatalf("Requested Currency-only security templates, received a non-Currency template for %s", s.Name)
-		}
+	if sl.Securities != nil {
+		for _, s := range *sl.Securities {
+			if s.Type != handlers.Currency {
+				t.Fatalf("Requested Currency-only security templates, received a non-Currency template for %s", s.Name)
+			}
 
-		if s.Name == "USD" && s.AlternateId == "840" {
-			num_usd++
+			if s.Name == "USD" && s.AlternateId == "840" {
+				num_usd++
+			}
 		}
 	}
 
@@ -62,6 +64,10 @@ func TestSecurityTemplateLimit(t *testing.T) {
 	err = (&sl).Read(string(body))
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if sl.Securities == nil {
+		t.Fatalf("Securities was unexpectedly nil\n")
 	}
 
 	if len(*sl.Securities) > 5 {

@@ -400,8 +400,8 @@ func DeleteTransaction(tx *Tx, t *Transaction, user *User) error {
 	return nil
 }
 
-func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -426,13 +426,13 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
-			_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
+			_, err := GetAccount(context.Tx, transaction.Splits[i].AccountId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 		}
 
-		balanced, err := transaction.Balanced(tx)
+		balanced, err := transaction.Balanced(context.Tx)
 		if err != nil {
 			return NewError(999 /*Internal Error*/)
 		}
@@ -440,7 +440,7 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = InsertTransaction(tx, &transaction, user)
+		err = InsertTransaction(context.Tx, &transaction, user)
 		if err != nil {
 			if _, ok := err.(AccountMissingError); ok {
 				return NewError(3 /*Invalid Request*/)
@@ -457,7 +457,7 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		if err != nil {
 			//Return all Transactions
 			var al TransactionList
-			transactions, err := GetTransactions(tx, user.UserId)
+			transactions, err := GetTransactions(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -466,7 +466,7 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return &al
 		} else {
 			//Return Transaction with this Id
-			transaction, err := GetTransaction(tx, transactionid, user.UserId)
+			transaction, err := GetTransaction(context.Tx, transactionid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -490,7 +490,7 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 			transaction.UserId = user.UserId
 
-			balanced, err := transaction.Balanced(tx)
+			balanced, err := transaction.Balanced(context.Tx)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -504,13 +504,13 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 
 			for i := range transaction.Splits {
-				_, err := GetAccount(tx, transaction.Splits[i].AccountId, user.UserId)
+				_, err := GetAccount(context.Tx, transaction.Splits[i].AccountId, user.UserId)
 				if err != nil {
 					return NewError(3 /*Invalid Request*/)
 				}
 			}
 
-			err = UpdateTransaction(tx, &transaction, user)
+			err = UpdateTransaction(context.Tx, &transaction, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -523,12 +523,12 @@ func TransactionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			transaction, err := GetTransaction(tx, transactionid, user.UserId)
+			transaction, err := GetTransaction(context.Tx, transactionid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteTransaction(tx, transaction, user)
+			err = DeleteTransaction(context.Tx, transaction, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -714,7 +714,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 
 // Return only those transactions which have at least one split pertaining to
 // an account
-func AccountTransactionsHandler(tx *Tx, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func AccountTransactionsHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
 	var page uint64 = 0
 	var limit uint64 = 50
 	var sort string = "date-desc"
@@ -747,7 +747,7 @@ func AccountTransactionsHandler(tx *Tx, r *http.Request, user *User, accountid i
 		sort = sortstring
 	}
 
-	accountTransactions, err := GetAccountTransactions(tx, user, accountid, sort, page, limit)
+	accountTransactions, err := GetAccountTransactions(context.Tx, user, accountid, sort, page, limit)
 	if err != nil {
 		log.Print(err)
 		return NewError(999 /*Internal Error*/)

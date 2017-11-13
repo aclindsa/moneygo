@@ -223,8 +223,8 @@ func ReportTabulationHandler(tx *Tx, r *http.Request, user *User, reportid int64
 	return tabulation
 }
 
-func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -247,7 +247,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = InsertReport(tx, &report)
+		err = InsertReport(context.Tx, &report)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -262,7 +262,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				log.Print(err)
 				return NewError(999 /*InternalError*/)
 			}
-			return ReportTabulationHandler(tx, r, user, reportid)
+			return ReportTabulationHandler(context.Tx, r, user, reportid)
 		}
 
 		var reportid int64
@@ -270,7 +270,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		if err != nil || n != 1 {
 			//Return all Reports
 			var rl ReportList
-			reports, err := GetReports(tx, user.UserId)
+			reports, err := GetReports(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -279,7 +279,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return &rl
 		} else {
 			// Return Report with this Id
-			report, err := GetReport(tx, reportid, user.UserId)
+			report, err := GetReport(context.Tx, reportid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -309,7 +309,7 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = UpdateReport(tx, &report)
+			err = UpdateReport(context.Tx, &report)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -317,12 +317,12 @@ func ReportHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return &report
 		} else if r.Method == "DELETE" {
-			report, err := GetReport(tx, reportid, user.UserId)
+			report, err := GetReport(context.Tx, reportid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteReport(tx, report)
+			err = DeleteReport(context.Tx, report)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

@@ -129,8 +129,8 @@ func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Pr
 	}
 }
 
-func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -148,16 +148,16 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		}
 		price.PriceId = -1
 
-		_, err = GetSecurity(tx, price.SecurityId, user.UserId)
+		_, err = GetSecurity(context.Tx, price.SecurityId, user.UserId)
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
-		_, err = GetSecurity(tx, price.CurrencyId, user.UserId)
+		_, err = GetSecurity(context.Tx, price.CurrencyId, user.UserId)
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = tx.Insert(&price)
+		err = context.Tx.Insert(&price)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -172,7 +172,7 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			//Return all prices
 			var pl PriceList
 
-			prices, err := GetPrices(tx, user.UserId)
+			prices, err := GetPrices(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -181,7 +181,7 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			pl.Prices = prices
 			return &pl
 		} else {
-			price, err := GetPrice(tx, priceid, user.UserId)
+			price, err := GetPrice(context.Tx, priceid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -205,16 +205,16 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			_, err = GetSecurity(tx, price.SecurityId, user.UserId)
+			_, err = GetSecurity(context.Tx, price.SecurityId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
-			_, err = GetSecurity(tx, price.CurrencyId, user.UserId)
+			_, err = GetSecurity(context.Tx, price.CurrencyId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			count, err := tx.Update(&price)
+			count, err := context.Tx.Update(&price)
 			if err != nil || count != 1 {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -222,12 +222,12 @@ func PriceHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return &price
 		} else if r.Method == "DELETE" {
-			price, err := GetPrice(tx, priceid, user.UserId)
+			price, err := GetPrice(context.Tx, priceid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			count, err := tx.Delete(price)
+			count, err := context.Tx.Delete(price)
 			if err != nil || count != 1 {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

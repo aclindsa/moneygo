@@ -210,7 +210,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	return SuccessWriter{}
 }
 
-func OFXImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
 	download_json := r.PostFormValue("ofxdownload")
 	if download_json == "" {
 		return NewError(3 /*Invalid Request*/)
@@ -222,7 +222,7 @@ func OFXImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) Resp
 		return NewError(3 /*Invalid Request*/)
 	}
 
-	account, err := GetAccount(tx, accountid, user.UserId)
+	account, err := GetAccount(context.Tx, accountid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}
@@ -308,10 +308,10 @@ func OFXImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) Resp
 	}
 	defer response.Body.Close()
 
-	return ofxImportHelper(tx, response.Body, user, accountid)
+	return ofxImportHelper(context.Tx, response.Body, user, accountid)
 }
 
-func OFXFileImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXFileImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
@@ -329,20 +329,29 @@ func OFXFileImportHandler(tx *Tx, r *http.Request, user *User, accountid int64) 
 		}
 	}
 
-	return ofxImportHelper(tx, part, user, accountid)
+	return ofxImportHelper(context.Tx, part, user, accountid)
 }
 
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(tx *Tx, r *http.Request, user *User, accountid int64, importtype string) ResponseWriterWriter {
+func AccountImportHandler(context *Context, r *http.Request, user *User, accountid int64, importtype string) ResponseWriterWriter {
 
 	switch importtype {
 	case "ofx":
-		return OFXImportHandler(tx, r, user, accountid)
+		return OFXImportHandler(context, r, user, accountid)
 	case "ofxfile":
-		return OFXFileImportHandler(tx, r, user, accountid)
+		return OFXFileImportHandler(context, r, user, accountid)
 	default:
 		return NewError(3 /*Invalid Request*/)
 	}
+}
+
+func ImportHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	current, remaining := NextLevel(context.Remaining)
+	if current != "gnucash" {
+		return NewError(3 /*Invalid Request*/)
+	}
+	context.Remaining = remaining
+	return GnucashImportHandler(r, context)
 }

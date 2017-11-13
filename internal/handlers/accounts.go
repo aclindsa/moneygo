@@ -377,8 +377,8 @@ func DeleteAccount(tx *Tx, a *Account) error {
 	return nil
 }
 
-func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
-	user, err := GetUserFromSession(tx, r)
+func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
+	user, err := GetUserFromSession(context.Tx, r)
 	if err != nil {
 		return NewError(1 /*Not Signed In*/)
 	}
@@ -395,7 +395,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
 			}
-			return AccountImportHandler(tx, r, user, accountid, importtype)
+			return AccountImportHandler(context, r, user, accountid, importtype)
 		}
 
 		account_json := r.PostFormValue("account")
@@ -412,7 +412,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		account.UserId = user.UserId
 		account.AccountVersion = 0
 
-		security, err := GetSecurity(tx, account.SecurityId, user.UserId)
+		security, err := GetSecurity(context.Tx, account.SecurityId, user.UserId)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -421,7 +421,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = InsertAccount(tx, &account)
+		err = InsertAccount(context.Tx, &account)
 		if err != nil {
 			if _, ok := err.(ParentAccountMissingError); ok {
 				return NewError(3 /*Invalid Request*/)
@@ -439,7 +439,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		if err != nil || n != 1 {
 			//Return all Accounts
 			var al AccountList
-			accounts, err := GetAccounts(tx, user.UserId)
+			accounts, err := GetAccounts(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -450,11 +450,11 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			// if URL looks like /account/[0-9]+/transactions, use the account
 			// transaction handler
 			if accountTransactionsRE.MatchString(r.URL.Path) {
-				return AccountTransactionsHandler(tx, r, user, accountid)
+				return AccountTransactionsHandler(context, r, user, accountid)
 			}
 
 			// Return Account with this Id
-			account, err := GetAccount(tx, accountid, user.UserId)
+			account, err := GetAccount(context.Tx, accountid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -479,7 +479,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			}
 			account.UserId = user.UserId
 
-			security, err := GetSecurity(tx, account.SecurityId, user.UserId)
+			security, err := GetSecurity(context.Tx, account.SecurityId, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -492,7 +492,7 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = UpdateAccount(tx, &account)
+			err = UpdateAccount(context.Tx, &account)
 			if err != nil {
 				if _, ok := err.(ParentAccountMissingError); ok {
 					return NewError(3 /*Invalid Request*/)
@@ -506,12 +506,12 @@ func AccountHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return &account
 		} else if r.Method == "DELETE" {
-			account, err := GetAccount(tx, accountid, user.UserId)
+			account, err := GetAccount(context.Tx, accountid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteAccount(tx, account)
+			err = DeleteAccount(context.Tx, account)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

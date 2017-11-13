@@ -175,7 +175,7 @@ func DeleteUser(tx *Tx, u *User) error {
 	return nil
 }
 
-func UserHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" {
 		user_json := r.PostFormValue("user")
 		if user_json == "" {
@@ -190,7 +190,7 @@ func UserHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 		user.UserId = -1
 		user.HashPassword()
 
-		err = InsertUser(tx, &user)
+		err = InsertUser(context.Tx, &user)
 		if err != nil {
 			if _, ok := err.(UserExistsError); ok {
 				return NewError(4 /*User Exists*/)
@@ -202,7 +202,7 @@ func UserHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 		return ResponseWrapper{201, &user}
 	} else {
-		user, err := GetUserFromSession(tx, r)
+		user, err := GetUserFromSession(context.Tx, r)
 		if err != nil {
 			return NewError(1 /*Not Signed In*/)
 		}
@@ -240,7 +240,7 @@ func UserHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 				user.PasswordHash = old_pwhash
 			}
 
-			err = UpdateUser(tx, user)
+			err = UpdateUser(context.Tx, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -248,7 +248,7 @@ func UserHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 
 			return user
 		} else if r.Method == "DELETE" {
-			err := DeleteUser(tx, user)
+			err := DeleteUser(context.Tx, user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

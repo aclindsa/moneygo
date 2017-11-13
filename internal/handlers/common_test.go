@@ -186,8 +186,7 @@ func RunTests(m *testing.M) int {
 		log.Fatal(err)
 	}
 
-	servemux := handlers.GetHandler(dbmap)
-	server = httptest.NewTLSServer(servemux)
+	server = httptest.NewTLSServer(&handlers.APIHandler{DB: dbmap})
 	defer server.Close()
 
 	return m.Run()

@@ -79,7 +79,8 @@ func main() {
 	}
 
 	// Get ServeMux for API and add our own handlers for files
-	servemux := handlers.GetHandler(dbmap)
+	servemux := http.NewServeMux()
+	servemux.Handle("/v1/", &handlers.APIHandler{DB: dbmap})
 	servemux.HandleFunc("/", FileHandlerFunc(rootHandler, cfg.MoneyGo.Basedir))
 	servemux.HandleFunc("/static/", FileHandlerFunc(staticHandler, cfg.MoneyGo.Basedir))
 

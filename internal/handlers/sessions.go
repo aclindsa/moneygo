@@ -101,7 +101,7 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 	return &NewSessionWriter{&s, &cookie}, nil
 }
 
-func SessionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
+func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" || r.Method == "PUT" {
 		user_json := r.PostFormValue("user")
 		if user_json == "" {
@@ -114,7 +114,7 @@ func SessionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		dbuser, err := GetUserByUsername(tx, user.Username)
+		dbuser, err := GetUserByUsername(context.Tx, user.Username)
 		if err != nil {
 			return NewError(2 /*Unauthorized Access*/)
 		}
@@ -124,27 +124,27 @@ func SessionHandler(r *http.Request, tx *Tx) ResponseWriterWriter {
 			return NewError(2 /*Unauthorized Access*/)
 		}
 
-		err = DeleteSessionIfExists(tx, r)
+		err = DeleteSessionIfExists(context.Tx, r)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
 		}
 
-		sessionwriter, err := NewSession(tx, r, dbuser.UserId)
+		sessionwriter, err := NewSession(context.Tx, r, dbuser.UserId)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
 		}
 		return sessionwriter
 	} else if r.Method == "GET" {
-		s, err := GetSession(tx, r)
+		s, err := GetSession(context.Tx, r)
 		if err != nil {
 			return NewError(1 /*Not Signed In*/)
 		}
 
 		return s
 	} else if r.Method == "DELETE" {
-		err := DeleteSessionIfExists(tx, r)
+		err := DeleteSessionIfExists(context.Tx, r)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)

@@ -4,6 +4,8 @@ import (
 	"gopkg.in/gorp.v1"
 	"log"
 	"net/http"
+	"path"
+	"strings"
 )
 
 // But who writes the ResponseWriterWriter?
@@ -11,56 +13,84 @@ type ResponseWriterWriter interface {
 	Write(http.ResponseWriter) error
 }
 type Tx = gorp.Transaction
-type TxHandler func(*http.Request, *Tx) ResponseWriterWriter
+type Context struct {
+	Tx        *Tx
+	User      *User
+	Remaining string // portion of URL not yet reached in the hierarchy
+}
+type Handler func(*http.Request, *Context) ResponseWriterWriter
 
-func TxHandlerFunc(t TxHandler, db *gorp.DbMap) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		tx, err := db.Begin()
-		if err != nil {
-			log.Print(err)
-			WriteError(w, 999 /*Internal Error*/)
-			return
-		}
-		defer func() {
-			if r := recover(); r != nil {
-				tx.Rollback()
-				WriteError(w, 999 /*Internal Error*/)
-				panic(r)
-			}
-		}()
+func NextLevel(previous string) (current, remaining string) {
+	split := strings.SplitN(previous, "/", 2)
+	if len(split) == 2 {
+		return split[0], split[1]
+	}
+	return split[0], ""
+}
 
-		writer := t(r, tx)
+type APIHandler struct {
+	DB *gorp.DbMap
+}
 
-		if e, ok := writer.(*Error); ok {
+func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
+	tx, err := ah.DB.Begin()
+	if err != nil {
+		log.Print(err)
+		return NewError(999 /*Internal Error*/)
+	}
+	defer func() {
+		if r := recover(); r != nil {
 			tx.Rollback()
-			e.Write(w)
+			panic(r)
+		}
+		if _, ok := writer.(*Error); ok {
+			tx.Rollback()
 		} else {
 			err = tx.Commit()
 			if err != nil {
 				log.Print(err)
-				WriteError(w, 999 /*Internal Error*/)
-			} else {
-				err = writer.Write(w)
-				if err != nil {
-					log.Print(err)
-					WriteError(w, 999 /*Internal Error*/)
-				}
+				writer = NewError(999 /*Internal Error*/)
 			}
 		}
+	}()
+
+	context.Tx = tx
+	return h(r, context)
+}
+
+func (ah *APIHandler) route(r *http.Request) ResponseWriterWriter {
+	current, remaining := NextLevel(path.Clean("/" + r.URL.Path)[1:])
+	if current != "v1" {
+		return NewError(3 /*Invalid Request*/)
+	}
+
+	current, remaining = NextLevel(remaining)
+	context := &Context{Remaining: remaining}
+
+	switch current {
+	case "sessions":
+		return ah.txWrapper(SessionHandler, r, context)
+	case "users":
+		return ah.txWrapper(UserHandler, r, context)
+	case "securities":
+		return ah.txWrapper(SecurityHandler, r, context)
+	case "securitytemplates":
+		return SecurityTemplateHandler(r, context)
+	case "prices":
+		return ah.txWrapper(PriceHandler, r, context)
+	case "accounts":
+		return ah.txWrapper(AccountHandler, r, context)
+	case "transactions":
+		return ah.txWrapper(TransactionHandler, r, context)
+	case "imports":
+		return ah.txWrapper(ImportHandler, r, context)
+	case "reports":
+		return ah.txWrapper(ReportHandler, r, context)
+	default:
+		return NewError(3 /*Invalid Request*/)
 	}
 }
 
-func GetHandler(db *gorp.DbMap) *http.ServeMux {
-	servemux := http.NewServeMux()
-	servemux.HandleFunc("/v1/sessions/", TxHandlerFunc(SessionHandler, db))
-	servemux.HandleFunc("/v1/users/", TxHandlerFunc(UserHandler, db))
-	servemux.HandleFunc("/v1/securities/", TxHandlerFunc(SecurityHandler, db))
-	servemux.HandleFunc("/v1/prices/", TxHandlerFunc(PriceHandler, db))
-	servemux.HandleFunc("/v1/securitytemplates/", SecurityTemplateHandler)
-	servemux.HandleFunc("/v1/accounts/", TxHandlerFunc(AccountHandler, db))
-	servemux.HandleFunc("/v1/transactions/", TxHandlerFunc(TransactionHandler, db))
-	servemux.HandleFunc("/v1/imports/gnucash", TxHandlerFunc(GnucashImportHandler, db))
-	servemux.HandleFunc("/v1/reports/", TxHandlerFunc(ReportHandler, db))
-
-	return servemux
+func (ah *APIHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ah.route(r).Write(w)
 }
