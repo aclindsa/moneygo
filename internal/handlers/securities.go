@@ -253,14 +253,8 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
-		security_json := r.PostFormValue("security")
-		if security_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var security Security
-		err := security.Read(security_json)
-		if err != nil {
+		if err := ReadJSON(r, &security); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		security.SecurityId = -1
@@ -304,14 +298,8 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			security_json := r.PostFormValue("security")
-			if security_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			var security Security
-			err := security.Read(security_json)
-			if err != nil || security.SecurityId != securityid {
+			if err := ReadJSON(r, &security); err != nil || security.SecurityId != securityid {
 				return NewError(3 /*Invalid Request*/)
 			}
 			security.UserId = user.UserId

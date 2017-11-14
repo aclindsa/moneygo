@@ -136,14 +136,8 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
-		price_json := r.PostFormValue("price")
-		if price_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var price Price
-		err := price.Read(price_json)
-		if err != nil {
+		if err := ReadJSON(r, &price); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		price.PriceId = -1
@@ -196,14 +190,8 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			price_json := r.PostFormValue("price")
-			if price_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			var price Price
-			err := price.Read(price_json)
-			if err != nil || price.PriceId != priceid {
+			if err := ReadJSON(r, &price); err != nil || price.PriceId != priceid {
 				return NewError(3 /*Invalid Request*/)
 			}
 

@@ -130,7 +130,7 @@ function create(report) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/reports/",
-			data: {report: report.toJSON()},
+			data: report.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -157,7 +157,7 @@ function update(report) {
 			type: "PUT",
 			dataType: "json",
 			url: "v1/reports/"+report.ReportId+"/",
-			data: {report: report.toJSON()},
+			data: report.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

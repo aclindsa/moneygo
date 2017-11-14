@@ -101,7 +101,7 @@ function create(account) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/accounts/",
-			data: {account: account.toJSON()},
+			data: account.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -128,7 +128,7 @@ function update(account) {
 			type: "PUT",
 			dataType: "json",
 			url: "v1/accounts/"+account.AccountId+"/",
-			data: {account: account.toJSON()},
+			data: account.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

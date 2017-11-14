@@ -1,9 +1,21 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 )
+
+func ReadJSON(r *http.Request, v interface{}) error {
+	jsonstring, err := ioutil.ReadAll(io.LimitReader(r.Body, 10*1024*1024 /*10Mb*/))
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(jsonstring, v)
+}
 
 type ResponseWrapper struct {
 	Code   int

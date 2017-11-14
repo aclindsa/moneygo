@@ -1,18 +1,18 @@
 package handlers_test
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
-	"strings"
 	"testing"
 )
 
@@ -26,12 +26,12 @@ func Delete(client *http.Client, url string) (*http.Response, error) {
 	return client.Do(request)
 }
 
-func PutForm(client *http.Client, url string, data url.Values) (*http.Response, error) {
-	request, err := http.NewRequest(http.MethodPut, url, strings.NewReader(data.Encode()))
+func Put(client *http.Client, url string, contentType string, body io.Reader) (*http.Response, error) {
+	request, err := http.NewRequest(http.MethodPut, url, body)
 	if err != nil {
 		return nil, err
 	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Content-Type", contentType)
 	return client.Do(request)
 }
 
@@ -39,12 +39,12 @@ type TransactType interface {
 	Read(string) error
 }
 
-func create(client *http.Client, input, output TransactType, urlsuffix, key string) error {
-	bytes, err := json.Marshal(input)
+func create(client *http.Client, input, output TransactType, urlsuffix string) error {
+	obj, err := json.MarshalIndent(input, "", "  ")
 	if err != nil {
 		return err
 	}
-	response, err := client.PostForm(server.URL+urlsuffix, url.Values{key: {string(bytes)}})
+	response, err := client.Post(server.URL+urlsuffix, "application/json", bytes.NewReader(obj))
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func create(client *http.Client, input, output TransactType, urlsuffix, key stri
 	return nil
 }
 
-func read(client *http.Client, output TransactType, urlsuffix, key string) error {
+func read(client *http.Client, output TransactType, urlsuffix string) error {
 	response, err := client.Get(server.URL + urlsuffix)
 	if err != nil {
 		return err
@@ -101,12 +101,12 @@ func read(client *http.Client, output TransactType, urlsuffix, key string) error
 	return nil
 }
 
-func update(client *http.Client, input, output TransactType, urlsuffix, key string) error {
-	bytes, err := json.Marshal(input)
+func update(client *http.Client, input, output TransactType, urlsuffix string) error {
+	obj, err := json.MarshalIndent(input, "", "  ")
 	if err != nil {
 		return err
 	}
-	response, err := PutForm(client, server.URL+urlsuffix, url.Values{key: {string(bytes)}})
+	response, err := Put(client, server.URL+urlsuffix, "application/json", bytes.NewReader(obj))
 	if err != nil {
 		return err
 	}
@@ -134,7 +134,7 @@ func update(client *http.Client, input, output TransactType, urlsuffix, key stri
 	return nil
 }
 
-func remove(client *http.Client, urlsuffix, key string) error {
+func remove(client *http.Client, urlsuffix string) error {
 	response, err := Delete(client, server.URL+urlsuffix)
 	if err != nil {
 		return err

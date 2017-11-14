@@ -223,14 +223,8 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
-		report_json := r.PostFormValue("report")
-		if report_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var report Report
-		err := report.Read(report_json)
-		if err != nil {
+		if err := ReadJSON(r, &report); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		report.ReportId = -1
@@ -283,14 +277,8 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		}
 
 		if r.Method == "PUT" {
-			report_json := r.PostFormValue("report")
-			if report_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			var report Report
-			err := report.Read(report_json)
-			if err != nil || report.ReportId != reportid {
+			if err := ReadJSON(r, &report); err != nil || report.ReportId != reportid {
 				return NewError(3 /*Invalid Request*/)
 			}
 			report.UserId = user.UserId

@@ -177,20 +177,14 @@ func DeleteUser(tx *Tx, u *User) error {
 
 func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" {
-		user_json := r.PostFormValue("user")
-		if user_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var user User
-		err := user.Read(user_json)
-		if err != nil {
+		if err := ReadJSON(r, &user); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		user.UserId = -1
 		user.HashPassword()
 
-		err = InsertUser(context.Tx, &user)
+		err := InsertUser(context.Tx, &user)
 		if err != nil {
 			if _, ok := err.(UserExistsError); ok {
 				return NewError(4 /*User Exists*/)
@@ -219,16 +213,10 @@ func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		if r.Method == "GET" {
 			return user
 		} else if r.Method == "PUT" {
-			user_json := r.PostFormValue("user")
-			if user_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			// Save old PWHash in case the new password is bogus
 			old_pwhash := user.PasswordHash
 
-			err = user.Read(user_json)
-			if err != nil || user.UserId != userid {
+			if err := ReadJSON(r, &user); err != nil || user.UserId != userid {
 				return NewError(3 /*Invalid Request*/)
 			}
 

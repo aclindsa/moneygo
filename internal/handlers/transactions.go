@@ -407,14 +407,8 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	}
 
 	if r.Method == "POST" {
-		transaction_json := r.PostFormValue("transaction")
-		if transaction_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var transaction Transaction
-		err := transaction.Read(transaction_json)
-		if err != nil {
+		if err := ReadJSON(r, &transaction); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		transaction.TransactionId = -1
@@ -480,14 +474,8 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			transaction_json := r.PostFormValue("transaction")
-			if transaction_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			var transaction Transaction
-			err := transaction.Read(transaction_json)
-			if err != nil || transaction.TransactionId != transactionid {
+			if err := ReadJSON(r, &transaction); err != nil || transaction.TransactionId != transactionid {
 				return NewError(3 /*Invalid Request*/)
 			}
 			transaction.UserId = user.UserId

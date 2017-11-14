@@ -9,13 +9,13 @@ import (
 
 func createUser(user *User) (*User, error) {
 	var u User
-	err := create(server.Client(), user, &u, "/v1/users/", "user")
+	err := create(server.Client(), user, &u, "/v1/users/")
 	return &u, err
 }
 
 func getUser(client *http.Client, userid int64) (*User, error) {
 	var u User
-	err := read(client, &u, "/v1/users/"+strconv.FormatInt(userid, 10), "user")
+	err := read(client, &u, "/v1/users/"+strconv.FormatInt(userid, 10))
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func getUser(client *http.Client, userid int64) (*User, error) {
 
 func updateUser(client *http.Client, user *User) (*User, error) {
 	var u User
-	err := update(client, user, &u, "/v1/users/"+strconv.FormatInt(user.UserId, 10), "user")
+	err := update(client, user, &u, "/v1/users/"+strconv.FormatInt(user.UserId, 10))
 	if err != nil {
 		return nil, err
 	}
@@ -32,7 +32,7 @@ func updateUser(client *http.Client, user *User) (*User, error) {
 }
 
 func deleteUser(client *http.Client, u *User) error {
-	err := remove(client, "/v1/users/"+strconv.FormatInt(u.UserId, 10), "user")
+	err := remove(client, "/v1/users/"+strconv.FormatInt(u.UserId, 10))
 	if err != nil {
 		return err
 	}

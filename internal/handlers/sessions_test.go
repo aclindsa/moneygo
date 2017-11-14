@@ -21,19 +21,19 @@ func newSession(user *User) (*http.Client, error) {
 	client = *server.Client()
 	client.Jar = jar
 
-	create(&client, user, &u, "/v1/sessions/", "user")
+	create(&client, user, &u, "/v1/sessions/")
 
 	return &client, nil
 }
 
 func getSession(client *http.Client) (*handlers.Session, error) {
 	var s handlers.Session
-	err := read(client, &s, "/v1/sessions/", "session")
+	err := read(client, &s, "/v1/sessions/")
 	return &s, err
 }
 
 func deleteSession(client *http.Client) error {
-	return remove(client, "/v1/sessions/", "session")
+	return remove(client, "/v1/sessions/")
 }
 
 func sessionExistsOrError(c *http.Client) error {

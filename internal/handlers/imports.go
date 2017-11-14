@@ -211,14 +211,8 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 }
 
 func OFXImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
-	download_json := r.PostFormValue("ofxdownload")
-	if download_json == "" {
-		return NewError(3 /*Invalid Request*/)
-	}
-
 	var ofxdownload OFXDownload
-	err := ofxdownload.Read(download_json)
-	if err != nil {
+	if err := ReadJSON(r, &ofxdownload); err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}
 

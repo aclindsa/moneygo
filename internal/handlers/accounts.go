@@ -383,14 +383,8 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return AccountImportHandler(context, r, user, accountid)
 		}
 
-		account_json := r.PostFormValue("account")
-		if account_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
 		var account Account
-		err := account.Read(account_json)
-		if err != nil {
+		if err := ReadJSON(r, &account); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 		account.AccountId = -1
@@ -452,14 +446,8 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			account_json := r.PostFormValue("account")
-			if account_json == "" {
-				return NewError(3 /*Invalid Request*/)
-			}
-
 			var account Account
-			err := account.Read(account_json)
-			if err != nil || account.AccountId != accountid {
+			if err := ReadJSON(r, &account); err != nil || account.AccountId != accountid {
 				return NewError(3 /*Invalid Request*/)
 			}
 			account.UserId = user.UserId

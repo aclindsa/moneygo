@@ -139,7 +139,7 @@ function create(transaction) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/transactions/",
-			data: {transaction: transaction.toJSON()},
+			data: transaction.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -166,7 +166,7 @@ function update(transaction) {
 			type: "PUT",
 			dataType: "json",
 			url: "v1/transactions/"+transaction.TransactionId+"/",
-			data: {transaction: transaction.toJSON()},
+			data: transaction.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

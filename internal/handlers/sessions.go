@@ -103,14 +103,8 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 
 func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" || r.Method == "PUT" {
-		user_json := r.PostFormValue("user")
-		if user_json == "" {
-			return NewError(3 /*Invalid Request*/)
-		}
-
-		user := User{}
-		err := user.Read(user_json)
-		if err != nil {
+		var user User
+		if err := ReadJSON(r, &user); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
 

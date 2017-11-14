@@ -116,7 +116,7 @@ function create(user) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/users/",
-			data: {user: user.toJSON()},
+			data: user.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -143,7 +143,7 @@ function login(user) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/sessions/",
-			data: {user: user.toJSON()},
+			data: user.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -220,7 +220,7 @@ function update(user) {
 			type: "PUT",
 			dataType: "json",
 			url: "v1/users/"+user.UserId+"/",
-			data: {user: user.toJSON()},
+			data: user.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

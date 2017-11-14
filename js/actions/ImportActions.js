@@ -60,7 +60,7 @@ function importOFX(account, password, startDate, endDate) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/accounts/"+account.AccountId+"/imports/ofx",
-			data: {ofxdownload: ofxdownload.toJSON()},
+			data: ofxdownload.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);

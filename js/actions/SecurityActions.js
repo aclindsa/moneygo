@@ -101,7 +101,7 @@ function create(security) {
 			type: "POST",
 			dataType: "json",
 			url: "v1/securities/",
-			data: {security: security.toJSON()},
+			data: security.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
@@ -128,7 +128,7 @@ function update(security) {
 			type: "PUT",
 			dataType: "json",
 			url: "v1/securities/"+security.SecurityId+"/",
-			data: {security: security.toJSON()},
+			data: security.toJSON(),
 			success: function(data, status, jqXHR) {
 				var e = new Error();
 				e.fromJSON(data);
