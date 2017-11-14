@@ -137,6 +137,7 @@ function create(transaction) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/transactions/",
 			data: transaction.toJSON(),
@@ -164,6 +165,7 @@ function update(transaction) {
 
 		$.ajax({
 			type: "PUT",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/transactions/"+transaction.TransactionId+"/",
 			data: transaction.toJSON(),

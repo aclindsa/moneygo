@@ -99,6 +99,7 @@ function create(security) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/securities/",
 			data: security.toJSON(),
@@ -126,6 +127,7 @@ function update(security) {
 
 		$.ajax({
 			type: "PUT",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/securities/"+security.SecurityId+"/",
 			data: security.toJSON(),

@@ -114,6 +114,7 @@ function create(user) {
 		dispatch(createUser(user));
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/users/",
 			data: user.toJSON(),
@@ -141,6 +142,7 @@ function login(user) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/sessions/",
 			data: user.toJSON(),
@@ -218,6 +220,7 @@ function update(user) {
 
 		$.ajax({
 			type: "PUT",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/users/"+user.UserId+"/",
 			data: user.toJSON(),

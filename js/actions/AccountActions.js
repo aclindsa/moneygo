@@ -99,6 +99,7 @@ function create(account) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/accounts/",
 			data: account.toJSON(),
@@ -126,6 +127,7 @@ function update(account) {
 
 		$.ajax({
 			type: "PUT",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/accounts/"+account.AccountId+"/",
 			data: account.toJSON(),

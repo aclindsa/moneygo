@@ -58,6 +58,7 @@ function importOFX(account, password, startDate, endDate) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/accounts/"+account.AccountId+"/imports/ofx",
 			data: ofxdownload.toJSON(),

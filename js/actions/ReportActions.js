@@ -128,6 +128,7 @@ function create(report) {
 
 		$.ajax({
 			type: "POST",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/reports/",
 			data: report.toJSON(),
@@ -155,6 +156,7 @@ function update(report) {
 
 		$.ajax({
 			type: "PUT",
+			contentType: "application/json",
 			dataType: "json",
 			url: "v1/reports/"+report.ReportId+"/",
 			data: report.toJSON(),
