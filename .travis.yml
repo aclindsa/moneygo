@@ -7,6 +7,20 @@ go:
   - 1.9.x
   - master
 
+services:
+  - mysql
+  - postgresql
+
+env:
+  - MONEYGO_TEST_DB=sqlite
+  - MONEYGO_TEST_DB=mysql    MONEYGO_TEST_DSN="root@tcp(127.0.0.1)/moneygo_test?parseTime=true"
+# - MONEYGO_TEST_DB=postgres MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test"
+
+before_script:
+  - sh -c "if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'DROP DATABASE IF EXISTS moneygo_test;' -U postgres; fi"
+  - sh -c "if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'CREATE DATABASE moneygo_test;' -U postgres; fi"
+  - sh -c "if [ $MONEYGO_TEST_DB = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS moneygo_test;'; fi"
+
 script:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
