@@ -87,8 +87,8 @@ func ensureTransactionsMatch(t *testing.T, expected, tran *handlers.Transaction,
 	if tran.Description != expected.Description {
 		t.Errorf("Description doesn't match")
 	}
-	if tran.Date != expected.Date {
-		t.Errorf("Date doesn't match")
+	if !tran.Date.Equal(expected.Date) {
+		t.Errorf("Date (%+v) differs from expected (%+v)", tran.Date, expected.Date)
 	}
 
 	if len(tran.Splits) != len(expected.Splits) {
