@@ -64,7 +64,7 @@ func TestCreatePrice(t *testing.T) {
 			if p.CurrencyId != d.securities[orig.CurrencyId].SecurityId {
 				t.Errorf("CurrencyId doesn't match")
 			}
-			if p.Date != orig.Date {
+			if !p.Date.Equal(orig.Date) {
 				t.Errorf("Date doesn't match")
 			}
 			if p.Value != orig.Value {
@@ -94,7 +94,7 @@ func TestGetPrice(t *testing.T) {
 			if p.CurrencyId != d.securities[orig.CurrencyId].SecurityId {
 				t.Errorf("CurrencyId doesn't match")
 			}
-			if p.Date != orig.Date {
+			if !p.Date.Equal(orig.Date) {
 				t.Errorf("Date doesn't match")
 			}
 			if p.Value != orig.Value {
@@ -131,7 +131,7 @@ func TestGetPrices(t *testing.T) {
 
 				found := false
 				for _, p := range *pl.Prices {
-					if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date == orig.Date && p.Value == orig.Value && p.RemoteId == orig.RemoteId {
+					if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date.Equal(orig.Date) && p.Value == orig.Value && p.RemoteId == orig.RemoteId {
 						if _, ok := foundIds[p.PriceId]; ok {
 							continue
 						}
@@ -177,7 +177,7 @@ func TestUpdatePrice(t *testing.T) {
 			if p.CurrencyId != curr.CurrencyId {
 				t.Errorf("CurrencyId doesn't match")
 			}
-			if p.Date != curr.Date {
+			if !p.Date.Equal(curr.Date) {
 				t.Errorf("Date doesn't match")
 			}
 			if p.Value != curr.Value {

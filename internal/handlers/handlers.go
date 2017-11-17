@@ -14,8 +14,6 @@ type ResponseWriterWriter interface {
 	Write(http.ResponseWriter) error
 }
 
-type Tx = gorp.Transaction
-
 type Context struct {
 	Tx           *Tx
 	User         *User
@@ -51,7 +49,7 @@ type APIHandler struct {
 }
 
 func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
-	tx, err := ah.DB.Begin()
+	tx, err := GetTx(ah.DB)
 	if err != nil {
 		log.Print(err)
 		return NewError(999 /*Internal Error*/)

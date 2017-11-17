@@ -623,7 +623,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 	var sqlsort, balanceLimitOffset string
 	var balanceLimitOffsetArg uint64
 	if sort == "date-asc" {
-		sqlsort = " ORDER BY transactions.Date ASC"
+		sqlsort = " ORDER BY transactions.Date ASC, transactions.TransactionId ASC"
 		balanceLimitOffset = " LIMIT ?"
 		balanceLimitOffsetArg = page * limit
 	} else if sort == "date-desc" {
@@ -631,7 +631,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 		if err != nil {
 			return nil, err
 		}
-		sqlsort = " ORDER BY transactions.Date DESC"
+		sqlsort = " ORDER BY transactions.Date DESC, transactions.TransactionId DESC"
 		balanceLimitOffset = fmt.Sprintf(" LIMIT %d OFFSET ?", numSplits)
 		balanceLimitOffsetArg = (page + 1) * limit
 	}
@@ -676,7 +676,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 	// Sum all the splits for all transaction splits for this account that
 	// occurred before the page we're returning
 	var amounts []string
-	sql = "SELECT s.Amount FROM splits AS s INNER JOIN (SELECT DISTINCT transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ") as t ON s.TransactionId = t.TransactionId WHERE s.AccountId=?"
+	sql = "SELECT s.Amount FROM splits AS s INNER JOIN (SELECT DISTINCT transactions.Date, transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ") as t ON s.TransactionId = t.TransactionId WHERE s.AccountId=?"
 	_, err = tx.Select(&amounts, sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
 	if err != nil {
 		return nil, err
