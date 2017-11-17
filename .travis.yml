@@ -14,7 +14,7 @@ services:
 env:
   - MONEYGO_TEST_DB=sqlite
   - MONEYGO_TEST_DB=mysql    MONEYGO_TEST_DSN="root@tcp(127.0.0.1)/moneygo_test?parseTime=true"
-  - MONEYGO_TEST_DB=postgres MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test"
+# - MONEYGO_TEST_DB=postgres MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test"
 
 before_script:
   - sh -c "if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'DROP DATABASE IF EXISTS moneygo_test;' -U postgres; fi"
