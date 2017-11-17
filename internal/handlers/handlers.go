@@ -94,8 +94,6 @@ func (ah *APIHandler) route(r *http.Request) ResponseWriterWriter {
 		return ah.txWrapper(SecurityHandler, r, context)
 	case "securitytemplates":
 		return SecurityTemplateHandler(r, context)
-	case "prices":
-		return ah.txWrapper(PriceHandler, r, context)
 	case "accounts":
 		return ah.txWrapper(AccountHandler, r, context)
 	case "transactions":

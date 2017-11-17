@@ -10,22 +10,22 @@ import (
 
 func createPrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
 	var p handlers.Price
-	err := create(client, price, &p, "/v1/prices/")
+	err := create(client, price, &p, "/v1/securities/"+strconv.FormatInt(price.SecurityId, 10)+"/prices/")
 	return &p, err
 }
 
-func getPrice(client *http.Client, priceid int64) (*handlers.Price, error) {
+func getPrice(client *http.Client, priceid, securityid int64) (*handlers.Price, error) {
 	var p handlers.Price
-	err := read(client, &p, "/v1/prices/"+strconv.FormatInt(priceid, 10))
+	err := read(client, &p, "/v1/securities/"+strconv.FormatInt(securityid, 10)+"/prices/"+strconv.FormatInt(priceid, 10))
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func getPrices(client *http.Client) (*handlers.PriceList, error) {
+func getPrices(client *http.Client, securityid int64) (*handlers.PriceList, error) {
 	var pl handlers.PriceList
-	err := read(client, &pl, "/v1/prices/")
+	err := read(client, &pl, "/v1/securities/"+strconv.FormatInt(securityid, 10)+"/prices/")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func getPrices(client *http.Client) (*handlers.PriceList, error) {
 
 func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
 	var p handlers.Price
-	err := update(client, price, &p, "/v1/prices/"+strconv.FormatInt(price.PriceId, 10))
+	err := update(client, price, &p, "/v1/securities/"+strconv.FormatInt(price.SecurityId, 10)+"/prices/"+strconv.FormatInt(price.PriceId, 10))
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +42,7 @@ func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, e
 }
 
 func deletePrice(client *http.Client, p *handlers.Price) error {
-	err := remove(client, "/v1/prices/"+strconv.FormatInt(p.PriceId, 10))
+	err := remove(client, "/v1/securities/"+strconv.FormatInt(p.SecurityId, 10)+"/prices/"+strconv.FormatInt(p.PriceId, 10))
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func TestGetPrice(t *testing.T) {
 			curr := d.prices[i]
 
 			userid := data[0].securities[orig.SecurityId].UserId
-			p, err := getPrice(d.clients[userid], curr.PriceId)
+			p, err := getPrice(d.clients[userid], curr.PriceId, curr.SecurityId)
 			if err != nil {
 				t.Fatalf("Error fetching price: %s\n", err)
 			}
@@ -109,39 +109,45 @@ func TestGetPrice(t *testing.T) {
 
 func TestGetPrices(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
-		pl, err := getPrices(d.clients[0])
-		if err != nil {
-			t.Fatalf("Error fetching prices: %s\n", err)
-		}
-
-		numprices := 0
-		foundIds := make(map[int64]bool)
-		for i := 0; i < len(data[0].prices); i++ {
-			orig := data[0].prices[i]
-
-			if data[0].securities[orig.SecurityId].UserId != 0 {
+		for origsecurityid, security := range d.securities {
+			if data[0].securities[origsecurityid].UserId != 0 {
 				continue
 			}
-			numprices += 1
 
-			found := false
-			for _, p := range *pl.Prices {
-				if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date != orig.Date && p.Value != orig.Value && p.RemoteId != orig.RemoteId {
-					if _, ok := foundIds[p.PriceId]; ok {
-						continue
+			pl, err := getPrices(d.clients[0], security.SecurityId)
+			if err != nil {
+				t.Fatalf("Error fetching prices: %s\n", err)
+			}
+
+			numprices := 0
+			foundIds := make(map[int64]bool)
+			for i := 0; i < len(data[0].prices); i++ {
+				orig := data[0].prices[i]
+
+				if orig.SecurityId != int64(origsecurityid) {
+					continue
+				}
+				numprices += 1
+
+				found := false
+				for _, p := range *pl.Prices {
+					if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date == orig.Date && p.Value == orig.Value && p.RemoteId == orig.RemoteId {
+						if _, ok := foundIds[p.PriceId]; ok {
+							continue
+						}
+						foundIds[p.PriceId] = true
+						found = true
+						break
 					}
-					foundIds[p.PriceId] = true
-					found = true
-					break
+				}
+				if !found {
+					t.Errorf("Unable to find matching price: %+v", orig)
 				}
 			}
-			if !found {
-				t.Errorf("Unable to find matching price: %+v", orig)
-			}
-		}
 
-		if numprices != len(*pl.Prices) {
-			t.Fatalf("Expected %d prices, received %d", numprices, len(*pl.Prices))
+			if numprices != len(*pl.Prices) {
+				t.Fatalf("Expected %d prices, received %d", numprices, len(*pl.Prices))
+			}
 		}
 	})
 }
@@ -196,7 +202,7 @@ func TestDeletePrice(t *testing.T) {
 				t.Fatalf("Error deleting price: %s\n", err)
 			}
 
-			_, err = getPrice(d.clients[userid], curr.PriceId)
+			_, err = getPrice(d.clients[userid], curr.PriceId, curr.SecurityId)
 			if err == nil {
 				t.Fatalf("Expected error fetching deleted price")
 			}

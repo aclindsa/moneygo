@@ -69,19 +69,19 @@ func CreatePriceIfNotExist(tx *Tx, price *Price) error {
 	return nil
 }
 
-func GetPrice(tx *Tx, priceid, userid int64) (*Price, error) {
+func GetPrice(tx *Tx, priceid, securityid int64) (*Price, error) {
 	var p Price
-	err := tx.SelectOne(&p, "SELECT * from prices where PriceId=? AND SecurityId IN (SELECT SecurityId FROM securities WHERE UserId=?)", priceid, userid)
+	err := tx.SelectOne(&p, "SELECT * from prices where PriceId=? AND SecurityId=?", priceid, securityid)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func GetPrices(tx *Tx, userid int64) (*[]*Price, error) {
+func GetPrices(tx *Tx, securityid int64) (*[]*Price, error) {
 	var prices []*Price
 
-	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId IN (SELECT SecurityId FROM securities WHERE UserId=?)", userid)
+	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId=?", securityid)
 	if err != nil {
 		return nil, err
 	}
@@ -129,10 +129,10 @@ func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Pr
 	}
 }
 
-func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
-	user, err := GetUserFromSession(context.Tx, r)
+func PriceHandler(r *http.Request, context *Context, user *User, securityid int64) ResponseWriterWriter {
+	security, err := GetSecurity(context.Tx, securityid, user.UserId)
 	if err != nil {
-		return NewError(1 /*Not Signed In*/)
+		return NewError(3 /*Invalid Request*/)
 	}
 
 	if r.Method == "POST" {
@@ -142,8 +142,7 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		}
 		price.PriceId = -1
 
-		_, err = GetSecurity(context.Tx, price.SecurityId, user.UserId)
-		if err != nil {
+		if price.SecurityId != security.SecurityId {
 			return NewError(3 /*Invalid Request*/)
 		}
 		_, err = GetSecurity(context.Tx, price.CurrencyId, user.UserId)
@@ -160,10 +159,10 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		return ResponseWrapper{201, &price}
 	} else if r.Method == "GET" {
 		if context.LastLevel() {
-			//Return all prices
+			//Return all this security's prices
 			var pl PriceList
 
-			prices, err := GetPrices(context.Tx, user.UserId)
+			prices, err := GetPrices(context.Tx, security.SecurityId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -178,7 +177,7 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		price, err := GetPrice(context.Tx, priceid, user.UserId)
+		price, err := GetPrice(context.Tx, priceid, security.SecurityId)
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -212,7 +211,7 @@ func PriceHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 			return &price
 		} else if r.Method == "DELETE" {
-			price, err := GetPrice(context.Tx, priceid, user.UserId)
+			price, err := GetPrice(context.Tx, priceid, security.SecurityId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}

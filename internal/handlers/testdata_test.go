@@ -200,6 +200,15 @@ var data = []TestData{
 				Type:        handlers.Currency,
 				AlternateId: "978",
 			},
+			handlers.Security{
+				UserId:      0,
+				Name:        "EUR",
+				Description: "Euro",
+				Symbol:      "€",
+				Precision:   2,
+				Type:        handlers.Currency,
+				AlternateId: "978",
+			},
 		},
 		prices: []handlers.Price{
 			handlers.Price{
@@ -229,6 +238,13 @@ var data = []TestData{
 				Date:       time.Date(2017, time.January, 5, 21, 0, 0, 0, time.UTC),
 				Value:      "227.21",
 				RemoteId:   "12387-129831-1241",
+			},
+			handlers.Price{
+				SecurityId: 0,
+				CurrencyId: 3,
+				Date:       time.Date(2017, time.November, 16, 18, 49, 53, 0, time.UTC),
+				Value:      "0.85",
+				RemoteId:   "USDEUR819298714",
 			},
 		},
 		accounts: []handlers.Account{

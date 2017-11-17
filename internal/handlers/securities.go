@@ -253,6 +253,17 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	}
 
 	if r.Method == "POST" {
+		if !context.LastLevel() {
+			securityid, err := context.NextID()
+			if err != nil {
+				return NewError(3 /*Invalid Request*/)
+			}
+			if context.NextLevel() != "prices" {
+				return NewError(3 /*Invalid Request*/)
+			}
+			return PriceHandler(r, context, user, securityid)
+		}
+
 		var security Security
 		if err := ReadJSON(r, &security); err != nil {
 			return NewError(3 /*Invalid Request*/)
@@ -285,6 +296,14 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
+
+			if !context.LastLevel() {
+				if context.NextLevel() != "prices" {
+					return NewError(3 /*Invalid Request*/)
+				}
+				return PriceHandler(r, context, user, securityid)
+			}
+
 			security, err := GetSecurity(context.Tx, securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
@@ -297,6 +316,13 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
+		if !context.LastLevel() {
+			if context.NextLevel() != "prices" {
+				return NewError(3 /*Invalid Request*/)
+			}
+			return PriceHandler(r, context, user, securityid)
+		}
+
 		if r.Method == "PUT" {
 			var security Security
 			if err := ReadJSON(r, &security); err != nil || security.SecurityId != securityid {
