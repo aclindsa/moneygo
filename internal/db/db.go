@@ -8,7 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"gopkg.in/gorp.v1"
+	"gopkg.in/gorp.v2"
 	"log"
 	"strings"
 )
