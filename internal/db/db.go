@@ -3,12 +3,12 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/handlers"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"gopkg.in/gorp.v1"
 	"log"
 	"strings"
 )
@@ -25,7 +25,9 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 			Encoding: "UTF8",
 		}
 	} else if dbtype == config.Postgres {
-		dialect = gorp.PostgresDialect{}
+		dialect = gorp.PostgresDialect{
+			LowercaseFields: true,
+		}
 	} else {
 		return nil, fmt.Errorf("Don't know gorp dialect to go with '%s' DB type", dbtype.String())
 	}

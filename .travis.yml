@@ -2,6 +2,7 @@ language: go
 
 os:
   - linux
+  - osx
 
 go:
   - 1.9.x
@@ -13,20 +14,44 @@ services:
 
 env:
   - MONEYGO_TEST_DB=sqlite
-  - MONEYGO_TEST_DB=mysql    MONEYGO_TEST_DSN="root@tcp(127.0.0.1)/moneygo_test?parseTime=true"
-  - MONEYGO_TEST_DB=postgres MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test"
+  - MONEYGO_TEST_DB=mysql
+  - MONEYGO_TEST_DB=postgres
 
+# OSX builds take too long, so don't wait for all of them
+matrix:
+  fast_finish: true
+  allow_failures:
+    - os: osx
+      go: master
+
+# Install MySQL or Postgres if on OSX
+before_install:
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'mysql'    ]; then brew update > /dev/null && brew install mariadb && mysql.server start; fi
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'postgres' ]; then brew update > /dev/null; fi
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'postgres' ]; then rm -rf /usr/local/var/postgres; fi
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'postgres' ]; then initdb /usr/local/var/postgres; fi
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'postgres' ]; then pg_ctl -D /usr/local/var/postgres start; fi
+  - if [ $TRAVIS_OS_NAME = 'osx' ] && [ $MONEYGO_TEST_DB = 'postgres' ]; then createuser -s postgres; fi
+
+# Initialize databases, if testing MySQL or Postgres
 before_script:
-  - sh -c "if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'DROP DATABASE IF EXISTS moneygo_test;' -U postgres; fi"
-  - sh -c "if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'CREATE DATABASE moneygo_test;' -U postgres; fi"
-  - sh -c "if [ $MONEYGO_TEST_DB = 'mysql' ]; then mysql -e 'CREATE DATABASE IF NOT EXISTS moneygo_test;'; fi"
+  - if [ $MONEYGO_TEST_DB = 'mysql'    ]; then export MONEYGO_TEST_DSN="root@tcp(127.0.0.1)/moneygo_test?parseTime=true"; fi
+  - if [ $MONEYGO_TEST_DB = 'postgres' ]; then export MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test?sslmode=disable"; fi
+  - if [ $MONEYGO_TEST_DB = 'mysql'    ]; then mysql -u root -e 'CREATE DATABASE IF NOT EXISTS moneygo_test;'; fi
+  - if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'DROP DATABASE IF EXISTS moneygo_test;' -U postgres; fi
+  - if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'CREATE DATABASE moneygo_test;' -U postgres; fi
 
 script:
+# Fetch/build coverage reporting tools
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
   - go install github.com/mattn/goveralls
+# Fetch MoneyGo itself
   - go get -d github.com/aclindsa/moneygo
+# Don't allow the test to query for a full list of all CUSIPs
   - touch $GOPATH/src/github.com/aclindsa/moneygo/internal/handlers/cusip_list.csv
+# Build and test MoneyGo
   - go generate -v github.com/aclindsa/moneygo/internal/handlers
   - go test -v -covermode=count -coverprofile=coverage.out github.com/aclindsa/moneygo/internal/handlers
+# Finally, report the test coverage
   - $GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN

@@ -1,7 +1,7 @@
 package handlers
 
 import (
-	"gopkg.in/gorp.v1"
+	"github.com/aclindsa/gorp"
 	"log"
 	"net/http"
 	"path"

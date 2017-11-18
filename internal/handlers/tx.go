@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	"gopkg.in/gorp.v1"
+	"github.com/aclindsa/gorp"
 	"strings"
 )
 
