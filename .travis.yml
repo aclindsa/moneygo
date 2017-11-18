@@ -36,7 +36,7 @@ before_install:
 # Initialize databases, if testing MySQL or Postgres
 before_script:
   - if [ $MONEYGO_TEST_DB = 'mysql'    ]; then export MONEYGO_TEST_DSN="root@tcp(127.0.0.1)/moneygo_test?parseTime=true"; fi
-  - if [ $MONEYGO_TEST_DB = 'postgres' ]; then export MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test"; fi
+  - if [ $MONEYGO_TEST_DB = 'postgres' ]; then export MONEYGO_TEST_DSN="postgres://postgres@localhost/moneygo_test?sslmode=disable"; fi
   - if [ $MONEYGO_TEST_DB = 'mysql'    ]; then mysql -u root -e 'CREATE DATABASE IF NOT EXISTS moneygo_test;'; fi
   - if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'DROP DATABASE IF EXISTS moneygo_test;' -U postgres; fi
   - if [ $MONEYGO_TEST_DB = 'postgres' ]; then psql -c 'CREATE DATABASE moneygo_test;' -U postgres; fi
