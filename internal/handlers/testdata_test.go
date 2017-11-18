@@ -65,8 +65,6 @@ func (t *TestData) initUser(user *User, userid int) error {
 
 	t.clients = append(t.clients, client)
 
-	// TODO initialize everything else owned by this user in the TestData struct
-
 	return nil
 }
 
