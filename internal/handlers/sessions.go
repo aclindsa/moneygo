@@ -81,6 +81,14 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 		return nil, err
 	}
 
+	existing, err := tx.SelectInt("SELECT count(*) from sessions where SessionSecret=?", session_secret)
+	if err != nil {
+		return nil, err
+	}
+	if existing > 0 {
+		return nil, fmt.Errorf("%d session(s) exist with the generated session_secret")
+	}
+
 	cookie := http.Cookie{
 		Name:     "moneygo-session",
 		Value:    session_secret,
