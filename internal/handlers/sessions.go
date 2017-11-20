@@ -16,6 +16,8 @@ type Session struct {
 	SessionId     int64
 	SessionSecret string `json:"-"`
 	UserId        int64
+	Created       time.Time
+	Expires       time.Time
 }
 
 func (s *Session) Write(w http.ResponseWriter) error {
@@ -40,6 +42,11 @@ func GetSession(tx *Tx, r *http.Request) (*Session, error) {
 	err = tx.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
 	if err != nil {
 		return nil, err
+	}
+
+	if s.Expires.Before(time.Now()) {
+		tx.Delete(&s)
+		return nil, fmt.Errorf("Session has expired")
 	}
 	return &s, nil
 }
@@ -81,6 +88,14 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 		return nil, err
 	}
 
+	existing, err := tx.SelectInt("SELECT count(*) from sessions where SessionSecret=?", session_secret)
+	if err != nil {
+		return nil, err
+	}
+	if existing > 0 {
+		return nil, fmt.Errorf("%d session(s) exist with the generated session_secret", existing)
+	}
+
 	cookie := http.Cookie{
 		Name:     "moneygo-session",
 		Value:    session_secret,
@@ -93,6 +108,8 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 
 	s.SessionSecret = session_secret
 	s.UserId = userid
+	s.Created = time.Now()
+	s.Expires = cookie.Expires
 
 	err = tx.Insert(&s)
 	if err != nil {
