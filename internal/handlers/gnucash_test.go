@@ -74,17 +74,44 @@ func TestImportGnucash(t *testing.T) {
 			t.Fatalf("Error importing from Gnucash: %s\n", err)
 		}
 
-		// Next, find the Expenses/Groceries account
-		var groceries *handlers.Account
+		// Next, find the Expenses/Groceries account and verify it's balance
+		var income, liabilities, expenses, salary, creditcard, groceries *handlers.Account
 		accounts, err := getAccounts(d.clients[0])
 		if err != nil {
 			t.Fatalf("Error fetching accounts: %s\n", err)
 		}
-		for _, account := range *accounts.Accounts {
-			if account.Name == "Groceries" {
-				groceries = &account
-				break
+		for i, account := range *accounts.Accounts {
+			if account.Name == "Income" && account.Type == handlers.Income && account.ParentAccountId == -1 {
+				income = &(*accounts.Accounts)[i]
+			} else if account.Name == "Liabilities" && account.Type == handlers.Liability && account.ParentAccountId == -1 {
+				liabilities = &(*accounts.Accounts)[i]
+			} else if account.Name == "Expenses" && account.Type == handlers.Expense && account.ParentAccountId == -1 {
+				expenses = &(*accounts.Accounts)[i]
 			}
+		}
+		if income == nil {
+			t.Fatalf("Couldn't find 'Income' account")
+		}
+		if liabilities == nil {
+			t.Fatalf("Couldn't find 'Liabilities' account")
+		}
+		if expenses == nil {
+			t.Fatalf("Couldn't find 'Expenses' account")
+		}
+		for i, account := range *accounts.Accounts {
+			if account.Name == "Salary" && account.Type == handlers.Income && account.ParentAccountId == income.AccountId {
+				salary = &(*accounts.Accounts)[i]
+			} else if account.Name == "Credit Card" && account.Type == handlers.Liability && account.ParentAccountId == liabilities.AccountId {
+				creditcard = &(*accounts.Accounts)[i]
+			} else if account.Name == "Groceries" && account.Type == handlers.Expense && account.ParentAccountId == expenses.AccountId {
+				groceries = &(*accounts.Accounts)[i]
+			}
+		}
+		if salary == nil {
+			t.Fatalf("Couldn't find 'Income/Salary' account")
+		}
+		if creditcard == nil {
+			t.Fatalf("Couldn't find 'Liabilities/Credit Card' account")
 		}
 		if groceries == nil {
 			t.Fatalf("Couldn't find 'Expenses/Groceries' account")
