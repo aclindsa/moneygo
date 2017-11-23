@@ -149,5 +149,37 @@ func TestImportGnucash(t *testing.T) {
 		gnucashAccountBalanceHelper(t, d.clients[0], openingbalances, "-21014.33")
 		gnucashAccountBalanceHelper(t, d.clients[0], groceries, "287.56") // 87.19 from preexisting transactions and 200.37 from Gnucash
 		gnucashAccountBalanceHelper(t, d.clients[0], cable, "89.98")
+
+		var ge *handlers.Security
+		securities, err := getSecurities(d.clients[0])
+		if err != nil {
+			t.Fatalf("Error fetching securities: %s\n", err)
+		}
+		for i, security := range *securities.Securities {
+			if security.Symbol == "GE" {
+				ge = (*securities.Securities)[i]
+			}
+		}
+		if ge == nil {
+			t.Fatalf("Couldn't find GE security")
+		}
+
+		prices, err := getPrices(d.clients[0], ge.SecurityId)
+		if err != nil {
+			t.Fatalf("Error fetching prices: %s\n", err)
+		}
+		var p1787, p2894, p3170 bool
+		for _, price := range *prices.Prices {
+			if price.CurrencyId == d.securities[0].SecurityId && price.Value == "17.87" {
+				p1787 = true
+			} else if price.CurrencyId == d.securities[0].SecurityId && price.Value == "28.94" {
+				p2894 = true
+			} else if price.CurrencyId == d.securities[0].SecurityId && price.Value == "31.70" {
+				p3170 = true
+			}
+		}
+		if !p1787 || !p2894 || !p3170 {
+			t.Errorf("Error finding expected prices\n")
+		}
 	})
 }
