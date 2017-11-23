@@ -54,6 +54,18 @@ func importGnucash(client *http.Client, filename string) error {
 	return nil
 }
 
+func gnucashAccountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {
+	t.Helper()
+	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
+	if err != nil {
+		t.Fatalf("Couldn't fetch account transactions for '%s': %s\n", account.Name, err)
+	}
+
+	if transactions.EndingBalance != balance {
+		t.Errorf("Expected ending balance for '%s' to be '%s', but found %s\n", account.Name, balance, transactions.EndingBalance)
+	}
+}
+
 func TestImportGnucash(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		// Ensure there's only one USD currency
@@ -75,7 +87,7 @@ func TestImportGnucash(t *testing.T) {
 		}
 
 		// Next, find the Expenses/Groceries account and verify it's balance
-		var income, liabilities, expenses, salary, creditcard, groceries *handlers.Account
+		var income, equity, liabilities, expenses, salary, creditcard, groceries, cable, openingbalances *handlers.Account
 		accounts, err := getAccounts(d.clients[0])
 		if err != nil {
 			t.Fatalf("Error fetching accounts: %s\n", err)
@@ -83,6 +95,8 @@ func TestImportGnucash(t *testing.T) {
 		for i, account := range *accounts.Accounts {
 			if account.Name == "Income" && account.Type == handlers.Income && account.ParentAccountId == -1 {
 				income = &(*accounts.Accounts)[i]
+			} else if account.Name == "Equity" && account.Type == handlers.Equity && account.ParentAccountId == -1 {
+				equity = &(*accounts.Accounts)[i]
 			} else if account.Name == "Liabilities" && account.Type == handlers.Liability && account.ParentAccountId == -1 {
 				liabilities = &(*accounts.Accounts)[i]
 			} else if account.Name == "Expenses" && account.Type == handlers.Expense && account.ParentAccountId == -1 {
@@ -91,6 +105,9 @@ func TestImportGnucash(t *testing.T) {
 		}
 		if income == nil {
 			t.Fatalf("Couldn't find 'Income' account")
+		}
+		if equity == nil {
+			t.Fatalf("Couldn't find 'Equity' account")
 		}
 		if liabilities == nil {
 			t.Fatalf("Couldn't find 'Liabilities' account")
@@ -101,14 +118,21 @@ func TestImportGnucash(t *testing.T) {
 		for i, account := range *accounts.Accounts {
 			if account.Name == "Salary" && account.Type == handlers.Income && account.ParentAccountId == income.AccountId {
 				salary = &(*accounts.Accounts)[i]
+			} else if account.Name == "Opening Balances" && account.Type == handlers.Equity && account.ParentAccountId == equity.AccountId {
+				openingbalances = &(*accounts.Accounts)[i]
 			} else if account.Name == "Credit Card" && account.Type == handlers.Liability && account.ParentAccountId == liabilities.AccountId {
 				creditcard = &(*accounts.Accounts)[i]
 			} else if account.Name == "Groceries" && account.Type == handlers.Expense && account.ParentAccountId == expenses.AccountId {
 				groceries = &(*accounts.Accounts)[i]
+			} else if account.Name == "Cable" && account.Type == handlers.Expense && account.ParentAccountId == expenses.AccountId {
+				cable = &(*accounts.Accounts)[i]
 			}
 		}
 		if salary == nil {
 			t.Fatalf("Couldn't find 'Income/Salary' account")
+		}
+		if openingbalances == nil {
+			t.Fatalf("Couldn't find 'Equity/Opening Balances")
 		}
 		if creditcard == nil {
 			t.Fatalf("Couldn't find 'Liabilities/Credit Card' account")
@@ -116,15 +140,14 @@ func TestImportGnucash(t *testing.T) {
 		if groceries == nil {
 			t.Fatalf("Couldn't find 'Expenses/Groceries' account")
 		}
-
-		grocerytransactions, err := getAccountTransactions(d.clients[0], groceries.AccountId, 0, 0, "")
-		if err != nil {
-			t.Fatalf("Couldn't fetch account transactions for 'Expenses/Groceries': %s\n", err)
+		if cable == nil {
+			t.Fatalf("Couldn't find 'Expenses/Cable' account")
 		}
 
-		// 87.19 from preexisting transactions and 200.37 from Gnucash
-		if grocerytransactions.EndingBalance != "287.56" {
-			t.Errorf("Expected ending balance for 'Expenses/Groceries' to be '287.56', but found %s\n", grocerytransactions.EndingBalance)
-		}
+		gnucashAccountBalanceHelper(t, d.clients[0], salary, "-998.34")
+		gnucashAccountBalanceHelper(t, d.clients[0], creditcard, "-272.03")
+		gnucashAccountBalanceHelper(t, d.clients[0], openingbalances, "-21014.33")
+		gnucashAccountBalanceHelper(t, d.clients[0], groceries, "287.56") // 87.19 from preexisting transactions and 200.37 from Gnucash
+		gnucashAccountBalanceHelper(t, d.clients[0], cable, "89.98")
 	})
 }
