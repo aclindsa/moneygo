@@ -38,7 +38,7 @@ type Security struct {
 	Symbol      string
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
-	Precision int
+	Precision int `db:"Preciseness"`
 	Type      SecurityType
 	// AlternateId is CUSIP for Type=Stock, ISO4217 for Type=Currency
 	AlternateId string
@@ -206,7 +206,7 @@ func ImportGetCreateSecurity(tx *Tx, userid int64, security *Security) (*Securit
 
 	var securities []*Security
 
-	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Precision=?", userid, security.Type, security.AlternateId, security.Precision)
+	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Preciseness=?", userid, security.Type, security.AlternateId, security.Precision)
 	if err != nil {
 		return nil, err
 	}
