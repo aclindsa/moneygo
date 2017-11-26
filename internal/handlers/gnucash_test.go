@@ -1,57 +1,13 @@
 package handlers_test
 
 import (
-	"bytes"
 	"github.com/aclindsa/moneygo/internal/handlers"
-	"io"
-	"io/ioutil"
-	"mime/multipart"
 	"net/http"
-	"os"
 	"testing"
 )
 
 func importGnucash(client *http.Client, filename string) error {
-	var buf bytes.Buffer
-	mw := multipart.NewWriter(&buf)
-
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	filewriter, err := mw.CreateFormFile("gnucash", filename)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(filewriter, file); err != nil {
-		return err
-	}
-
-	mw.Close()
-
-	response, err := client.Post(server.URL+"/v1/imports/gnucash", mw.FormDataContentType(), &buf)
-	if err != nil {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		return err
-	}
-
-	var e handlers.Error
-	err = (&e).Read(string(body))
-	if err != nil {
-		return err
-	}
-	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
-		return &e
-	}
-
-	return nil
+	return uploadFile(client, filename, "/v1/imports/gnucash")
 }
 
 func gnucashAccountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {

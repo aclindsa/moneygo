@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -136,6 +137,49 @@ func update(client *http.Client, input, output TransactType, urlsuffix string) e
 
 func remove(client *http.Client, urlsuffix string) error {
 	response, err := Delete(client, server.URL+urlsuffix)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return &e
+	}
+
+	return nil
+}
+
+func uploadFile(client *http.Client, filename, urlsuffix string) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	filewriter, err := mw.CreateFormFile("file", filename)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(filewriter, file); err != nil {
+		return err
+	}
+
+	mw.Close()
+
+	response, err := client.Post(server.URL+urlsuffix, mw.FormDataContentType(), &buf)
 	if err != nil {
 		return err
 	}

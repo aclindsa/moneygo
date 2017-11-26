@@ -257,7 +257,7 @@ var data = []TestData{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 0,
-				Type:            handlers.Asset,
+				Type:            handlers.Bank,
 				Name:            "Credit Union Checking",
 			},
 			{
