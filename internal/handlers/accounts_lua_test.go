@@ -20,8 +20,8 @@ func TestLuaAccounts(t *testing.T) {
 		accountids.Sort()
 
 		equalityString := ""
-		for i, _ := range accountids {
-			for j, _ := range accountids {
+		for i := range accountids {
+			for j := range accountids {
 				if i == j {
 					equalityString += "true"
 				} else {

@@ -155,14 +155,14 @@ func (t *TestData) Teardown() error {
 var data = []TestData{
 	{
 		users: []User{
-			User{
+			{
 				DefaultCurrency: 840, // USD
 				Name:            "John Smith",
 				Username:        "jsmith",
 				Password:        "hunter2",
 				Email:           "jsmith@example.com",
 			},
-			User{
+			{
 				DefaultCurrency: 978, // Euro
 				Name:            "Billy Bob",
 				Username:        "bbob6",
@@ -171,7 +171,7 @@ var data = []TestData{
 			},
 		},
 		securities: []handlers.Security{
-			handlers.Security{
+			{
 				UserId:      0,
 				Name:        "USD",
 				Description: "US Dollar",
@@ -180,7 +180,7 @@ var data = []TestData{
 				Type:        handlers.Currency,
 				AlternateId: "840",
 			},
-			handlers.Security{
+			{
 				UserId:      0,
 				Name:        "SPY",
 				Description: "SPDR S&P 500 ETF Trust",
@@ -189,7 +189,7 @@ var data = []TestData{
 				Type:        handlers.Stock,
 				AlternateId: "78462F103",
 			},
-			handlers.Security{
+			{
 				UserId:      1,
 				Name:        "EUR",
 				Description: "Euro",
@@ -198,7 +198,7 @@ var data = []TestData{
 				Type:        handlers.Currency,
 				AlternateId: "978",
 			},
-			handlers.Security{
+			{
 				UserId:      0,
 				Name:        "EUR",
 				Description: "Euro",
@@ -209,35 +209,35 @@ var data = []TestData{
 			},
 		},
 		prices: []handlers.Price{
-			handlers.Price{
+			{
 				SecurityId: 1,
 				CurrencyId: 0,
 				Date:       time.Date(2017, time.January, 2, 21, 0, 0, 0, time.UTC),
 				Value:      "225.24",
 				RemoteId:   "12387-129831-1238",
 			},
-			handlers.Price{
+			{
 				SecurityId: 1,
 				CurrencyId: 0,
 				Date:       time.Date(2017, time.January, 3, 21, 0, 0, 0, time.UTC),
 				Value:      "226.58",
 				RemoteId:   "12387-129831-1239",
 			},
-			handlers.Price{
+			{
 				SecurityId: 1,
 				CurrencyId: 0,
 				Date:       time.Date(2017, time.January, 4, 21, 0, 0, 0, time.UTC),
 				Value:      "226.40",
 				RemoteId:   "12387-129831-1240",
 			},
-			handlers.Price{
+			{
 				SecurityId: 1,
 				CurrencyId: 0,
 				Date:       time.Date(2017, time.January, 5, 21, 0, 0, 0, time.UTC),
 				Value:      "227.21",
 				RemoteId:   "12387-129831-1241",
 			},
-			handlers.Price{
+			{
 				SecurityId: 0,
 				CurrencyId: 3,
 				Date:       time.Date(2017, time.November, 16, 18, 49, 53, 0, time.UTC),
@@ -246,49 +246,49 @@ var data = []TestData{
 			},
 		},
 		accounts: []handlers.Account{
-			handlers.Account{
+			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
 				Type:            handlers.Asset,
 				Name:            "Assets",
 			},
-			handlers.Account{
+			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 0,
 				Type:            handlers.Asset,
 				Name:            "Credit Union Checking",
 			},
-			handlers.Account{
+			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
 				Type:            handlers.Expense,
 				Name:            "Expenses",
 			},
-			handlers.Account{
+			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
 				Type:            handlers.Expense,
 				Name:            "Groceries",
 			},
-			handlers.Account{
+			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
 				Type:            handlers.Expense,
 				Name:            "Cable",
 			},
-			handlers.Account{
+			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
 				Type:            handlers.Asset,
 				Name:            "Assets",
 			},
-			handlers.Account{
+			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
@@ -297,18 +297,18 @@ var data = []TestData{
 			},
 		},
 		transactions: []handlers.Transaction{
-			handlers.Transaction{
+			{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 15, 1, 16, 59, 0, time.UTC),
 				Splits: []*handlers.Split{
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-5.6",
 					},
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
@@ -316,18 +316,18 @@ var data = []TestData{
 					},
 				},
 			},
-			handlers.Transaction{
+			{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 31, 19, 10, 14, 0, time.UTC),
 				Splits: []*handlers.Split{
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-81.59",
 					},
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
@@ -335,18 +335,18 @@ var data = []TestData{
 					},
 				},
 			},
-			handlers.Transaction{
+			{
 				UserId:      0,
 				Description: "Cable",
 				Date:        time.Date(2017, time.September, 2, 0, 00, 00, 0, time.UTC),
 				Splits: []*handlers.Split{
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-39.99",
 					},
-					&handlers.Split{
+					{
 						Status:     handlers.Entered,
 						AccountId:  4,
 						SecurityId: -1,
@@ -354,18 +354,18 @@ var data = []TestData{
 					},
 				},
 			},
-			handlers.Transaction{
+			{
 				UserId:      1,
 				Description: "Gas",
 				Date:        time.Date(2017, time.November, 1, 13, 19, 50, 0, time.UTC),
 				Splits: []*handlers.Split{
-					&handlers.Split{
+					{
 						Status:     handlers.Reconciled,
 						AccountId:  5,
 						SecurityId: -1,
 						Amount:     "-24.56",
 					},
-					&handlers.Split{
+					{
 						Status:     handlers.Entered,
 						AccountId:  6,
 						SecurityId: -1,
@@ -375,7 +375,7 @@ var data = []TestData{
 			},
 		},
 		reports: []handlers.Report{
-			handlers.Report{
+			{
 				UserId: 0,
 				Name:   "This Year's Monthly Expenses",
 				Lua: `
@@ -433,30 +433,30 @@ end`,
 			},
 		},
 		tabulations: []handlers.Tabulation{
-			handlers.Tabulation{
+			{
 				ReportId: 0,
 				Title:    "2017 Monthly Expenses",
 				Subtitle: "This is my subtitle",
 				Units:    "USD",
 				Labels:   []string{"2017-01-01", "2017-02-01", "2017-03-01", "2017-04-01", "2017-05-01", "2017-06-01", "2017-07-01", "2017-08-01", "2017-09-01", "2017-10-01", "2017-11-01", "2017-12-01"},
 				Series: map[string]*handlers.Series{
-					"Assets": &handlers.Series{
+					"Assets": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 						Series: map[string]*handlers.Series{
-							"Credit Union Checking": &handlers.Series{
+							"Credit Union Checking": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 								Series: map[string]*handlers.Series{},
 							},
 						},
 					},
-					"Expenses": &handlers.Series{
+					"Expenses": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 						Series: map[string]*handlers.Series{
-							"Groceries": &handlers.Series{
+							"Groceries": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 87.19, 0, 0},
 								Series: map[string]*handlers.Series{},
 							},
-							"Cable": &handlers.Series{
+							"Cable": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 39.99, 0, 0, 0},
 								Series: map[string]*handlers.Series{},
 							},

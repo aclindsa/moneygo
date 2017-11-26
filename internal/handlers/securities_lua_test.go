@@ -34,8 +34,8 @@ func TestLuaSecurities(t *testing.T) {
 		securityids.Sort()
 
 		equalityString := ""
-		for i, _ := range securityids {
-			for j, _ := range securityids {
+		for i := range securityids {
+			for j := range securityids {
 				if i == j {
 					equalityString += "true"
 				} else {

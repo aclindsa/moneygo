@@ -182,13 +182,13 @@ func TestCreateTransaction(t *testing.T) {
 			Description: "Imbalanced",
 			Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
 			Splits: []*handlers.Split{
-				&handlers.Split{
+				{
 					Status:     handlers.Reconciled,
 					AccountId:  d.accounts[1].AccountId,
 					SecurityId: -1,
 					Amount:     "-39.98",
 				},
-				&handlers.Split{
+				{
 					Status:     handlers.Entered,
 					AccountId:  d.accounts[4].AccountId,
 					SecurityId: -1,
