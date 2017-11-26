@@ -344,8 +344,8 @@ func GnucashImportHandler(r *http.Request, context *Context) ResponseWriterWrite
 	// Does this look like a gzipped file?
 	var gnucashImport *GnucashImport
 	if gzHeader[0] == 0x1f && gzHeader[1] == 0x8b {
-		gzr, err := gzip.NewReader(bufread)
-		if err != nil {
+		gzr, err2 := gzip.NewReader(bufread)
+		if err2 != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
 		}
