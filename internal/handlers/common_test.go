@@ -202,6 +202,18 @@ func uploadFile(client *http.Client, filename, urlsuffix string) error {
 	return nil
 }
 
+func accountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {
+	t.Helper()
+	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
+	if err != nil {
+		t.Fatalf("Couldn't fetch account transactions for '%s': %s\n", account.Name, err)
+	}
+
+	if transactions.EndingBalance != balance {
+		t.Errorf("Expected ending balance for '%s' to be '%s', but found %s\n", account.Name, balance, transactions.EndingBalance)
+	}
+}
+
 func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {
 	testdata, err := d.Initialize()
 	if err != nil {

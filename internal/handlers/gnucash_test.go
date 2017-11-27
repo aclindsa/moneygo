@@ -10,18 +10,6 @@ func importGnucash(client *http.Client, filename string) error {
 	return uploadFile(client, filename, "/v1/imports/gnucash")
 }
 
-func gnucashAccountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {
-	t.Helper()
-	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
-	if err != nil {
-		t.Fatalf("Couldn't fetch account transactions for '%s': %s\n", account.Name, err)
-	}
-
-	if transactions.EndingBalance != balance {
-		t.Errorf("Expected ending balance for '%s' to be '%s', but found %s\n", account.Name, balance, transactions.EndingBalance)
-	}
-}
-
 func TestImportGnucash(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		// Ensure there's only one USD currency
@@ -100,11 +88,11 @@ func TestImportGnucash(t *testing.T) {
 			t.Fatalf("Couldn't find 'Expenses/Cable' account")
 		}
 
-		gnucashAccountBalanceHelper(t, d.clients[0], salary, "-998.34")
-		gnucashAccountBalanceHelper(t, d.clients[0], creditcard, "-272.03")
-		gnucashAccountBalanceHelper(t, d.clients[0], openingbalances, "-21014.33")
-		gnucashAccountBalanceHelper(t, d.clients[0], groceries, "287.56") // 87.19 from preexisting transactions and 200.37 from Gnucash
-		gnucashAccountBalanceHelper(t, d.clients[0], cable, "89.98")
+		accountBalanceHelper(t, d.clients[0], salary, "-998.34")
+		accountBalanceHelper(t, d.clients[0], creditcard, "-272.03")
+		accountBalanceHelper(t, d.clients[0], openingbalances, "-21014.33")
+		accountBalanceHelper(t, d.clients[0], groceries, "287.56") // 87.19 from preexisting transactions and 200.37 from Gnucash
+		accountBalanceHelper(t, d.clients[0], cable, "89.98")
 
 		var ge *handlers.Security
 		securities, err := getSecurities(d.clients[0])

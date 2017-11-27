@@ -29,8 +29,11 @@ func TestImportOFX(t *testing.T) {
 		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "handlers_testdata/checking_20171126.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
+		accountBalanceHelper(t, d.clients[0], &d.accounts[1], "2493.19")
+
 		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "handlers_testdata/checking_20171129.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
+		accountBalanceHelper(t, d.clients[0], &d.accounts[1], "5336.27")
 	})
 }
