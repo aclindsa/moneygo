@@ -233,6 +233,9 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 	fees.Set(&buy.Fees.Rat)
 	load.Set(&buy.Load.Rat)
 	total.Set(&buy.Total.Rat)
+	if total.Sign() > 0 {
+		total.Neg(&total)
+	}
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
@@ -495,6 +498,9 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	fees.Set(&reinvest.Fees.Rat)
 	load.Set(&reinvest.Load.Rat)
 	total.Set(&reinvest.Total.Rat)
+	if total.Sign() > 0 {
+		total.Neg(&total)
+	}
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
@@ -694,6 +700,9 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	fees.Set(&sell.Fees.Rat)
 	load.Set(&sell.Load.Rat)
 	total.Set(&sell.Total.Rat)
+	if total.Sign() < 0 {
+		total.Neg(&total)
+	}
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
