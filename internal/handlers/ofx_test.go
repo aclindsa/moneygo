@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
 	"net/http"
 	"strconv"
@@ -62,6 +63,32 @@ func TestImportOFXCreditCard(t *testing.T) {
 	})
 }
 
+func findSecurity(client *http.Client, symbol string, tipe handlers.SecurityType) (*handlers.Security, error) {
+	securities, err := getSecurities(client)
+	if err != nil {
+		return nil, err
+	}
+	for _, security := range *securities.Securities {
+		if security.Symbol == symbol && security.Type == tipe {
+			return security, nil
+		}
+	}
+	return nil, fmt.Errorf("Unable to find security: \"%s\"", symbol)
+}
+
+func findAccount(client *http.Client, name string, tipe handlers.AccountType, securityid int64) (*handlers.Account, error) {
+	accounts, err := getAccounts(client)
+	if err != nil {
+		return nil, err
+	}
+	for _, account := range *accounts.Accounts {
+		if account.Name == name && account.Type == tipe && account.SecurityId == securityid {
+			return &account, nil
+		}
+	}
+	return nil, fmt.Errorf("Unable to find account: \"%s\"", name)
+}
+
 func TestImportOFX401kMutualFunds(t *testing.T) {
 	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
 		// Ensure there's only one USD currency
@@ -95,5 +122,27 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], account, "-192.10")
+
+		// Make sure the security was created and that the trading account has
+		// the right value
+		security, err := findSecurity(d.clients[0], "VANGUARD TARGET 2045", handlers.Stock)
+		if err != nil {
+			t.Fatalf("Error finding VANGUARD TARGET 2045 security: %s\n", err)
+		}
+		tradingaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", handlers.Trading, security.SecurityId)
+		if err != nil {
+			t.Fatalf("Error finding VANGUARD TARGET 2045 trading account: %s\n", err)
+		}
+		accountBalanceHelper(t, d.clients[0], tradingaccount, "-3.35400")
+
+		// Ensure actual holding account was created and in the correct place
+		investmentaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", handlers.Investment, security.SecurityId)
+		if err != nil {
+			t.Fatalf("Error finding VANGUARD TARGET 2045 investment account: %s\n", err)
+		}
+		accountBalanceHelper(t, d.clients[0], investmentaccount, "3.35400")
+		if investmentaccount.ParentAccountId != account.AccountId {
+			t.Errorf("Expected imported security account to be child of investment account it's imported into\n")
+		}
 	})
 }

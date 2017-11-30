@@ -228,14 +228,13 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 	}
 
 	var commission, taxes, fees, load, total, tradingTotal big.Rat
-	commission.Set(&buy.Commission.Rat)
-	taxes.Set(&buy.Taxes.Rat)
-	fees.Set(&buy.Fees.Rat)
-	load.Set(&buy.Load.Rat)
-	total.Set(&buy.Total.Rat)
-	if total.Sign() > 0 {
-		total.Neg(&total)
-	}
+	commission.Abs(&buy.Commission.Rat)
+	taxes.Abs(&buy.Taxes.Rat)
+	fees.Abs(&buy.Fees.Rat)
+	load.Abs(&buy.Load.Rat)
+	total.Abs(&buy.Total.Rat)
+
+	total.Neg(&total)
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
@@ -322,8 +321,8 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		Amount:          tradingTotal.FloatString(curdef.Precision),
 	})
 
-	units := big.NewRat(0, 1)
-	units.Set(&buy.Units.Rat)
+	var units big.Rat
+	units.Abs(&buy.Units.Rat)
 	t.Splits = append(t.Splits, &Split{
 		// TODO ReversalFiTID?
 		Status:          Imported,
@@ -334,7 +333,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		Memo:            memo,
 		Amount:          units.FloatString(security.Precision),
 	})
-	units.Neg(units)
+	units.Neg(&units)
 	t.Splits = append(t.Splits, &Split{
 		// TODO ReversalFiTID?
 		Status:          Imported,
@@ -493,14 +492,13 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	}
 
 	var commission, taxes, fees, load, total, tradingTotal big.Rat
-	commission.Set(&reinvest.Commission.Rat)
-	taxes.Set(&reinvest.Taxes.Rat)
-	fees.Set(&reinvest.Fees.Rat)
-	load.Set(&reinvest.Load.Rat)
-	total.Set(&reinvest.Total.Rat)
-	if total.Sign() > 0 {
-		total.Neg(&total)
-	}
+	commission.Abs(&reinvest.Commission.Rat)
+	taxes.Abs(&reinvest.Taxes.Rat)
+	fees.Abs(&reinvest.Fees.Rat)
+	load.Abs(&reinvest.Load.Rat)
+	total.Abs(&reinvest.Total.Rat)
+
+	total.Neg(&total)
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
@@ -610,7 +608,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	})
 
 	var units big.Rat
-	units.Set(&reinvest.Units.Rat)
+	units.Abs(&reinvest.Units.Rat)
 	t.Splits = append(t.Splits, &Split{
 		// TODO ReversalFiTID?
 		Status:          Imported,
@@ -695,14 +693,16 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	}
 
 	var commission, taxes, fees, load, total, tradingTotal big.Rat
-	commission.Set(&sell.Commission.Rat)
-	taxes.Set(&sell.Taxes.Rat)
-	fees.Set(&sell.Fees.Rat)
-	load.Set(&sell.Load.Rat)
-	total.Set(&sell.Total.Rat)
-	if total.Sign() < 0 {
-		total.Neg(&total)
-	}
+	commission.Abs(&sell.Commission.Rat)
+	taxes.Abs(&sell.Taxes.Rat)
+	fees.Abs(&sell.Fees.Rat)
+	load.Abs(&sell.Load.Rat)
+	total.Abs(&sell.Total.Rat)
+
+	commission.Neg(&commission)
+	taxes.Neg(&taxes)
+	fees.Neg(&fees)
+	load.Neg(&load)
 
 	tradingTotal.Neg(&total)
 	tradingTotal.Sub(&tradingTotal, &commission)
@@ -790,11 +790,11 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	})
 
 	var units big.Rat
-	units.Set(&sell.Units.Rat)
+	units.Abs(&sell.Units.Rat)
 	t.Splits = append(t.Splits, &Split{
 		// TODO ReversalFiTID?
 		Status:          Imported,
-		ImportSplitType: SubAccount,
+		ImportSplitType: TradingAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -805,7 +805,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	t.Splits = append(t.Splits, &Split{
 		// TODO ReversalFiTID?
 		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		ImportSplitType: SubAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
