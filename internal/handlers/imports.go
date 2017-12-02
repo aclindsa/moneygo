@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"log"
@@ -22,7 +23,7 @@ func (od *OFXDownload) Read(json_str string) error {
 	return dec.Decode(od)
 }
 
-func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseWriterWriter {
+func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
 	itl, err := ImportOFX(r)
 
 	if err != nil {
@@ -210,7 +211,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	return SuccessWriter{}
 }
 
-func OFXImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 	var ofxdownload OFXDownload
 	if err := ReadJSON(r, &ofxdownload); err != nil {
 		return NewError(3 /*Invalid Request*/)
@@ -305,7 +306,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *User, accountid i
 	return ofxImportHelper(context.Tx, response.Body, user, accountid)
 }
 
-func OFXFileImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXFileImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
@@ -329,7 +330,7 @@ func OFXFileImportHandler(context *Context, r *http.Request, user *User, account
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func AccountImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 
 	importType := context.NextLevel()
 	switch importType {

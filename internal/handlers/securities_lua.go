@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -20,7 +21,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 
 	security_map, ok = ctx.Value(securitiesContextKey).(map[int64]*Security)
 	if !ok {
-		user, ok := ctx.Value(userContextKey).(*User)
+		user, ok := ctx.Value(userContextKey).(*models.User)
 		if !ok {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
@@ -50,7 +51,7 @@ func luaContextGetDefaultCurrency(L *lua.LState) (*Security, error) {
 
 	ctx := L.Context()
 
-	user, ok := ctx.Value(userContextKey).(*User)
+	user, ok := ctx.Value(userContextKey).(*models.User)
 	if !ok {
 		return nil, errors.New("Couldn't find User in lua's Context")
 	}

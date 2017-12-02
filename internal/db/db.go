@@ -6,6 +6,7 @@ import (
 	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -33,7 +34,7 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
-	dbmap.AddTableWithName(handlers.User{}, "users").SetKeys(true, "UserId")
+	dbmap.AddTableWithName(models.User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(handlers.Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(handlers.Account{}, "accounts").SetKeys(true, "AccountId")
 	dbmap.AddTableWithName(handlers.Security{}, "securities").SetKeys(true, "SecurityId")

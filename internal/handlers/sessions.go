@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"io"
 	"log"
 	"net/http"
@@ -120,7 +121,7 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 
 func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" || r.Method == "PUT" {
-		var user User
+		var user models.User
 		if err := ReadJSON(r, &user); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

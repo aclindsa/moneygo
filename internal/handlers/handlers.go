@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/aclindsa/gorp"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
 	"path"
@@ -16,7 +17,7 @@ type ResponseWriterWriter interface {
 
 type Context struct {
 	Tx           *Tx
-	User         *User
+	User         *models.User
 	remainingURL string // portion of URL path not yet reached in the hierarchy
 }
 

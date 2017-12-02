@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
 	"strings"
@@ -129,7 +130,7 @@ func GetClosestPrice(tx *Tx, security, currency *Security, date *time.Time) (*Pr
 	}
 }
 
-func PriceHandler(r *http.Request, context *Context, user *User, securityid int64) ResponseWriterWriter {
+func PriceHandler(r *http.Request, context *Context, user *models.User, securityid int64) ResponseWriterWriter {
 	security, err := GetSecurity(context.Tx, securityid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"math/big"
 	"net/http"
@@ -221,7 +222,7 @@ func GetTransactions(tx *Tx, userid int64) (*[]Transaction, error) {
 	return &transactions, nil
 }
 
-func incrementAccountVersions(tx *Tx, user *User, accountids []int64) error {
+func incrementAccountVersions(tx *Tx, user *models.User, accountids []int64) error {
 	for i := range accountids {
 		account, err := GetAccount(tx, accountids[i], user.UserId)
 		if err != nil {
@@ -245,7 +246,7 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransaction(tx *Tx, t *Transaction, user *User) error {
+func InsertTransaction(tx *Tx, t *Transaction, user *models.User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
@@ -295,7 +296,7 @@ func InsertTransaction(tx *Tx, t *Transaction, user *User) error {
 	return nil
 }
 
-func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
+func UpdateTransaction(tx *Tx, t *Transaction, user *models.User) error {
 	var existing_splits []*Split
 
 	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
@@ -372,7 +373,7 @@ func UpdateTransaction(tx *Tx, t *Transaction, user *User) error {
 	return nil
 }
 
-func DeleteTransaction(tx *Tx, t *Transaction, user *User) error {
+func DeleteTransaction(tx *Tx, t *Transaction, user *models.User) error {
 	var accountids []int64
 	_, err := tx.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
 	if err != nil {
@@ -549,7 +550,7 @@ func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Trans
 	return &pageDifference, nil
 }
 
-func GetAccountBalance(tx *Tx, user *User, accountid int64) (*big.Rat, error) {
+func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, error) {
 	var splits []Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
@@ -572,7 +573,7 @@ func GetAccountBalance(tx *Tx, user *User, accountid int64) (*big.Rat, error) {
 }
 
 // Assumes accountid is valid and is owned by the current user
-func GetAccountBalanceDate(tx *Tx, user *User, accountid int64, date *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *time.Time) (*big.Rat, error) {
 	var splits []Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
@@ -594,7 +595,7 @@ func GetAccountBalanceDate(tx *Tx, user *User, accountid int64, date *time.Time)
 	return &balance, nil
 }
 
-func GetAccountBalanceDateRange(tx *Tx, user *User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
 	var splits []Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
@@ -616,7 +617,7 @@ func GetAccountBalanceDateRange(tx *Tx, user *User, accountid int64, begin, end 
 	return &balance, nil
 }
 
-func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
+func GetAccountTransactions(tx *Tx, user *models.User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
 	var transactions []Transaction
 	var atl AccountTransactionsList
 
@@ -699,7 +700,7 @@ func GetAccountTransactions(tx *Tx, user *User, accountid int64, sort string, pa
 
 // Return only those transactions which have at least one split pertaining to
 // an account
-func AccountTransactionsHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func AccountTransactionsHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 	var page uint64 = 0
 	var limit uint64 = 50
 	var sort string = "date-desc"

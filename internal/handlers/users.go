@@ -1,27 +1,12 @@
 package handlers
 
 import (
-	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
-	"strings"
 )
-
-type User struct {
-	UserId          int64
-	DefaultCurrency int64 // SecurityId of default currency, or ISO4217 code for it if creating new user
-	Name            string
-	Username        string
-	Password        string `db:"-"`
-	PasswordHash    string `json:"-"`
-	Email           string
-}
-
-const BogusPassword = "password"
 
 type UserExistsError struct{}
 
@@ -29,25 +14,8 @@ func (ueu UserExistsError) Error() string {
 	return "User exists"
 }
 
-func (u *User) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(u)
-}
-
-func (u *User) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(u)
-}
-
-func (u *User) HashPassword() {
-	password_hasher := sha256.New()
-	io.WriteString(password_hasher, u.Password)
-	u.PasswordHash = fmt.Sprintf("%x", password_hasher.Sum(nil))
-	u.Password = ""
-}
-
-func GetUser(tx *Tx, userid int64) (*User, error) {
-	var u User
+func GetUser(tx *Tx, userid int64) (*models.User, error) {
+	var u models.User
 
 	err := tx.SelectOne(&u, "SELECT * from users where UserId=?", userid)
 	if err != nil {
@@ -56,8 +24,8 @@ func GetUser(tx *Tx, userid int64) (*User, error) {
 	return &u, nil
 }
 
-func GetUserByUsername(tx *Tx, username string) (*User, error) {
-	var u User
+func GetUserByUsername(tx *Tx, username string) (*models.User, error) {
+	var u models.User
 
 	err := tx.SelectOne(&u, "SELECT * from users where Username=?", username)
 	if err != nil {
@@ -66,7 +34,7 @@ func GetUserByUsername(tx *Tx, username string) (*User, error) {
 	return &u, nil
 }
 
-func InsertUser(tx *Tx, u *User) error {
+func InsertUser(tx *Tx, u *models.User) error {
 	security_template := FindCurrencyTemplate(u.DefaultCurrency)
 	if security_template == nil {
 		return errors.New("Invalid ISO4217 Default Currency")
@@ -107,7 +75,7 @@ func InsertUser(tx *Tx, u *User) error {
 	return nil
 }
 
-func GetUserFromSession(tx *Tx, r *http.Request) (*User, error) {
+func GetUserFromSession(tx *Tx, r *http.Request) (*models.User, error) {
 	s, err := GetSession(tx, r)
 	if err != nil {
 		return nil, err
@@ -115,7 +83,7 @@ func GetUserFromSession(tx *Tx, r *http.Request) (*User, error) {
 	return GetUser(tx, s.UserId)
 }
 
-func UpdateUser(tx *Tx, u *User) error {
+func UpdateUser(tx *Tx, u *models.User) error {
 	security, err := GetSecurity(tx, u.DefaultCurrency, u.UserId)
 	if err != nil {
 		return err
@@ -135,7 +103,7 @@ func UpdateUser(tx *Tx, u *User) error {
 	return nil
 }
 
-func DeleteUser(tx *Tx, u *User) error {
+func DeleteUser(tx *Tx, u *models.User) error {
 	count, err := tx.Delete(u)
 	if err != nil {
 		return err
@@ -177,7 +145,7 @@ func DeleteUser(tx *Tx, u *User) error {
 
 func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" {
-		var user User
+		var user models.User
 		if err := ReadJSON(r, &user); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -221,7 +189,7 @@ func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 
 			// If the user didn't create a new password, keep their old one
-			if user.Password != BogusPassword {
+			if user.Password != models.BogusPassword {
 				user.HashPassword()
 			} else {
 				user.Password = ""

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
@@ -134,7 +135,7 @@ func DeleteReport(tx *Tx, r *Report) error {
 	return nil
 }
 
-func runReport(tx *Tx, user *User, report *Report) (*Tabulation, error) {
+func runReport(tx *Tx, user *models.User, report *Report) (*Tabulation, error) {
 	// Create a new LState without opening the default libs for security
 	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
@@ -198,7 +199,7 @@ func runReport(tx *Tx, user *User, report *Report) (*Tabulation, error) {
 	}
 }
 
-func ReportTabulationHandler(tx *Tx, r *http.Request, user *User, reportid int64) ResponseWriterWriter {
+func ReportTabulationHandler(tx *Tx, r *http.Request, user *models.User, reportid int64) ResponseWriterWriter {
 	report, err := GetReport(tx, reportid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)

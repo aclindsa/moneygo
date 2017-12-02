@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 	"math/big"
 	"strings"
@@ -22,7 +23,7 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
 
 	account_map, ok = ctx.Value(accountsContextKey).(map[int64]*Account)
 	if !ok {
-		user, ok := ctx.Value(userContextKey).(*User)
+		user, ok := ctx.Value(userContextKey).(*models.User)
 		if !ok {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
@@ -153,7 +154,7 @@ func luaAccountBalance(L *lua.LState) int {
 	if !ok {
 		panic("Couldn't find tx in lua's Context")
 	}
-	user, ok := ctx.Value(userContextKey).(*User)
+	user, ok := ctx.Value(userContextKey).(*models.User)
 	if !ok {
 		panic("Couldn't find User in lua's Context")
 	}
