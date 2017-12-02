@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -156,6 +157,61 @@ func remove(client *http.Client, urlsuffix string) error {
 	}
 
 	return nil
+}
+
+func uploadFile(client *http.Client, filename, urlsuffix string) error {
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	filewriter, err := mw.CreateFormFile("file", filename)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(filewriter, file); err != nil {
+		return err
+	}
+
+	mw.Close()
+
+	response, err := client.Post(server.URL+urlsuffix, mw.FormDataContentType(), &buf)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	var e handlers.Error
+	err = (&e).Read(string(body))
+	if err != nil {
+		return err
+	}
+	if e.ErrorId != 0 || len(e.ErrorString) != 0 {
+		return &e
+	}
+
+	return nil
+}
+
+func accountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {
+	t.Helper()
+	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
+	if err != nil {
+		t.Fatalf("Couldn't fetch account transactions for '%s': %s\n", account.Name, err)
+	}
+
+	if transactions.EndingBalance != balance {
+		t.Errorf("Expected ending balance for '%s' to be '%s', but found %s\n", account.Name, balance, transactions.EndingBalance)
+	}
 }
 
 func RunWith(t *testing.T, d *TestData, fn TestDataFunc) {

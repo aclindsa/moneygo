@@ -257,7 +257,7 @@ var data = []TestData{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 0,
-				Type:            handlers.Asset,
+				Type:            handlers.Bank,
 				Name:            "Credit Union Checking",
 			},
 			{
@@ -294,6 +294,13 @@ var data = []TestData{
 				ParentAccountId: -1,
 				Type:            handlers.Expense,
 				Name:            "Expenses",
+			},
+			{
+				UserId:          0,
+				SecurityId:      0,
+				ParentAccountId: -1,
+				Type:            handlers.Liability,
+				Name:            "Credit Card",
 			},
 		},
 		transactions: []handlers.Transaction{
@@ -461,6 +468,10 @@ end`,
 								Series: map[string]*handlers.Series{},
 							},
 						},
+					},
+					"Credit Card": {
+						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+						Series: map[string]*handlers.Series{},
 					},
 				},
 			},
