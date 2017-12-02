@@ -146,3 +146,84 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 		}
 	})
 }
+
+func TestImportOFXBrokerage(t *testing.T) {
+	RunWith(t, &data[0], func(t *testing.T, d *TestData) {
+		// Ensure there's only one USD currency
+		oldDefault, err := getSecurity(d.clients[0], d.users[0].DefaultCurrency)
+		if err != nil {
+			t.Fatalf("Error fetching default security: %s\n", err)
+		}
+		d.users[0].DefaultCurrency = d.securities[0].SecurityId
+		if _, err := updateUser(d.clients[0], &d.users[0]); err != nil {
+			t.Fatalf("Error updating user: %s\n", err)
+		}
+		if err := deleteSecurity(d.clients[0], oldDefault); err != nil {
+			t.Fatalf("Error removing default security: %s\n", err)
+		}
+
+		// Create the brokerage account
+		account := &handlers.Account{
+			SecurityId:      d.securities[0].SecurityId,
+			UserId:          d.users[0].UserId,
+			ParentAccountId: -1,
+			Type:            handlers.Investment,
+			Name:            "Personal Brokerage",
+		}
+
+		account, err = createAccount(d.clients[0], account)
+		if err != nil {
+			t.Fatalf("Error creating 'Personal Brokerage' account: %s\n", err)
+		}
+
+		// Import and ensure it didn't return a nasty error code
+		if err = importOFX(d.clients[0], account.AccountId, "handlers_testdata/brokerage.ofx"); err != nil {
+			t.Fatalf("Error importing OFX: %s\n", err)
+		}
+		accountBalanceHelper(t, d.clients[0], account, "387.48")
+
+		// Make sure the USD trading account was created and has  the right
+		// value
+		usdtrading, err := findAccount(d.clients[0], "USD", handlers.Trading, d.users[0].DefaultCurrency)
+		if err != nil {
+			t.Fatalf("Error finding USD trading account: %s\n", err)
+		}
+		accountBalanceHelper(t, d.clients[0], usdtrading, "619.96")
+
+		// Check investment/trading balances for all securities traded
+		checks := []struct {
+			Ticker         string
+			Name           string
+			Balance        string
+			TradingBalance string
+		}{
+			{"VBMFX", "Vanguard Total Bond Market Index Fund Investor Shares", "37.70000", "-37.70000"},
+			{"921909768", "VANGUARD TOTAL INTL STOCK INDE", "5.00000", "-5.00000"},
+			{"ATO", "ATMOS ENERGY CORP", "0.08600", "-0.08600"},
+			{"VMFXX", "Vanguard Federal Money Market Fund", "-21.57000", "21.57000"},
+		}
+
+		for _, check := range checks {
+			security, err := findSecurity(d.clients[0], check.Ticker, handlers.Stock)
+			if err != nil {
+				t.Fatalf("Error finding security: %s\n", err)
+			}
+
+			account, err := findAccount(d.clients[0], check.Name, handlers.Investment, security.SecurityId)
+			if err != nil {
+				t.Fatalf("Error finding trading account: %s\n", err)
+			}
+
+			accountBalanceHelper(t, d.clients[0], account, check.Balance)
+
+			tradingaccount, err := findAccount(d.clients[0], check.Name, handlers.Trading, security.SecurityId)
+			if err != nil {
+				t.Fatalf("Error finding trading account: %s\n", err)
+			}
+
+			accountBalanceHelper(t, d.clients[0], tradingaccount, check.TradingBalance)
+		}
+
+		// TODO check reinvestment/income to make sure they're registered as income?
+	})
+}

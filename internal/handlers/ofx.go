@@ -705,10 +705,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	load.Neg(&load)
 
 	tradingTotal.Neg(&total)
-	tradingTotal.Sub(&tradingTotal, &commission)
-	tradingTotal.Sub(&tradingTotal, &taxes)
-	tradingTotal.Sub(&tradingTotal, &fees)
-	tradingTotal.Sub(&tradingTotal, &load)
+	tradingTotal.Add(&tradingTotal, &commission)
+	tradingTotal.Add(&tradingTotal, &taxes)
+	tradingTotal.Add(&tradingTotal, &fees)
+	tradingTotal.Add(&tradingTotal, &load)
 
 	// Convert amounts to account's currency if Currency is set
 	if ok, _ := sell.Currency.Valid(); ok {
