@@ -12,8 +12,8 @@ feedback!).
 
 ## Features
 
-* [Import from OFX](./docs/ofx_imports.md) (bank and credit card transactions
-  only so far) and Gnucash
+* [Import from OFX](./docs/ofx_imports.md) and
+  [Gnucash](http://www.gnucash.org/)
 * Enter transactions manually using the register, double-entry accounting is
   enforced
 * Generate [custom charts in Lua](./docs/lua_reports.md)
@@ -75,7 +75,7 @@ instead of HTTP (the default).
 
 ## Missing Features
 
-* Importing investment transactions via OFX 
+* Importing a few of the more exotic investment transactions via OFX
 * Budgets
 * Scheduled transactions
 * Matching duplicate transactions
