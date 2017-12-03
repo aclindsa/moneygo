@@ -37,7 +37,7 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(models.User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(models.Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(handlers.Account{}, "accounts").SetKeys(true, "AccountId")
-	dbmap.AddTableWithName(handlers.Security{}, "securities").SetKeys(true, "SecurityId")
+	dbmap.AddTableWithName(models.Security{}, "securities").SetKeys(true, "SecurityId")
 	dbmap.AddTableWithName(handlers.Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(handlers.Split{}, "splits").SetKeys(true, "SplitId")
 	dbmap.AddTableWithName(handlers.Price{}, "prices").SetKeys(true, "PriceId")

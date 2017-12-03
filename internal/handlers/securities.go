@@ -3,9 +3,9 @@ package handlers
 //go:generate make
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
 	"net/url"
@@ -13,64 +13,9 @@ import (
 	"strings"
 )
 
-type SecurityType int64
-
-const (
-	Currency SecurityType = 1
-	Stock                 = 2
-)
-
-func GetSecurityType(typestring string) SecurityType {
-	if strings.EqualFold(typestring, "currency") {
-		return Currency
-	} else if strings.EqualFold(typestring, "stock") {
-		return Stock
-	} else {
-		return 0
-	}
-}
-
-type Security struct {
-	SecurityId  int64
-	UserId      int64
-	Name        string
-	Description string
-	Symbol      string
-	// Number of decimal digits (to the right of the decimal point) this
-	// security is precise to
-	Precision int `db:"Preciseness"`
-	Type      SecurityType
-	// AlternateId is CUSIP for Type=Stock, ISO4217 for Type=Currency
-	AlternateId string
-}
-
-type SecurityList struct {
-	Securities *[]*Security `json:"securities"`
-}
-
-func (s *Security) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(s)
-}
-
-func (s *Security) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(s)
-}
-
-func (sl *SecurityList) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(sl)
-}
-
-func (sl *SecurityList) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(sl)
-}
-
-func SearchSecurityTemplates(search string, _type SecurityType, limit int64) []*Security {
+func SearchSecurityTemplates(search string, _type models.SecurityType, limit int64) []*models.Security {
 	upperSearch := strings.ToUpper(search)
-	var results []*Security
+	var results []*models.Security
 	for i, security := range SecurityTemplates {
 		if strings.Contains(strings.ToUpper(security.Name), upperSearch) ||
 			strings.Contains(strings.ToUpper(security.Description), upperSearch) ||
@@ -86,7 +31,7 @@ func SearchSecurityTemplates(search string, _type SecurityType, limit int64) []*
 	return results
 }
 
-func FindSecurityTemplate(name string, _type SecurityType) *Security {
+func FindSecurityTemplate(name string, _type models.SecurityType) *models.Security {
 	for _, security := range SecurityTemplates {
 		if name == security.Name && _type == security.Type {
 			return &security
@@ -95,18 +40,18 @@ func FindSecurityTemplate(name string, _type SecurityType) *Security {
 	return nil
 }
 
-func FindCurrencyTemplate(iso4217 int64) *Security {
+func FindCurrencyTemplate(iso4217 int64) *models.Security {
 	iso4217string := strconv.FormatInt(iso4217, 10)
 	for _, security := range SecurityTemplates {
-		if security.Type == Currency && security.AlternateId == iso4217string {
+		if security.Type == models.Currency && security.AlternateId == iso4217string {
 			return &security
 		}
 	}
 	return nil
 }
 
-func GetSecurity(tx *Tx, securityid int64, userid int64) (*Security, error) {
-	var s Security
+func GetSecurity(tx *Tx, securityid int64, userid int64) (*models.Security, error) {
+	var s models.Security
 
 	err := tx.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
 	if err != nil {
@@ -115,8 +60,8 @@ func GetSecurity(tx *Tx, securityid int64, userid int64) (*Security, error) {
 	return &s, nil
 }
 
-func GetSecurities(tx *Tx, userid int64) (*[]*Security, error) {
-	var securities []*Security
+func GetSecurities(tx *Tx, userid int64) (*[]*models.Security, error) {
+	var securities []*models.Security
 
 	_, err := tx.Select(&securities, "SELECT * from securities where UserId=?", userid)
 	if err != nil {
@@ -125,7 +70,7 @@ func GetSecurities(tx *Tx, userid int64) (*[]*Security, error) {
 	return &securities, nil
 }
 
-func InsertSecurity(tx *Tx, s *Security) error {
+func InsertSecurity(tx *Tx, s *models.Security) error {
 	err := tx.Insert(s)
 	if err != nil {
 		return err
@@ -133,11 +78,11 @@ func InsertSecurity(tx *Tx, s *Security) error {
 	return nil
 }
 
-func UpdateSecurity(tx *Tx, s *Security) (err error) {
+func UpdateSecurity(tx *Tx, s *models.Security) (err error) {
 	user, err := GetUser(tx, s.UserId)
 	if err != nil {
 		return
-	} else if user.DefaultCurrency == s.SecurityId && s.Type != Currency {
+	} else if user.DefaultCurrency == s.SecurityId && s.Type != models.Currency {
 		return errors.New("Cannot change security which is user's default currency to be non-currency")
 	}
 
@@ -160,7 +105,7 @@ func (e SecurityInUseError) Error() string {
 	return e.message
 }
 
-func DeleteSecurity(tx *Tx, s *Security) error {
+func DeleteSecurity(tx *Tx, s *models.Security) error {
 	// First, ensure no accounts are using this security
 	accounts, err := tx.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
 
@@ -193,7 +138,7 @@ func DeleteSecurity(tx *Tx, s *Security) error {
 	return nil
 }
 
-func ImportGetCreateSecurity(tx *Tx, userid int64, security *Security) (*Security, error) {
+func ImportGetCreateSecurity(tx *Tx, userid int64, security *models.Security) (*models.Security, error) {
 	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId
@@ -204,7 +149,7 @@ func ImportGetCreateSecurity(tx *Tx, userid int64, security *Security) (*Securit
 		return security, nil
 	}
 
-	var securities []*Security
+	var securities []*models.Security
 
 	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Preciseness=?", userid, security.Type, security.AlternateId, security.Precision)
 	if err != nil {
@@ -264,7 +209,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return PriceHandler(r, context, user, securityid)
 		}
 
-		var security Security
+		var security models.Security
 		if err := ReadJSON(r, &security); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -281,7 +226,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	} else if r.Method == "GET" {
 		if context.LastLevel() {
 			//Return all securities
-			var sl SecurityList
+			var sl models.SecurityList
 
 			securities, err := GetSecurities(context.Tx, user.UserId)
 			if err != nil {
@@ -324,7 +269,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		}
 
 		if r.Method == "PUT" {
-			var security Security
+			var security models.Security
 			if err := ReadJSON(r, &security); err != nil || security.SecurityId != securityid {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -359,17 +304,17 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 func SecurityTemplateHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "GET" {
-		var sl SecurityList
+		var sl models.SecurityList
 
 		query, _ := url.ParseQuery(r.URL.RawQuery)
 
 		var limit int64 = -1
 		search := query.Get("search")
 
-		var _type SecurityType = 0
+		var _type models.SecurityType = 0
 		typestring := query.Get("type")
 		if len(typestring) > 0 {
-			_type = GetSecurityType(typestring)
+			_type = models.GetSecurityType(typestring)
 			if _type == 0 {
 				return NewError(3 /*Invalid Request*/)
 			}

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
 	"strings"
@@ -214,7 +215,7 @@ func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error)
 func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*Account, error) {
 	var imbalanceAccount Account
 	var account Account
-	xxxtemplate := FindSecurityTemplate("XXX", Currency)
+	xxxtemplate := FindSecurityTemplate("XXX", models.Currency)
 	if xxxtemplate == nil {
 		return nil, errors.New("Couldn't find XXX security template")
 	}

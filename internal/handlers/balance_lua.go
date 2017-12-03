@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 	"math/big"
 )
 
 type Balance struct {
-	Security *Security
+	Security *models.Security
 	Amount   *big.Rat
 }
 

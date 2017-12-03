@@ -9,8 +9,8 @@ import (
 
 const luaSecurityTypeName = "security"
 
-func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
-	var security_map map[int64]*Security
+func luaContextGetSecurities(L *lua.LState) (map[int64]*models.Security, error) {
+	var security_map map[int64]*models.Security
 
 	ctx := L.Context()
 
@@ -19,7 +19,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
 
-	security_map, ok = ctx.Value(securitiesContextKey).(map[int64]*Security)
+	security_map, ok = ctx.Value(securitiesContextKey).(map[int64]*models.Security)
 	if !ok {
 		user, ok := ctx.Value(userContextKey).(*models.User)
 		if !ok {
@@ -31,7 +31,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 			return nil, err
 		}
 
-		security_map = make(map[int64]*Security)
+		security_map = make(map[int64]*models.Security)
 		for i := range *securities {
 			security_map[(*securities)[i].SecurityId] = (*securities)[i]
 		}
@@ -43,7 +43,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*Security, error) {
 	return security_map, nil
 }
 
-func luaContextGetDefaultCurrency(L *lua.LState) (*Security, error) {
+func luaContextGetDefaultCurrency(L *lua.LState) (*models.Security, error) {
 	security_map, err := luaContextGetSecurities(L)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func luaRegisterSecurities(L *lua.LState) {
 	L.SetGlobal("get_default_currency", getDefaultCurrencyFn)
 }
 
-func SecurityToLua(L *lua.LState, security *Security) *lua.LUserData {
+func SecurityToLua(L *lua.LState, security *models.Security) *lua.LUserData {
 	ud := L.NewUserData()
 	ud.Value = security
 	L.SetMetatable(ud, L.GetTypeMetatable(luaSecurityTypeName))
@@ -115,9 +115,9 @@ func SecurityToLua(L *lua.LState, security *Security) *lua.LUserData {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Security and returns this *Security.
-func luaCheckSecurity(L *lua.LState, n int) *Security {
+func luaCheckSecurity(L *lua.LState, n int) *models.Security {
 	ud := L.CheckUserData(n)
-	if security, ok := ud.Value.(*Security); ok {
+	if security, ok := ud.Value.(*models.Security); ok {
 		return security
 	}
 	L.ArgError(n, "security expected")

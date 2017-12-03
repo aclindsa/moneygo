@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"testing"
 )
@@ -94,7 +95,7 @@ func TestImportGnucash(t *testing.T) {
 		accountBalanceHelper(t, d.clients[0], groceries, "287.56") // 87.19 from preexisting transactions and 200.37 from Gnucash
 		accountBalanceHelper(t, d.clients[0], cable, "89.98")
 
-		var ge *handlers.Security
+		var ge *models.Security
 		securities, err := getSecurities(d.clients[0])
 		if err != nil {
 			t.Fatalf("Error fetching securities: %s\n", err)

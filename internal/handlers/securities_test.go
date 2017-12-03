@@ -2,19 +2,20 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
 )
 
-func createSecurity(client *http.Client, security *handlers.Security) (*handlers.Security, error) {
-	var s handlers.Security
+func createSecurity(client *http.Client, security *models.Security) (*models.Security, error) {
+	var s models.Security
 	err := create(client, security, &s, "/v1/securities/")
 	return &s, err
 }
 
-func getSecurity(client *http.Client, securityid int64) (*handlers.Security, error) {
-	var s handlers.Security
+func getSecurity(client *http.Client, securityid int64) (*models.Security, error) {
+	var s models.Security
 	err := read(client, &s, "/v1/securities/"+strconv.FormatInt(securityid, 10))
 	if err != nil {
 		return nil, err
@@ -22,8 +23,8 @@ func getSecurity(client *http.Client, securityid int64) (*handlers.Security, err
 	return &s, nil
 }
 
-func getSecurities(client *http.Client) (*handlers.SecurityList, error) {
-	var sl handlers.SecurityList
+func getSecurities(client *http.Client) (*models.SecurityList, error) {
+	var sl models.SecurityList
 	err := read(client, &sl, "/v1/securities/")
 	if err != nil {
 		return nil, err
@@ -31,8 +32,8 @@ func getSecurities(client *http.Client) (*handlers.SecurityList, error) {
 	return &sl, nil
 }
 
-func updateSecurity(client *http.Client, security *handlers.Security) (*handlers.Security, error) {
-	var s handlers.Security
+func updateSecurity(client *http.Client, security *models.Security) (*models.Security, error) {
+	var s models.Security
 	err := update(client, security, &s, "/v1/securities/"+strconv.FormatInt(security.SecurityId, 10))
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func updateSecurity(client *http.Client, security *handlers.Security) (*handlers
 	return &s, nil
 }
 
-func deleteSecurity(client *http.Client, s *handlers.Security) error {
+func deleteSecurity(client *http.Client, s *models.Security) error {
 	err := remove(client, "/v1/securities/"+strconv.FormatInt(s.SecurityId, 10))
 	if err != nil {
 		return err

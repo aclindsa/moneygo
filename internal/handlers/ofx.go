@@ -3,26 +3,27 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"math/big"
 )
 
 type OFXImport struct {
-	Securities   []Security
+	Securities   []models.Security
 	Accounts     []Account
 	Transactions []Transaction
 	//	Balances     map[int64]string // map AccountIDs to ending balances
 }
 
-func (i *OFXImport) GetSecurity(ofxsecurityid int64) (*Security, error) {
+func (i *OFXImport) GetSecurity(ofxsecurityid int64) (*models.Security, error) {
 	if ofxsecurityid < 0 || ofxsecurityid > int64(len(i.Securities)) {
 		return nil, errors.New("OFXImport.GetSecurity: SecurityID out of range")
 	}
 	return &i.Securities[ofxsecurityid], nil
 }
 
-func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType SecurityType) (*Security, error) {
+func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType models.SecurityType) (*models.Security, error) {
 	for _, security := range i.Securities {
 		if alternateid == security.AlternateId && securityType == security.Type {
 			return &security, nil
@@ -32,18 +33,18 @@ func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType Secu
 	return nil, errors.New("OFXImport.FindSecurity: Unable to find security")
 }
 
-func (i *OFXImport) GetAddCurrency(isoname string) (*Security, error) {
+func (i *OFXImport) GetAddCurrency(isoname string) (*models.Security, error) {
 	for _, security := range i.Securities {
-		if isoname == security.Name && Currency == security.Type {
+		if isoname == security.Name && models.Currency == security.Type {
 			return &security, nil
 		}
 	}
 
-	template := FindSecurityTemplate(isoname, Currency)
+	template := FindSecurityTemplate(isoname, models.Currency)
 	if template == nil {
 		return nil, fmt.Errorf("Failed to find Security for \"%s\"", isoname)
 	}
-	var security Security = *template
+	var security models.Security = *template
 	security.SecurityId = int64(len(i.Securities) + 1)
 	i.Securities = append(i.Securities, security)
 
@@ -186,13 +187,13 @@ func (i *OFXImport) importSecurities(seclist *ofxgo.SecurityList) error {
 		} else {
 			return errors.New("Can't import unrecognized type satisfying ofxgo.Security interface")
 		}
-		s := Security{
+		s := models.Security{
 			SecurityId:  int64(len(i.Securities) + 1),
 			Name:        string(si.SecName),
 			Description: string(si.Memo),
 			Symbol:      string(si.Ticker),
 			Precision:   5, // TODO How to actually determine this?
-			Type:        Stock,
+			Type:        models.Stock,
 			AlternateId: string(si.SecID.UniqueID),
 		}
 		if len(s.Description) == 0 {
@@ -214,10 +215,10 @@ func (i *OFXImport) GetInvTran(invtran *ofxgo.InvTran) Transaction {
 	return t
 }
 
-func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&buy.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(buy.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(buy.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -348,10 +349,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 	return &t, nil
 }
 
-func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&income.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(income.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(income.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -394,10 +395,10 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, accoun
 	return &t, nil
 }
 
-func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&expense.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(expense.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(expense.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +440,7 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Securit
 	return &t, nil
 }
 
-func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&marginint.InvTran)
 
 	memo := string(marginint.InvTran.Memo)
@@ -478,10 +479,10 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 	return &t, nil
 }
 
-func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&reinvest.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(reinvest.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(reinvest.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -634,10 +635,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	return &t, nil
 }
 
-func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&retofcap.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(retofcap.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(retofcap.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -679,10 +680,10 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, 
 	return &t, nil
 }
 
-func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&sell.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(sell.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(sell.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -819,7 +820,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) (*Transaction, error) {
 	t := i.GetInvTran(&transfer.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(transfer.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(transfer.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -858,7 +859,7 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) 
 	return &t, nil
 }
 
-func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Account, curdef *Security) error {
+func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Account, curdef *models.Security) error {
 	if curdef.SecurityId < 1 || curdef.SecurityId > int64(len(i.Securities)) {
 		return errors.New("Internal error: security index not found in OFX import\n")
 	}

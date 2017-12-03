@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"io"
 	"log"
 	"math"
@@ -22,7 +23,7 @@ type GnucashXMLCommodity struct {
 	XCode       string `xml:"http://www.gnucash.org/XML/cmdty xcode"`
 }
 
-type GnucashCommodity struct{ Security }
+type GnucashCommodity struct{ models.Security }
 
 func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var gxc GnucashXMLCommodity
@@ -35,12 +36,12 @@ func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 	gc.Description = gxc.Description
 	gc.AlternateId = gxc.XCode
 
-	gc.Security.Type = Stock // assumed default
+	gc.Security.Type = models.Stock // assumed default
 	if gxc.Type == "ISO4217" {
-		gc.Security.Type = Currency
+		gc.Security.Type = models.Currency
 		// Get the number from our templates for the AlternateId because
 		// Gnucash uses 'id' (our Name) to supply the string ISO4217 code
-		template := FindSecurityTemplate(gxc.Name, Currency)
+		template := FindSecurityTemplate(gxc.Name, models.Currency)
 		if template == nil {
 			return errors.New("Unable to find security template for Gnucash ISO4217 commodity")
 		}
@@ -125,7 +126,7 @@ type GnucashXMLImport struct {
 }
 
 type GnucashImport struct {
-	Securities   []Security
+	Securities   []models.Security
 	Accounts     []Account
 	Transactions []Transaction
 	Prices       []Price
@@ -143,7 +144,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	}
 
 	// Fixup securities, making a map of them as we go
-	securityMap := make(map[string]Security)
+	securityMap := make(map[string]models.Security)
 	for i := range gncxml.Commodities {
 		s := gncxml.Commodities[i].Security
 		s.SecurityId = int64(i + 1)
@@ -169,7 +170,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		if !ok {
 			return nil, fmt.Errorf("Unable to find currency '%s' for price '%s'", price.Currency.Name, price.Id)
 		}
-		if currency.Type != Currency {
+		if currency.Type != models.Currency {
 			return nil, fmt.Errorf("Currency for imported price isn't actually a currency\n")
 		}
 		p.PriceId = int64(i + 1)

@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
@@ -63,7 +64,7 @@ func TestImportOFXCreditCard(t *testing.T) {
 	})
 }
 
-func findSecurity(client *http.Client, symbol string, tipe handlers.SecurityType) (*handlers.Security, error) {
+func findSecurity(client *http.Client, symbol string, tipe models.SecurityType) (*models.Security, error) {
 	securities, err := getSecurities(client)
 	if err != nil {
 		return nil, err
@@ -125,7 +126,7 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 
 		// Make sure the security was created and that the trading account has
 		// the right value
-		security, err := findSecurity(d.clients[0], "VANGUARD TARGET 2045", handlers.Stock)
+		security, err := findSecurity(d.clients[0], "VANGUARD TARGET 2045", models.Stock)
 		if err != nil {
 			t.Fatalf("Error finding VANGUARD TARGET 2045 security: %s\n", err)
 		}
@@ -204,7 +205,7 @@ func TestImportOFXBrokerage(t *testing.T) {
 		}
 
 		for _, check := range checks {
-			security, err := findSecurity(d.clients[0], check.Ticker, handlers.Stock)
+			security, err := findSecurity(d.clients[0], check.Ticker, models.Stock)
 			if err != nil {
 				t.Fatalf("Error finding security: %s\n", err)
 			}

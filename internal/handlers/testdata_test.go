@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,7 +37,7 @@ type TestData struct {
 	initialized  bool
 	users        []User
 	clients      []*http.Client
-	securities   []handlers.Security
+	securities   []models.Security
 	prices       []handlers.Price
 	accounts     []handlers.Account // accounts must appear after their parents in this slice
 	transactions []handlers.Transaction
@@ -170,14 +171,14 @@ var data = []TestData{
 				Email:           "bbob+moneygo@my-domain.com",
 			},
 		},
-		securities: []handlers.Security{
+		securities: []models.Security{
 			{
 				UserId:      0,
 				Name:        "USD",
 				Description: "US Dollar",
 				Symbol:      "$",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "840",
 			},
 			{
@@ -186,7 +187,7 @@ var data = []TestData{
 				Description: "SPDR S&P 500 ETF Trust",
 				Symbol:      "SPY",
 				Precision:   5,
-				Type:        handlers.Stock,
+				Type:        models.Stock,
 				AlternateId: "78462F103",
 			},
 			{
@@ -195,7 +196,7 @@ var data = []TestData{
 				Description: "Euro",
 				Symbol:      "€",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "978",
 			},
 			{
@@ -204,7 +205,7 @@ var data = []TestData{
 				Description: "Euro",
 				Symbol:      "€",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "978",
 			},
 		},

@@ -57,7 +57,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 	// Find matching existing securities or create new ones for those
 	// referenced by the OFX import. Also create a map from placeholder import
 	// SecurityIds to the actual SecurityIDs
-	var securitymap = make(map[int64]Security)
+	var securitymap = make(map[int64]models.Security)
 	for _, ofxsecurity := range itl.Securities {
 		// save off since ImportGetCreateSecurity overwrites SecurityId on
 		// ofxsecurity

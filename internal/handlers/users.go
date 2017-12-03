@@ -54,7 +54,7 @@ func InsertUser(tx *Tx, u *models.User) error {
 	}
 
 	// Copy the security template and give it our new UserId
-	var security Security
+	var security models.Security
 	security = *security_template
 	security.UserId = u.UserId
 
@@ -89,7 +89,7 @@ func UpdateUser(tx *Tx, u *models.User) error {
 		return err
 	} else if security.UserId != u.UserId || security.SecurityId != u.DefaultCurrency {
 		return errors.New("UserId and DefaultCurrency don't match the fetched security")
-	} else if security.Type != Currency {
+	} else if security.Type != models.Currency {
 		return errors.New("New DefaultCurrency security is not a currency")
 	}
 
