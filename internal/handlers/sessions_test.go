@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -26,8 +27,8 @@ func newSession(user *User) (*http.Client, error) {
 	return &client, nil
 }
 
-func getSession(client *http.Client) (*handlers.Session, error) {
-	var s handlers.Session
+func getSession(client *http.Client) (*models.Session, error) {
+	var s models.Session
 	err := read(client, &s, "/v1/sessions/")
 	return &s, err
 }
