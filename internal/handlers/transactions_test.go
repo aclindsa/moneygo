@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -10,14 +11,14 @@ import (
 	"time"
 )
 
-func createTransaction(client *http.Client, transaction *handlers.Transaction) (*handlers.Transaction, error) {
-	var s handlers.Transaction
+func createTransaction(client *http.Client, transaction *models.Transaction) (*models.Transaction, error) {
+	var s models.Transaction
 	err := create(client, transaction, &s, "/v1/transactions/")
 	return &s, err
 }
 
-func getTransaction(client *http.Client, transactionid int64) (*handlers.Transaction, error) {
-	var s handlers.Transaction
+func getTransaction(client *http.Client, transactionid int64) (*models.Transaction, error) {
+	var s models.Transaction
 	err := read(client, &s, "/v1/transactions/"+strconv.FormatInt(transactionid, 10))
 	if err != nil {
 		return nil, err
@@ -25,8 +26,8 @@ func getTransaction(client *http.Client, transactionid int64) (*handlers.Transac
 	return &s, nil
 }
 
-func getTransactions(client *http.Client) (*handlers.TransactionList, error) {
-	var tl handlers.TransactionList
+func getTransactions(client *http.Client) (*models.TransactionList, error) {
+	var tl models.TransactionList
 	err := read(client, &tl, "/v1/transactions/")
 	if err != nil {
 		return nil, err
@@ -34,8 +35,8 @@ func getTransactions(client *http.Client) (*handlers.TransactionList, error) {
 	return &tl, nil
 }
 
-func getAccountTransactions(client *http.Client, accountid, page, limit int64, sort string) (*handlers.AccountTransactionsList, error) {
-	var atl handlers.AccountTransactionsList
+func getAccountTransactions(client *http.Client, accountid, page, limit int64, sort string) (*models.AccountTransactionsList, error) {
+	var atl models.AccountTransactionsList
 	params := url.Values{}
 
 	query := fmt.Sprintf("/v1/accounts/%d/transactions/", accountid)
@@ -57,8 +58,8 @@ func getAccountTransactions(client *http.Client, accountid, page, limit int64, s
 	return &atl, nil
 }
 
-func updateTransaction(client *http.Client, transaction *handlers.Transaction) (*handlers.Transaction, error) {
-	var s handlers.Transaction
+func updateTransaction(client *http.Client, transaction *models.Transaction) (*models.Transaction, error) {
+	var s models.Transaction
 	err := update(client, transaction, &s, "/v1/transactions/"+strconv.FormatInt(transaction.TransactionId, 10))
 	if err != nil {
 		return nil, err
@@ -66,7 +67,7 @@ func updateTransaction(client *http.Client, transaction *handlers.Transaction) (
 	return &s, nil
 }
 
-func deleteTransaction(client *http.Client, s *handlers.Transaction) error {
+func deleteTransaction(client *http.Client, s *models.Transaction) error {
 	err := remove(client, "/v1/transactions/"+strconv.FormatInt(s.TransactionId, 10))
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func deleteTransaction(client *http.Client, s *handlers.Transaction) error {
 	return nil
 }
 
-func ensureTransactionsMatch(t *testing.T, expected, tran *handlers.Transaction, accounts *[]handlers.Account, matchtransactionids, matchsplitids bool) {
+func ensureTransactionsMatch(t *testing.T, expected, tran *models.Transaction, accounts *[]models.Account, matchtransactionids, matchsplitids bool) {
 	t.Helper()
 
 	if tran.TransactionId == 0 {
@@ -136,9 +137,9 @@ func ensureTransactionsMatch(t *testing.T, expected, tran *handlers.Transaction,
 	}
 }
 
-func getAccountVersionMap(t *testing.T, client *http.Client, tran *handlers.Transaction) map[int64]*handlers.Account {
+func getAccountVersionMap(t *testing.T, client *http.Client, tran *models.Transaction) map[int64]*models.Account {
 	t.Helper()
-	accountMap := make(map[int64]*handlers.Account)
+	accountMap := make(map[int64]*models.Account)
 	for _, split := range tran.Splits {
 		account, err := getAccount(client, split.AccountId)
 		if err != nil {
@@ -149,7 +150,7 @@ func getAccountVersionMap(t *testing.T, client *http.Client, tran *handlers.Tran
 	return accountMap
 }
 
-func checkAccountVersionsUpdated(t *testing.T, client *http.Client, accountMap map[int64]*handlers.Account, tran *handlers.Transaction) {
+func checkAccountVersionsUpdated(t *testing.T, client *http.Client, accountMap map[int64]*models.Account, tran *models.Transaction) {
 	for _, split := range tran.Splits {
 		account, err := getAccount(client, split.AccountId)
 		if err != nil {
@@ -177,19 +178,19 @@ func TestCreateTransaction(t *testing.T) {
 		}
 
 		// Don't allow imbalanced transactions
-		tran := handlers.Transaction{
+		tran := models.Transaction{
 			UserId:      d.users[0].UserId,
 			Description: "Imbalanced",
 			Date:        time.Date(2017, time.September, 1, 0, 00, 00, 0, time.UTC),
-			Splits: []*handlers.Split{
+			Splits: []*models.Split{
 				{
-					Status:     handlers.Reconciled,
+					Status:     models.Reconciled,
 					AccountId:  d.accounts[1].AccountId,
 					SecurityId: -1,
 					Amount:     "-39.98",
 				},
 				{
-					Status:     handlers.Entered,
+					Status:     models.Entered,
 					AccountId:  d.accounts[4].AccountId,
 					SecurityId: -1,
 					Amount:     "39.99",
@@ -209,7 +210,7 @@ func TestCreateTransaction(t *testing.T) {
 		}
 
 		// Don't allow transactions with 0 splits
-		tran.Splits = []*handlers.Split{}
+		tran.Splits = []*models.Split{}
 		_, err = createTransaction(d.clients[0], &tran)
 		if err == nil {
 			t.Fatalf("Expected error creating with zero splits")
@@ -316,9 +317,9 @@ func TestUpdateTransaction(t *testing.T) {
 
 			ensureTransactionsMatch(t, &curr, tran, nil, true, true)
 
-			tran.Splits = []*handlers.Split{}
+			tran.Splits = []*models.Split{}
 			for _, s := range curr.Splits {
-				var split handlers.Split
+				var split models.Split
 				split = *s
 				tran.Splits = append(tran.Splits, &split)
 			}
@@ -346,7 +347,7 @@ func TestUpdateTransaction(t *testing.T) {
 			}
 
 			// Don't allow transactions with 0 splits
-			tran.Splits = []*handlers.Split{}
+			tran.Splits = []*models.Split{}
 			_, err = updateTransaction(d.clients[orig.UserId], tran)
 			if err == nil {
 				t.Fatalf("Expected error updating with zero splits")
@@ -391,12 +392,12 @@ func TestDeleteTransaction(t *testing.T) {
 	})
 }
 
-func helperTestAccountTransactions(t *testing.T, d *TestData, account *handlers.Account, limit int64, sort string) {
+func helperTestAccountTransactions(t *testing.T, d *TestData, account *models.Account, limit int64, sort string) {
 	if account.UserId != d.users[0].UserId {
 		return
 	}
 
-	var transactions []handlers.Transaction
+	var transactions []models.Transaction
 	var lastFetchCount int64
 
 	for page := int64(0); page == 0 || lastFetchCount > 0; page++ {

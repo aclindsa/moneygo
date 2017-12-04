@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -59,7 +60,7 @@ func luaPrice__index(L *lua.LState) int {
 		}
 		L.Push(SecurityToLua(L, c))
 	case "Value", "value":
-		amt, err := GetBigAmount(p.Value)
+		amt, err := models.GetBigAmount(p.Value)
 		if err != nil {
 			panic(err)
 		}

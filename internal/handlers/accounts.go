@@ -1,127 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
-	"strings"
 )
 
-type AccountType int64
-
-const (
-	Bank       AccountType = 1 // start at 1 so that the default (0) is invalid
-	Cash                   = 2
-	Asset                  = 3
-	Liability              = 4
-	Investment             = 5
-	Income                 = 6
-	Expense                = 7
-	Trading                = 8
-	Equity                 = 9
-	Receivable             = 10
-	Payable                = 11
-)
-
-var AccountTypes = []AccountType{
-	Bank,
-	Cash,
-	Asset,
-	Liability,
-	Investment,
-	Income,
-	Expense,
-	Trading,
-	Equity,
-	Receivable,
-	Payable,
-}
-
-func (t AccountType) String() string {
-	switch t {
-	case Bank:
-		return "Bank"
-	case Cash:
-		return "Cash"
-	case Asset:
-		return "Asset"
-	case Liability:
-		return "Liability"
-	case Investment:
-		return "Investment"
-	case Income:
-		return "Income"
-	case Expense:
-		return "Expense"
-	case Trading:
-		return "Trading"
-	case Equity:
-		return "Equity"
-	case Receivable:
-		return "Receivable"
-	case Payable:
-		return "Payable"
-	}
-	return ""
-}
-
-type Account struct {
-	AccountId         int64
-	ExternalAccountId string
-	UserId            int64
-	SecurityId        int64
-	ParentAccountId   int64 // -1 if this account is at the root
-	Type              AccountType
-	Name              string
-
-	// monotonically-increasing account transaction version number. Used for
-	// allowing a client to ensure they have a consistent version when paging
-	// through transactions.
-	AccountVersion int64 `json:"Version"`
-
-	// Optional fields specifying how to fetch transactions from a bank via OFX
-	OFXURL       string
-	OFXORG       string
-	OFXFID       string
-	OFXUser      string
-	OFXBankID    string // OFX BankID (BrokerID if AcctType == Investment)
-	OFXAcctID    string
-	OFXAcctType  string // ofxgo.acctType
-	OFXClientUID string
-	OFXAppID     string
-	OFXAppVer    string
-	OFXVersion   string
-	OFXNoIndent  bool
-}
-
-type AccountList struct {
-	Accounts *[]Account `json:"accounts"`
-}
-
-func (a *Account) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(a)
-}
-
-func (a *Account) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(a)
-}
-
-func (al *AccountList) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(al)
-}
-
-func (al *AccountList) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(al)
-}
-
-func GetAccount(tx *Tx, accountid int64, userid int64) (*Account, error) {
-	var a Account
+func GetAccount(tx *Tx, accountid int64, userid int64) (*models.Account, error) {
+	var a models.Account
 
 	err := tx.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
 	if err != nil {
@@ -130,8 +17,8 @@ func GetAccount(tx *Tx, accountid int64, userid int64) (*Account, error) {
 	return &a, nil
 }
 
-func GetAccounts(tx *Tx, userid int64) (*[]Account, error) {
-	var accounts []Account
+func GetAccounts(tx *Tx, userid int64) (*[]models.Account, error) {
+	var accounts []models.Account
 
 	_, err := tx.Select(&accounts, "SELECT * from accounts where UserId=?", userid)
 	if err != nil {
@@ -142,9 +29,9 @@ func GetAccounts(tx *Tx, userid int64) (*[]Account, error) {
 
 // Get (and attempt to create if it doesn't exist). Matches on UserId,
 // SecurityId, Type, Name, and ParentAccountId
-func GetCreateAccount(tx *Tx, a Account) (*Account, error) {
-	var accounts []Account
-	var account Account
+func GetCreateAccount(tx *Tx, a models.Account) (*models.Account, error) {
+	var accounts []models.Account
+	var account models.Account
 
 	// Try to find the top-level trading account
 	_, err := tx.Select(&accounts, "SELECT * from accounts where UserId=? AND SecurityId=? AND Type=? AND Name=? AND ParentAccountId=? ORDER BY AccountId ASC LIMIT 1", a.UserId, a.SecurityId, a.Type, a.Name, a.ParentAccountId)
@@ -170,9 +57,9 @@ func GetCreateAccount(tx *Tx, a Account) (*Account, error) {
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // trading account for the supplied security/currency
-func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error) {
-	var tradingAccount Account
-	var account Account
+func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*models.Account, error) {
+	var tradingAccount models.Account
+	var account models.Account
 
 	user, err := GetUser(tx, userid)
 	if err != nil {
@@ -180,7 +67,7 @@ func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error)
 	}
 
 	tradingAccount.UserId = userid
-	tradingAccount.Type = Trading
+	tradingAccount.Type = models.Trading
 	tradingAccount.Name = "Trading"
 	tradingAccount.SecurityId = user.DefaultCurrency
 	tradingAccount.ParentAccountId = -1
@@ -200,7 +87,7 @@ func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error)
 	account.Name = security.Name
 	account.ParentAccountId = ta.AccountId
 	account.SecurityId = securityid
-	account.Type = Trading
+	account.Type = models.Trading
 
 	a, err := GetCreateAccount(tx, account)
 	if err != nil {
@@ -212,9 +99,9 @@ func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*Account, error)
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // imbalance account for the supplied security/currency
-func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*Account, error) {
-	var imbalanceAccount Account
-	var account Account
+func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*models.Account, error) {
+	var imbalanceAccount models.Account
+	var account models.Account
 	xxxtemplate := FindSecurityTemplate("XXX", models.Currency)
 	if xxxtemplate == nil {
 		return nil, errors.New("Couldn't find XXX security template")
@@ -228,7 +115,7 @@ func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*Account, erro
 	imbalanceAccount.Name = "Imbalances"
 	imbalanceAccount.ParentAccountId = -1
 	imbalanceAccount.SecurityId = xxxsecurity.SecurityId
-	imbalanceAccount.Type = Bank
+	imbalanceAccount.Type = models.Bank
 
 	// Find/create the top-level trading account
 	ia, err := GetCreateAccount(tx, imbalanceAccount)
@@ -245,7 +132,7 @@ func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*Account, erro
 	account.Name = security.Name
 	account.ParentAccountId = ia.AccountId
 	account.SecurityId = securityid
-	account.Type = Bank
+	account.Type = models.Bank
 
 	a, err := GetCreateAccount(tx, account)
 	if err != nil {
@@ -273,7 +160,7 @@ func (cae CircularAccountsError) Error() string {
 	return "Would result in circular account relationship"
 }
 
-func insertUpdateAccount(tx *Tx, a *Account, insert bool) error {
+func insertUpdateAccount(tx *Tx, a *models.Account, insert bool) error {
 	found := make(map[int64]bool)
 	if !insert {
 		found[a.AccountId] = true
@@ -286,7 +173,7 @@ func insertUpdateAccount(tx *Tx, a *Account, insert bool) error {
 			return TooMuchNestingError{}
 		}
 
-		var a Account
+		var a models.Account
 		err := tx.SelectOne(&a, "SELECT * from accounts where AccountId=?", parentid)
 		if err != nil {
 			return ParentAccountMissingError{}
@@ -329,15 +216,15 @@ func insertUpdateAccount(tx *Tx, a *Account, insert bool) error {
 	return nil
 }
 
-func InsertAccount(tx *Tx, a *Account) error {
+func InsertAccount(tx *Tx, a *models.Account) error {
 	return insertUpdateAccount(tx, a, true)
 }
 
-func UpdateAccount(tx *Tx, a *Account) error {
+func UpdateAccount(tx *Tx, a *models.Account) error {
 	return insertUpdateAccount(tx, a, false)
 }
 
-func DeleteAccount(tx *Tx, a *Account) error {
+func DeleteAccount(tx *Tx, a *models.Account) error {
 	if a.ParentAccountId != -1 {
 		// Re-parent splits to this account's parent account if this account isn't a root account
 		_, err := tx.Exec("UPDATE splits SET AccountId=? WHERE AccountId=?", a.ParentAccountId, a.AccountId)
@@ -384,7 +271,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return AccountImportHandler(context, r, user, accountid)
 		}
 
-		var account Account
+		var account models.Account
 		if err := ReadJSON(r, &account); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -415,7 +302,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	} else if r.Method == "GET" {
 		if context.LastLevel() {
 			//Return all Accounts
-			var al AccountList
+			var al models.AccountList
 			accounts, err := GetAccounts(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
@@ -447,7 +334,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			var account Account
+			var account models.Account
 			if err := ReadJSON(r, &account); err != nil || account.AccountId != accountid {
 				return NewError(3 /*Invalid Request*/)
 			}

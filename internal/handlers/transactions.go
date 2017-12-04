@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
@@ -10,141 +9,17 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 )
 
-// Split.Status
-const (
-	Imported   int64 = 1
-	Entered          = 2
-	Cleared          = 3
-	Reconciled       = 4
-	Voided           = 5
-)
-
-// Split.ImportSplitType
-const (
-	Default         int64 = 0
-	ImportAccount         = 1 // This split belongs to the main account being imported
-	SubAccount            = 2 // This split belongs to a sub-account of that being imported
-	ExternalAccount       = 3
-	TradingAccount        = 4
-	Commission            = 5
-	Taxes                 = 6
-	Fees                  = 7
-	Load                  = 8
-	IncomeAccount         = 9
-	ExpenseAccount        = 10
-)
-
-type Split struct {
-	SplitId         int64
-	TransactionId   int64
-	Status          int64
-	ImportSplitType int64
-
-	// One of AccountId and SecurityId must be -1
-	// In normal splits, AccountId will be valid and SecurityId will be -1. The
-	// only case where this is reversed is for transactions that have been
-	// imported and not yet associated with an account.
-	AccountId  int64
-	SecurityId int64
-
-	RemoteId string // unique ID from server, for detecting duplicates
-	Number   string // Check or reference number
-	Memo     string
-	Amount   string // String representation of decimal, suitable for passing to big.Rat.SetString()
-}
-
-func GetBigAmount(amt string) (*big.Rat, error) {
-	var r big.Rat
-	_, success := r.SetString(amt)
-	if !success {
-		return nil, errors.New("Couldn't convert string amount to big.Rat via SetString()")
-	}
-	return &r, nil
-}
-
-func (s *Split) GetAmount() (*big.Rat, error) {
-	return GetBigAmount(s.Amount)
-}
-
-func (s *Split) Valid() bool {
-	if (s.AccountId == -1) == (s.SecurityId == -1) {
-		return false
-	}
-	_, err := s.GetAmount()
-	return err == nil
-}
-
-func (s *Split) AlreadyImported(tx *Tx) (bool, error) {
+func SplitAlreadyImported(tx *Tx, s *models.Split) (bool, error) {
 	count, err := tx.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
 	return count == 1, err
 }
 
-type Transaction struct {
-	TransactionId int64
-	UserId        int64
-	Description   string
-	Date          time.Time
-	Splits        []*Split `db:"-"`
-}
-
-type TransactionList struct {
-	Transactions *[]Transaction `json:"transactions"`
-}
-
-type AccountTransactionsList struct {
-	Account           *Account
-	Transactions      *[]Transaction
-	TotalTransactions int64
-	BeginningBalance  string
-	EndingBalance     string
-}
-
-func (t *Transaction) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(t)
-}
-
-func (t *Transaction) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(t)
-}
-
-func (tl *TransactionList) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(tl)
-}
-
-func (tl *TransactionList) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(tl)
-}
-
-func (atl *AccountTransactionsList) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(atl)
-}
-
-func (atl *AccountTransactionsList) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(atl)
-}
-
-func (t *Transaction) Valid() bool {
-	for i := range t.Splits {
-		if !t.Splits[i].Valid() {
-			return false
-		}
-	}
-	return true
-}
-
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func (t *Transaction) GetImbalances(tx *Tx) (map[int64]big.Rat, error) {
+func GetTransactionImbalances(tx *Tx, t *models.Transaction) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -155,7 +30,7 @@ func (t *Transaction) GetImbalances(tx *Tx) (map[int64]big.Rat, error) {
 		securityid := t.Splits[i].SecurityId
 		if t.Splits[i].AccountId != -1 {
 			var err error
-			var account *Account
+			var account *models.Account
 			account, err = GetAccount(tx, t.Splits[i].AccountId, t.UserId)
 			if err != nil {
 				return nil, err
@@ -172,10 +47,10 @@ func (t *Transaction) GetImbalances(tx *Tx) (map[int64]big.Rat, error) {
 
 // Returns true if all securities contained in this transaction are balanced,
 // false otherwise
-func (t *Transaction) Balanced(tx *Tx) (bool, error) {
+func TransactionBalanced(tx *Tx, t *models.Transaction) (bool, error) {
 	var zero big.Rat
 
-	sums, err := t.GetImbalances(tx)
+	sums, err := GetTransactionImbalances(tx, t)
 	if err != nil {
 		return false, err
 	}
@@ -188,8 +63,8 @@ func (t *Transaction) Balanced(tx *Tx) (bool, error) {
 	return true, nil
 }
 
-func GetTransaction(tx *Tx, transactionid int64, userid int64) (*Transaction, error) {
-	var t Transaction
+func GetTransaction(tx *Tx, transactionid int64, userid int64) (*models.Transaction, error) {
+	var t models.Transaction
 
 	err := tx.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
 	if err != nil {
@@ -204,8 +79,8 @@ func GetTransaction(tx *Tx, transactionid int64, userid int64) (*Transaction, er
 	return &t, nil
 }
 
-func GetTransactions(tx *Tx, userid int64) (*[]Transaction, error) {
-	var transactions []Transaction
+func GetTransactions(tx *Tx, userid int64) (*[]models.Transaction, error) {
+	var transactions []models.Transaction
 
 	_, err := tx.Select(&transactions, "SELECT * from transactions where UserId=?", userid)
 	if err != nil {
@@ -246,7 +121,7 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransaction(tx *Tx, t *Transaction, user *models.User) error {
+func InsertTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
@@ -296,8 +171,8 @@ func InsertTransaction(tx *Tx, t *Transaction, user *models.User) error {
 	return nil
 }
 
-func UpdateTransaction(tx *Tx, t *Transaction, user *models.User) error {
-	var existing_splits []*Split
+func UpdateTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
+	var existing_splits []*models.Split
 
 	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
 	if err != nil {
@@ -373,7 +248,7 @@ func UpdateTransaction(tx *Tx, t *Transaction, user *models.User) error {
 	return nil
 }
 
-func DeleteTransaction(tx *Tx, t *Transaction, user *models.User) error {
+func DeleteTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
 	var accountids []int64
 	_, err := tx.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
 	if err != nil {
@@ -408,7 +283,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	}
 
 	if r.Method == "POST" {
-		var transaction Transaction
+		var transaction models.Transaction
 		if err := ReadJSON(r, &transaction); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -427,7 +302,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			}
 		}
 
-		balanced, err := transaction.Balanced(context.Tx)
+		balanced, err := TransactionBalanced(context.Tx, &transaction)
 		if err != nil {
 			return NewError(999 /*Internal Error*/)
 		}
@@ -449,7 +324,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	} else if r.Method == "GET" {
 		if context.LastLevel() {
 			//Return all Transactions
-			var al TransactionList
+			var al models.TransactionList
 			transactions, err := GetTransactions(context.Tx, user.UserId)
 			if err != nil {
 				log.Print(err)
@@ -475,13 +350,13 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			var transaction Transaction
+			var transaction models.Transaction
 			if err := ReadJSON(r, &transaction); err != nil || transaction.TransactionId != transactionid {
 				return NewError(3 /*Invalid Request*/)
 			}
 			transaction.UserId = user.UserId
 
-			balanced, err := transaction.Balanced(context.Tx)
+			balanced, err := TransactionBalanced(context.Tx, &transaction)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -526,7 +401,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	return NewError(3 /*Invalid Request*/)
 }
 
-func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Transaction) (*big.Rat, error) {
+func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []models.Transaction) (*big.Rat, error) {
 	var pageDifference, tmp big.Rat
 	for i := range transactions {
 		_, err := tx.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
@@ -538,7 +413,7 @@ func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Trans
 		// an ending balance
 		for j := range transactions[i].Splits {
 			if transactions[i].Splits[j].AccountId == accountid {
-				rat_amount, err := GetBigAmount(transactions[i].Splits[j].Amount)
+				rat_amount, err := models.GetBigAmount(transactions[i].Splits[j].Amount)
 				if err != nil {
 					return nil, err
 				}
@@ -551,7 +426,7 @@ func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []Trans
 }
 
 func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, error) {
-	var splits []Split
+	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId)
@@ -561,7 +436,7 @@ func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, er
 
 	var balance, tmp big.Rat
 	for _, s := range splits {
-		rat_amount, err := GetBigAmount(s.Amount)
+		rat_amount, err := models.GetBigAmount(s.Amount)
 		if err != nil {
 			return nil, err
 		}
@@ -574,7 +449,7 @@ func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, er
 
 // Assumes accountid is valid and is owned by the current user
 func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *time.Time) (*big.Rat, error) {
-	var splits []Split
+	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId, date)
@@ -584,7 +459,7 @@ func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *tim
 
 	var balance, tmp big.Rat
 	for _, s := range splits {
-		rat_amount, err := GetBigAmount(s.Amount)
+		rat_amount, err := models.GetBigAmount(s.Amount)
 		if err != nil {
 			return nil, err
 		}
@@ -596,7 +471,7 @@ func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *tim
 }
 
 func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
-	var splits []Split
+	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId, begin, end)
@@ -606,7 +481,7 @@ func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begi
 
 	var balance, tmp big.Rat
 	for _, s := range splits {
-		rat_amount, err := GetBigAmount(s.Amount)
+		rat_amount, err := models.GetBigAmount(s.Amount)
 		if err != nil {
 			return nil, err
 		}
@@ -617,9 +492,9 @@ func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begi
 	return &balance, nil
 }
 
-func GetAccountTransactions(tx *Tx, user *models.User, accountid int64, sort string, page uint64, limit uint64) (*AccountTransactionsList, error) {
-	var transactions []Transaction
-	var atl AccountTransactionsList
+func GetAccountTransactions(tx *Tx, user *models.User, accountid int64, sort string, page uint64, limit uint64) (*models.AccountTransactionsList, error) {
+	var transactions []models.Transaction
+	var atl models.AccountTransactionsList
 
 	var sqlsort, balanceLimitOffset string
 	var balanceLimitOffsetArg uint64
@@ -685,7 +560,7 @@ func GetAccountTransactions(tx *Tx, user *models.User, accountid int64, sort str
 
 	var tmp, balance big.Rat
 	for _, amount := range amounts {
-		rat_amount, err := GetBigAmount(amount)
+		rat_amount, err := models.GetBigAmount(amount)
 		if err != nil {
 			return nil, err
 		}

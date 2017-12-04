@@ -2,19 +2,20 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
 )
 
-func createAccount(client *http.Client, account *handlers.Account) (*handlers.Account, error) {
-	var a handlers.Account
+func createAccount(client *http.Client, account *models.Account) (*models.Account, error) {
+	var a models.Account
 	err := create(client, account, &a, "/v1/accounts/")
 	return &a, err
 }
 
-func getAccount(client *http.Client, accountid int64) (*handlers.Account, error) {
-	var a handlers.Account
+func getAccount(client *http.Client, accountid int64) (*models.Account, error) {
+	var a models.Account
 	err := read(client, &a, "/v1/accounts/"+strconv.FormatInt(accountid, 10))
 	if err != nil {
 		return nil, err
@@ -22,8 +23,8 @@ func getAccount(client *http.Client, accountid int64) (*handlers.Account, error)
 	return &a, nil
 }
 
-func getAccounts(client *http.Client) (*handlers.AccountList, error) {
-	var al handlers.AccountList
+func getAccounts(client *http.Client) (*models.AccountList, error) {
+	var al models.AccountList
 	err := read(client, &al, "/v1/accounts/")
 	if err != nil {
 		return nil, err
@@ -31,8 +32,8 @@ func getAccounts(client *http.Client) (*handlers.AccountList, error) {
 	return &al, nil
 }
 
-func updateAccount(client *http.Client, account *handlers.Account) (*handlers.Account, error) {
-	var a handlers.Account
+func updateAccount(client *http.Client, account *models.Account) (*models.Account, error) {
+	var a models.Account
 	err := update(client, account, &a, "/v1/accounts/"+strconv.FormatInt(account.AccountId, 10))
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func updateAccount(client *http.Client, account *handlers.Account) (*handlers.Ac
 	return &a, nil
 }
 
-func deleteAccount(client *http.Client, a *handlers.Account) error {
+func deleteAccount(client *http.Client, a *models.Account) error {
 	err := remove(client, "/v1/accounts/"+strconv.FormatInt(a.AccountId, 10))
 	if err != nil {
 		return err
@@ -137,7 +138,7 @@ func TestUpdateAccount(t *testing.T) {
 			curr := d.accounts[i]
 
 			curr.Name = "blah"
-			curr.Type = handlers.Payable
+			curr.Type = models.Payable
 			for _, s := range d.securities {
 				if s.UserId == curr.UserId {
 					curr.SecurityId = s.SecurityId

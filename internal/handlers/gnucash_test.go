@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	"github.com/aclindsa/moneygo/internal/handlers"
 	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"testing"
@@ -32,19 +31,19 @@ func TestImportGnucash(t *testing.T) {
 		}
 
 		// Next, find the Expenses/Groceries account and verify it's balance
-		var income, equity, liabilities, expenses, salary, creditcard, groceries, cable, openingbalances *handlers.Account
+		var income, equity, liabilities, expenses, salary, creditcard, groceries, cable, openingbalances *models.Account
 		accounts, err := getAccounts(d.clients[0])
 		if err != nil {
 			t.Fatalf("Error fetching accounts: %s\n", err)
 		}
 		for i, account := range *accounts.Accounts {
-			if account.Name == "Income" && account.Type == handlers.Income && account.ParentAccountId == -1 {
+			if account.Name == "Income" && account.Type == models.Income && account.ParentAccountId == -1 {
 				income = &(*accounts.Accounts)[i]
-			} else if account.Name == "Equity" && account.Type == handlers.Equity && account.ParentAccountId == -1 {
+			} else if account.Name == "Equity" && account.Type == models.Equity && account.ParentAccountId == -1 {
 				equity = &(*accounts.Accounts)[i]
-			} else if account.Name == "Liabilities" && account.Type == handlers.Liability && account.ParentAccountId == -1 {
+			} else if account.Name == "Liabilities" && account.Type == models.Liability && account.ParentAccountId == -1 {
 				liabilities = &(*accounts.Accounts)[i]
-			} else if account.Name == "Expenses" && account.Type == handlers.Expense && account.ParentAccountId == -1 {
+			} else if account.Name == "Expenses" && account.Type == models.Expense && account.ParentAccountId == -1 {
 				expenses = &(*accounts.Accounts)[i]
 			}
 		}
@@ -61,15 +60,15 @@ func TestImportGnucash(t *testing.T) {
 			t.Fatalf("Couldn't find 'Expenses' account")
 		}
 		for i, account := range *accounts.Accounts {
-			if account.Name == "Salary" && account.Type == handlers.Income && account.ParentAccountId == income.AccountId {
+			if account.Name == "Salary" && account.Type == models.Income && account.ParentAccountId == income.AccountId {
 				salary = &(*accounts.Accounts)[i]
-			} else if account.Name == "Opening Balances" && account.Type == handlers.Equity && account.ParentAccountId == equity.AccountId {
+			} else if account.Name == "Opening Balances" && account.Type == models.Equity && account.ParentAccountId == equity.AccountId {
 				openingbalances = &(*accounts.Accounts)[i]
-			} else if account.Name == "Credit Card" && account.Type == handlers.Liability && account.ParentAccountId == liabilities.AccountId {
+			} else if account.Name == "Credit Card" && account.Type == models.Liability && account.ParentAccountId == liabilities.AccountId {
 				creditcard = &(*accounts.Accounts)[i]
-			} else if account.Name == "Groceries" && account.Type == handlers.Expense && account.ParentAccountId == expenses.AccountId {
+			} else if account.Name == "Groceries" && account.Type == models.Expense && account.ParentAccountId == expenses.AccountId {
 				groceries = &(*accounts.Accounts)[i]
-			} else if account.Name == "Cable" && account.Type == handlers.Expense && account.ParentAccountId == expenses.AccountId {
+			} else if account.Name == "Cable" && account.Type == models.Expense && account.ParentAccountId == expenses.AccountId {
 				cable = &(*accounts.Accounts)[i]
 			}
 		}

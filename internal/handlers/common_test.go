@@ -7,6 +7,7 @@ import (
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"io"
 	"io/ioutil"
 	"log"
@@ -202,7 +203,7 @@ func uploadFile(client *http.Client, filename, urlsuffix string) error {
 	return nil
 }
 
-func accountBalanceHelper(t *testing.T, client *http.Client, account *handlers.Account, balance string) {
+func accountBalanceHelper(t *testing.T, client *http.Client, account *models.Account, balance string) {
 	t.Helper()
 	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
 	if err != nil {

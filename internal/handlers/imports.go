@@ -78,7 +78,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 	// TODO Ensure all transactions have at least one split in the account
 	// we're importing to?
 
-	var transactions []Transaction
+	var transactions []models.Transaction
 	for _, transaction := range itl.Transactions {
 		transaction.UserId = user.UserId
 
@@ -91,7 +91,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 		// and fixup the SecurityId to be a valid one for this user's actual
 		// securities instead of a placeholder from the import
 		for _, split := range transaction.Splits {
-			split.Status = Imported
+			split.Status = models.Imported
 			if split.AccountId != -1 {
 				if split.AccountId != importedAccount.AccountId {
 					log.Print("Imported split's AccountId wasn't -1 but also didn't match the account")
@@ -101,7 +101,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 			} else if split.SecurityId != -1 {
 				if sec, ok := securitymap[split.SecurityId]; ok {
 					// TODO try to auto-match splits to existing accounts based on past transactions that look like this one
-					if split.ImportSplitType == TradingAccount {
+					if split.ImportSplitType == models.TradingAccount {
 						// Find/make trading account if we're that type of split
 						trading_account, err := GetTradingAccount(tx, user.UserId, sec.SecurityId)
 						if err != nil {
@@ -110,8 +110,8 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 						}
 						split.AccountId = trading_account.AccountId
 						split.SecurityId = -1
-					} else if split.ImportSplitType == SubAccount {
-						subaccount := &Account{
+					} else if split.ImportSplitType == models.SubAccount {
+						subaccount := &models.Account{
 							UserId:          user.UserId,
 							Name:            sec.Name,
 							ParentAccountId: account.AccountId,
@@ -138,7 +138,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 			}
 		}
 
-		imbalances, err := transaction.GetImbalances(tx)
+		imbalances, err := GetTransactionImbalances(tx, &transaction)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -155,7 +155,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 				}
 
 				// Add new split to fixup imbalance
-				split := new(Split)
+				split := new(models.Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
 				security, err := GetSecurity(tx, imbalanced_security, user.UserId)
@@ -186,7 +186,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 				split.SecurityId = -1
 			}
 
-			exists, err := split.AlreadyImported(tx)
+			exists, err := SplitAlreadyImported(tx, split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -251,7 +251,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *models.User, acco
 		return NewError(999 /*Internal Error*/)
 	}
 
-	if account.Type == Investment {
+	if account.Type == models.Investment {
 		// Investment account
 		statementRequest := ofxgo.InvStatementRequest{
 			TrnUID: *transactionuid,

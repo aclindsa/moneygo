@@ -127,8 +127,8 @@ type GnucashXMLImport struct {
 
 type GnucashImport struct {
 	Securities   []models.Security
-	Accounts     []Account
-	Transactions []Transaction
+	Accounts     []models.Account
+	Transactions []models.Transaction
 	Prices       []Price
 }
 
@@ -206,7 +206,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	//Translate to our account format, figuring out parent relationships
 	for guid := range accountMap {
 		ga := accountMap[guid]
-		var a Account
+		var a models.Account
 
 		a.AccountId = ga.accountid
 		if ga.ParentAccountId == rootAccount.AccountId {
@@ -229,29 +229,29 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		//TODO find account types
 		switch ga.Type {
 		default:
-			a.Type = Bank
+			a.Type = models.Bank
 		case "ASSET":
-			a.Type = Asset
+			a.Type = models.Asset
 		case "BANK":
-			a.Type = Bank
+			a.Type = models.Bank
 		case "CASH":
-			a.Type = Cash
+			a.Type = models.Cash
 		case "CREDIT", "LIABILITY":
-			a.Type = Liability
+			a.Type = models.Liability
 		case "EQUITY":
-			a.Type = Equity
+			a.Type = models.Equity
 		case "EXPENSE":
-			a.Type = Expense
+			a.Type = models.Expense
 		case "INCOME":
-			a.Type = Income
+			a.Type = models.Income
 		case "PAYABLE":
-			a.Type = Payable
+			a.Type = models.Payable
 		case "RECEIVABLE":
-			a.Type = Receivable
+			a.Type = models.Receivable
 		case "MUTUAL", "STOCK":
-			a.Type = Investment
+			a.Type = models.Investment
 		case "TRADING":
-			a.Type = Trading
+			a.Type = models.Trading
 		}
 
 		gncimport.Accounts = append(gncimport.Accounts, a)
@@ -261,20 +261,20 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	for i := range gncxml.Transactions {
 		gt := gncxml.Transactions[i]
 
-		t := new(Transaction)
+		t := new(models.Transaction)
 		t.Description = gt.Description
 		t.Date = gt.DatePosted.Date.Time
 		for j := range gt.Splits {
 			gs := gt.Splits[j]
-			s := new(Split)
+			s := new(models.Split)
 
 			switch gs.Status {
 			default: // 'n', or not present
-				s.Status = Imported
+				s.Status = models.Imported
 			case "c":
-				s.Status = Cleared
+				s.Status = models.Cleared
 			case "y":
-				s.Status = Reconciled
+				s.Status = models.Reconciled
 			}
 
 			account, ok := accountMap[gs.AccountId]
@@ -437,7 +437,7 @@ func GnucashImportHandler(r *http.Request, context *Context) ResponseWriterWrite
 			}
 			split.AccountId = acctId
 
-			exists, err := split.AlreadyImported(context.Tx)
+			exists, err := SplitAlreadyImported(context.Tx, split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)

@@ -39,8 +39,8 @@ type TestData struct {
 	clients      []*http.Client
 	securities   []models.Security
 	prices       []handlers.Price
-	accounts     []handlers.Account // accounts must appear after their parents in this slice
-	transactions []handlers.Transaction
+	accounts     []models.Account // accounts must appear after their parents in this slice
+	transactions []models.Transaction
 	reports      []handlers.Report
 	tabulations  []handlers.Tabulation
 }
@@ -113,7 +113,7 @@ func (t *TestData) Initialize() (*TestData, error) {
 	}
 
 	for i, transaction := range t.transactions {
-		transaction.Splits = []*handlers.Split{}
+		transaction.Splits = []*models.Split{}
 		for _, s := range t.transactions[i].Splits {
 			// Make a copy of the split since Splits is a slice of pointers so
 			// copying the transaction doesn't
@@ -246,78 +246,78 @@ var data = []TestData{
 				RemoteId:   "USDEUR819298714",
 			},
 		},
-		accounts: []handlers.Account{
+		accounts: []models.Account{
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Asset,
+				Type:            models.Asset,
 				Name:            "Assets",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 0,
-				Type:            handlers.Bank,
+				Type:            models.Bank,
 				Name:            "Credit Union Checking",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Expenses",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Groceries",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Cable",
 			},
 			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
-				Type:            handlers.Asset,
+				Type:            models.Asset,
 				Name:            "Assets",
 			},
 			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Expenses",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Liability,
+				Type:            models.Liability,
 				Name:            "Credit Card",
 			},
 		},
-		transactions: []handlers.Transaction{
+		transactions: []models.Transaction{
 			{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 15, 1, 16, 59, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-5.6",
 					},
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
 						Amount:     "5.6",
@@ -328,15 +328,15 @@ var data = []TestData{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 31, 19, 10, 14, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-81.59",
 					},
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
 						Amount:     "81.59",
@@ -347,15 +347,15 @@ var data = []TestData{
 				UserId:      0,
 				Description: "Cable",
 				Date:        time.Date(2017, time.September, 2, 0, 00, 00, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-39.99",
 					},
 					{
-						Status:     handlers.Entered,
+						Status:     models.Entered,
 						AccountId:  4,
 						SecurityId: -1,
 						Amount:     "39.99",
@@ -366,15 +366,15 @@ var data = []TestData{
 				UserId:      1,
 				Description: "Gas",
 				Date:        time.Date(2017, time.November, 1, 13, 19, 50, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  5,
 						SecurityId: -1,
 						Amount:     "-24.56",
 					},
 					{
-						Status:     handlers.Entered,
+						Status:     models.Entered,
 						AccountId:  6,
 						SecurityId: -1,
 						Amount:     "24.56",
