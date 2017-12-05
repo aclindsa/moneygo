@@ -102,7 +102,7 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 		Path:     "/",
 		Domain:   r.URL.Host,
 		Expires:  time.Now().AddDate(0, 1, 0), // a month from now
-		Secure:   true,
+		Secure:   false,
 		HttpOnly: true,
 	}
 
