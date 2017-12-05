@@ -38,7 +38,7 @@ type TestData struct {
 	users        []User
 	clients      []*http.Client
 	securities   []models.Security
-	prices       []handlers.Price
+	prices       []models.Price
 	accounts     []models.Account // accounts must appear after their parents in this slice
 	transactions []models.Transaction
 	reports      []handlers.Report
@@ -209,7 +209,7 @@ var data = []TestData{
 				AlternateId: "978",
 			},
 		},
-		prices: []handlers.Price{
+		prices: []models.Price{
 			{
 				SecurityId: 1,
 				CurrencyId: 0,

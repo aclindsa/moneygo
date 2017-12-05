@@ -15,7 +15,7 @@ func luaRegisterPrices(L *lua.LState) {
 	L.SetField(mt, "__metatable", lua.LString("protected"))
 }
 
-func PriceToLua(L *lua.LState, price *Price) *lua.LUserData {
+func PriceToLua(L *lua.LState, price *models.Price) *lua.LUserData {
 	ud := L.NewUserData()
 	ud.Value = price
 	L.SetMetatable(ud, L.GetTypeMetatable(luaPriceTypeName))
@@ -23,9 +23,9 @@ func PriceToLua(L *lua.LState, price *Price) *lua.LUserData {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Price and returns this *Price.
-func luaCheckPrice(L *lua.LState, n int) *Price {
+func luaCheckPrice(L *lua.LState, n int) *models.Price {
 	ud := L.CheckUserData(n)
-	if price, ok := ud.Value.(*Price); ok {
+	if price, ok := ud.Value.(*models.Price); ok {
 		return price
 	}
 	L.ArgError(n, "price expected")

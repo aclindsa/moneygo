@@ -1,48 +1,13 @@
 package handlers
 
 import (
-	"encoding/json"
 	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
-type Price struct {
-	PriceId    int64
-	SecurityId int64
-	CurrencyId int64
-	Date       time.Time
-	Value      string // String representation of decimal price of Security in Currency units, suitable for passing to big.Rat.SetString()
-	RemoteId   string // unique ID from source, for detecting duplicates
-}
-
-type PriceList struct {
-	Prices *[]*Price `json:"prices"`
-}
-
-func (p *Price) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(p)
-}
-
-func (p *Price) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(p)
-}
-
-func (pl *PriceList) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(pl)
-}
-
-func (pl *PriceList) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(pl)
-}
-
-func CreatePriceIfNotExist(tx *Tx, price *Price) error {
+func CreatePriceIfNotExist(tx *Tx, price *models.Price) error {
 	if len(price.RemoteId) == 0 {
 		// Always create a new price if we can't match on the RemoteId
 		err := tx.Insert(price)
@@ -52,7 +17,7 @@ func CreatePriceIfNotExist(tx *Tx, price *Price) error {
 		return nil
 	}
 
-	var prices []*Price
+	var prices []*models.Price
 
 	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date=? AND Value=?", price.SecurityId, price.CurrencyId, price.Date, price.Value)
 	if err != nil {
@@ -70,8 +35,8 @@ func CreatePriceIfNotExist(tx *Tx, price *Price) error {
 	return nil
 }
 
-func GetPrice(tx *Tx, priceid, securityid int64) (*Price, error) {
-	var p Price
+func GetPrice(tx *Tx, priceid, securityid int64) (*models.Price, error) {
+	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where PriceId=? AND SecurityId=?", priceid, securityid)
 	if err != nil {
 		return nil, err
@@ -79,8 +44,8 @@ func GetPrice(tx *Tx, priceid, securityid int64) (*Price, error) {
 	return &p, nil
 }
 
-func GetPrices(tx *Tx, securityid int64) (*[]*Price, error) {
-	var prices []*Price
+func GetPrices(tx *Tx, securityid int64) (*[]*models.Price, error) {
+	var prices []*models.Price
 
 	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId=?", securityid)
 	if err != nil {
@@ -90,8 +55,8 @@ func GetPrices(tx *Tx, securityid int64) (*[]*Price, error) {
 }
 
 // Return the latest price for security in currency units before date
-func GetLatestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*Price, error) {
-	var p Price
+func GetLatestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date <= ? ORDER BY Date DESC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
 		return nil, err
@@ -100,8 +65,8 @@ func GetLatestPrice(tx *Tx, security, currency *models.Security, date *time.Time
 }
 
 // Return the earliest price for security in currency units after date
-func GetEarliestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*Price, error) {
-	var p Price
+func GetEarliestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date >= ? ORDER BY Date ASC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
 		return nil, err
@@ -110,7 +75,7 @@ func GetEarliestPrice(tx *Tx, security, currency *models.Security, date *time.Ti
 }
 
 // Return the price for security in currency closest to date
-func GetClosestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*Price, error) {
+func GetClosestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
 	earliest, _ := GetEarliestPrice(tx, security, currency, date)
 	latest, err := GetLatestPrice(tx, security, currency, date)
 
@@ -137,7 +102,7 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 	}
 
 	if r.Method == "POST" {
-		var price Price
+		var price models.Price
 		if err := ReadJSON(r, &price); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -161,7 +126,7 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 	} else if r.Method == "GET" {
 		if context.LastLevel() {
 			//Return all this security's prices
-			var pl PriceList
+			var pl models.PriceList
 
 			prices, err := GetPrices(context.Tx, security.SecurityId)
 			if err != nil {
@@ -190,7 +155,7 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 			return NewError(3 /*Invalid Request*/)
 		}
 		if r.Method == "PUT" {
-			var price Price
+			var price models.Price
 			if err := ReadJSON(r, &price); err != nil || price.PriceId != priceid {
 				return NewError(3 /*Invalid Request*/)
 			}

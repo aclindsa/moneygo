@@ -129,7 +129,7 @@ type GnucashImport struct {
 	Securities   []models.Security
 	Accounts     []models.Account
 	Transactions []models.Transaction
-	Prices       []Price
+	Prices       []models.Price
 }
 
 func ImportGnucash(r io.Reader) (*GnucashImport, error) {
@@ -161,7 +161,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	// Create prices, setting security and currency IDs from securityMap
 	for i := range gncxml.PriceDB.Prices {
 		price := gncxml.PriceDB.Prices[i]
-		var p Price
+		var p models.Price
 		security, ok := securityMap[price.Commodity.Name]
 		if !ok {
 			return nil, fmt.Errorf("Unable to find commodity '%s' for price '%s'", price.Commodity.Name, price.Id)

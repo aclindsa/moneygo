@@ -2,20 +2,21 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
 	"time"
 )
 
-func createPrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
-	var p handlers.Price
+func createPrice(client *http.Client, price *models.Price) (*models.Price, error) {
+	var p models.Price
 	err := create(client, price, &p, "/v1/securities/"+strconv.FormatInt(price.SecurityId, 10)+"/prices/")
 	return &p, err
 }
 
-func getPrice(client *http.Client, priceid, securityid int64) (*handlers.Price, error) {
-	var p handlers.Price
+func getPrice(client *http.Client, priceid, securityid int64) (*models.Price, error) {
+	var p models.Price
 	err := read(client, &p, "/v1/securities/"+strconv.FormatInt(securityid, 10)+"/prices/"+strconv.FormatInt(priceid, 10))
 	if err != nil {
 		return nil, err
@@ -23,8 +24,8 @@ func getPrice(client *http.Client, priceid, securityid int64) (*handlers.Price, 
 	return &p, nil
 }
 
-func getPrices(client *http.Client, securityid int64) (*handlers.PriceList, error) {
-	var pl handlers.PriceList
+func getPrices(client *http.Client, securityid int64) (*models.PriceList, error) {
+	var pl models.PriceList
 	err := read(client, &pl, "/v1/securities/"+strconv.FormatInt(securityid, 10)+"/prices/")
 	if err != nil {
 		return nil, err
@@ -32,8 +33,8 @@ func getPrices(client *http.Client, securityid int64) (*handlers.PriceList, erro
 	return &pl, nil
 }
 
-func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, error) {
-	var p handlers.Price
+func updatePrice(client *http.Client, price *models.Price) (*models.Price, error) {
+	var p models.Price
 	err := update(client, price, &p, "/v1/securities/"+strconv.FormatInt(price.SecurityId, 10)+"/prices/"+strconv.FormatInt(price.PriceId, 10))
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func updatePrice(client *http.Client, price *handlers.Price) (*handlers.Price, e
 	return &p, nil
 }
 
-func deletePrice(client *http.Client, p *handlers.Price) error {
+func deletePrice(client *http.Client, p *models.Price) error {
 	err := remove(client, "/v1/securities/"+strconv.FormatInt(p.SecurityId, 10)+"/prices/"+strconv.FormatInt(p.PriceId, 10))
 	if err != nil {
 		return err

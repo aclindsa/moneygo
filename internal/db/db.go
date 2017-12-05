@@ -14,6 +14,9 @@ import (
 	"strings"
 )
 
+// luaMaxLengthBuffer is intended to be enough bytes such that a given string
+// no longer than models.LuaMaxLength is sure to fit within a database
+// implementation's string type specified by the same.
 const luaMaxLengthBuffer int = 4096
 
 func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
@@ -40,7 +43,7 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(models.Security{}, "securities").SetKeys(true, "SecurityId")
 	dbmap.AddTableWithName(models.Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(models.Split{}, "splits").SetKeys(true, "SplitId")
-	dbmap.AddTableWithName(handlers.Price{}, "prices").SetKeys(true, "PriceId")
+	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
 	rtable := dbmap.AddTableWithName(handlers.Report{}, "reports").SetKeys(true, "ReportId")
 	rtable.ColMap("Lua").SetMaxSize(handlers.LuaMaxLength + luaMaxLengthBuffer)
 
