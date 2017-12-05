@@ -2,19 +2,20 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
 )
 
-func createReport(client *http.Client, report *handlers.Report) (*handlers.Report, error) {
-	var r handlers.Report
+func createReport(client *http.Client, report *models.Report) (*models.Report, error) {
+	var r models.Report
 	err := create(client, report, &r, "/v1/reports/")
 	return &r, err
 }
 
-func getReport(client *http.Client, reportid int64) (*handlers.Report, error) {
-	var r handlers.Report
+func getReport(client *http.Client, reportid int64) (*models.Report, error) {
+	var r models.Report
 	err := read(client, &r, "/v1/reports/"+strconv.FormatInt(reportid, 10))
 	if err != nil {
 		return nil, err
@@ -22,8 +23,8 @@ func getReport(client *http.Client, reportid int64) (*handlers.Report, error) {
 	return &r, nil
 }
 
-func getReports(client *http.Client) (*handlers.ReportList, error) {
-	var rl handlers.ReportList
+func getReports(client *http.Client) (*models.ReportList, error) {
+	var rl models.ReportList
 	err := read(client, &rl, "/v1/reports/")
 	if err != nil {
 		return nil, err
@@ -31,8 +32,8 @@ func getReports(client *http.Client) (*handlers.ReportList, error) {
 	return &rl, nil
 }
 
-func updateReport(client *http.Client, report *handlers.Report) (*handlers.Report, error) {
-	var r handlers.Report
+func updateReport(client *http.Client, report *models.Report) (*models.Report, error) {
+	var r models.Report
 	err := update(client, report, &r, "/v1/reports/"+strconv.FormatInt(report.ReportId, 10))
 	if err != nil {
 		return nil, err
@@ -40,7 +41,7 @@ func updateReport(client *http.Client, report *handlers.Report) (*handlers.Repor
 	return &r, nil
 }
 
-func deleteReport(client *http.Client, r *handlers.Report) error {
+func deleteReport(client *http.Client, r *models.Report) error {
 	err := remove(client, "/v1/reports/"+strconv.FormatInt(r.ReportId, 10))
 	if err != nil {
 		return err
@@ -48,8 +49,8 @@ func deleteReport(client *http.Client, r *handlers.Report) error {
 	return nil
 }
 
-func tabulateReport(client *http.Client, reportid int64) (*handlers.Tabulation, error) {
-	var t handlers.Tabulation
+func tabulateReport(client *http.Client, reportid int64) (*models.Tabulation, error) {
+	var t models.Tabulation
 	err := read(client, &t, "/v1/reports/"+strconv.FormatInt(reportid, 10)+"/tabulations")
 	if err != nil {
 		return nil, err
@@ -73,7 +74,7 @@ func TestCreateReport(t *testing.T) {
 				t.Errorf("Lua doesn't match")
 			}
 
-			r.Lua = string(make([]byte, handlers.LuaMaxLength+1))
+			r.Lua = string(make([]byte, models.LuaMaxLength+1))
 			_, err := createReport(d.clients[orig.UserId], &r)
 			if err == nil {
 				t.Fatalf("Expected error creating report with too-long Lua")
@@ -173,7 +174,7 @@ func TestUpdateReport(t *testing.T) {
 				t.Errorf("Lua doesn't match")
 			}
 
-			r.Lua = string(make([]byte, handlers.LuaMaxLength+1))
+			r.Lua = string(make([]byte, models.LuaMaxLength+1))
 			_, err = updateReport(d.clients[orig.UserId], r)
 			if err == nil {
 				t.Fatalf("Expected error updating report with too-long Lua")
@@ -214,7 +215,7 @@ func TestDeleteReport(t *testing.T) {
 		}
 	})
 }
-func seriesEqualityHelper(t *testing.T, orig, curr map[string]*handlers.Series, name string) {
+func seriesEqualityHelper(t *testing.T, orig, curr map[string]*models.Series, name string) {
 	if orig == nil || curr == nil {
 		if orig != nil {
 			t.Fatalf("`%s` series unexpectedly nil", name)
@@ -242,7 +243,7 @@ func seriesEqualityHelper(t *testing.T, orig, curr map[string]*handlers.Series, 
 	}
 }
 
-func tabulationEqualityHelper(t *testing.T, orig, curr *handlers.Tabulation) {
+func tabulationEqualityHelper(t *testing.T, orig, curr *models.Tabulation) {
 	if orig.Title != curr.Title {
 		t.Errorf("Tabulation Title doesn't match")
 	}

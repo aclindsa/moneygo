@@ -3,7 +3,6 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aclindsa/moneygo/internal/handlers"
 	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strings"
@@ -41,8 +40,8 @@ type TestData struct {
 	prices       []models.Price
 	accounts     []models.Account // accounts must appear after their parents in this slice
 	transactions []models.Transaction
-	reports      []handlers.Report
-	tabulations  []handlers.Tabulation
+	reports      []models.Report
+	tabulations  []models.Tabulation
 }
 
 type TestDataFunc func(*testing.T, *TestData)
@@ -382,7 +381,7 @@ var data = []TestData{
 				},
 			},
 		},
-		reports: []handlers.Report{
+		reports: []models.Report{
 			{
 				UserId: 0,
 				Name:   "This Year's Monthly Expenses",
@@ -440,39 +439,39 @@ function generate()
 end`,
 			},
 		},
-		tabulations: []handlers.Tabulation{
+		tabulations: []models.Tabulation{
 			{
 				ReportId: 0,
 				Title:    "2017 Monthly Expenses",
 				Subtitle: "This is my subtitle",
 				Units:    "USD",
 				Labels:   []string{"2017-01-01", "2017-02-01", "2017-03-01", "2017-04-01", "2017-05-01", "2017-06-01", "2017-07-01", "2017-08-01", "2017-09-01", "2017-10-01", "2017-11-01", "2017-12-01"},
-				Series: map[string]*handlers.Series{
+				Series: map[string]*models.Series{
 					"Assets": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{
+						Series: map[string]*models.Series{
 							"Credit Union Checking": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 						},
 					},
 					"Expenses": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{
+						Series: map[string]*models.Series{
 							"Groceries": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 87.19, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 							"Cable": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 39.99, 0, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 						},
 					},
 					"Credit Card": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{},
+						Series: map[string]*models.Series{},
 					},
 				},
 			},

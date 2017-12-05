@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
-	"github.com/aclindsa/moneygo/internal/handlers"
 	"github.com/aclindsa/moneygo/internal/models"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
@@ -44,8 +43,8 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(models.Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(models.Split{}, "splits").SetKeys(true, "SplitId")
 	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
-	rtable := dbmap.AddTableWithName(handlers.Report{}, "reports").SetKeys(true, "ReportId")
-	rtable.ColMap("Lua").SetMaxSize(handlers.LuaMaxLength + luaMaxLengthBuffer)
+	rtable := dbmap.AddTableWithName(models.Report{}, "reports").SetKeys(true, "ReportId")
+	rtable.ColMap("Lua").SetMaxSize(models.LuaMaxLength + luaMaxLengthBuffer)
 
 	err := dbmap.CreateTablesIfNotExists()
 	if err != nil {
