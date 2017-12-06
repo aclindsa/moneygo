@@ -37,20 +37,20 @@ First, install npm, nodejs >= 6.11.3 (may work on older 6.x.x releases, but this
 is untested), python, curl, and go >= 1.9 in your distribution. Here is how in
 Arch Linux:
 
-	$ sudo pacman -S npm curl go python
+	sudo pacman -S npm curl go python
 
 Install browserify globally using npm:
 
-	$ sudo npm install -g browserify
+	sudo npm install -g browserify
 
 You'll then want to build everything (the Golang and Javascript portions) using
 something like:
 
-	$ export GOPATH=`pwd`
-	$ go get -d github.com/aclindsa/moneygo
-	$ go generate -v github.com/aclindsa/moneygo/internal/handlers
-	$ go generate -v github.com/aclindsa/moneygo
-	$ go install -v github.com/aclindsa/moneygo
+	export GOPATH=`pwd`
+	go get -d github.com/aclindsa/moneygo
+	go generate -v github.com/aclindsa/moneygo/internal/handlers
+	go generate -v github.com/aclindsa/moneygo
+	go install -v github.com/aclindsa/moneygo
 
 This may take quite a while the first time you build the project since it is
 auto-generating a list of currencies and securities by querying multiple
@@ -72,7 +72,7 @@ of the config file.
 Then, assuming you're in the same directory you ran the above installation
 commands from, running MoneyGo is as easy as:
 
-	$ ./bin/moneygo -config src/github.com/aclindsa/moneygo/example_config.ini
+	./bin/moneygo -config src/github.com/aclindsa/moneygo/example_config.ini
 
 You should then be able to explore MoneyGo by visiting https://localhost:8443 in
 your browser. Editing the configuration file supplied will allow you to modify
