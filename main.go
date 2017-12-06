@@ -8,6 +8,7 @@ import (
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/kabukky/httpscerts"
 	"log"
 	"net"
 	"net/http"
@@ -89,10 +90,24 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Serving on port %d out of directory: %s", cfg.MoneyGo.Port, cfg.MoneyGo.Basedir)
 	if cfg.MoneyGo.Fcgi {
+		log.Printf("Serving via FCGI on port %d out of directory: %s", cfg.MoneyGo.Port, cfg.MoneyGo.Basedir)
 		fcgi.Serve(listener, servemux)
 	} else {
-		http.Serve(listener, servemux)
+		cert := cfg.Https.CertFile
+		key := cfg.Https.KeyFile
+
+		if err := httpscerts.Check(cert, key); err != nil {
+			if !cfg.Https.GenerateCerts {
+				log.Fatalf("HTTPS certficates not found at '%s' and '%s'. If you would like for them to be auto-generated for you, specify 'generate-certs-if-absent = true' in your config file at '%s'", cert, key, configFile)
+			}
+
+			err = httpscerts.Generate(cert, key, cfg.Https.GenerateCertsHosts)
+			if err != nil {
+				log.Fatalf("Error: Generating HTTPS cert/key at '%s' and '%s' failed: %s", cert, key, err)
+			}
+		}
+		log.Printf("Serving via HTTPS on port %d out of directory: %s", cfg.MoneyGo.Port, cfg.MoneyGo.Basedir)
+		http.ServeTLS(listener, servemux, cert, key)
 	}
 }
