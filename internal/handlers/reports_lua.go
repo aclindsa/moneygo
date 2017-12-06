@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -21,9 +22,9 @@ func luaRegisterTabulations(L *lua.LState) {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Tabulation and returns *Tabulation
-func luaCheckTabulation(L *lua.LState, n int) *Tabulation {
+func luaCheckTabulation(L *lua.LState, n int) *models.Tabulation {
 	ud := L.CheckUserData(n)
-	if tabulation, ok := ud.Value.(*Tabulation); ok {
+	if tabulation, ok := ud.Value.(*models.Tabulation); ok {
 		return tabulation
 	}
 	L.ArgError(n, "tabulation expected")
@@ -31,9 +32,9 @@ func luaCheckTabulation(L *lua.LState, n int) *Tabulation {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Series and returns *Series
-func luaCheckSeries(L *lua.LState, n int) *Series {
+func luaCheckSeries(L *lua.LState, n int) *models.Series {
 	ud := L.CheckUserData(n)
-	if series, ok := ud.Value.(*Series); ok {
+	if series, ok := ud.Value.(*models.Series); ok {
 		return series
 	}
 	L.ArgError(n, "series expected")
@@ -43,9 +44,9 @@ func luaCheckSeries(L *lua.LState, n int) *Series {
 func luaTabulationNew(L *lua.LState) int {
 	numvalues := L.CheckInt(1)
 	ud := L.NewUserData()
-	ud.Value = &Tabulation{
+	ud.Value = &models.Tabulation{
 		Labels: make([]string, numvalues),
-		Series: make(map[string]*Series),
+		Series: make(map[string]*models.Series),
 	}
 	L.SetMetatable(ud, L.GetTypeMetatable(luaTabulationTypeName))
 	L.Push(ud)
@@ -94,8 +95,8 @@ func luaTabulationSeries(L *lua.LState) int {
 	if ok {
 		ud.Value = s
 	} else {
-		tabulation.Series[name] = &Series{
-			Series: make(map[string]*Series),
+		tabulation.Series[name] = &models.Series{
+			Series: make(map[string]*models.Series),
 			Values: make([]float64, cap(tabulation.Labels)),
 		}
 		ud.Value = tabulation.Series[name]
@@ -175,8 +176,8 @@ func luaSeriesSeries(L *lua.LState) int {
 	if ok {
 		ud.Value = s
 	} else {
-		parent.Series[name] = &Series{
-			Series: make(map[string]*Series),
+		parent.Series[name] = &models.Series{
+			Series: make(map[string]*models.Series),
 			Values: make([]float64, cap(parent.Values)),
 		}
 		ud.Value = parent.Series[name]

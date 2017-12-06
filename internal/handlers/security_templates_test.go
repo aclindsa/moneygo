@@ -2,12 +2,13 @@ package handlers_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"io/ioutil"
 	"testing"
 )
 
 func TestSecurityTemplates(t *testing.T) {
-	var sl handlers.SecurityList
+	var sl models.SecurityList
 	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=USD&type=currency")
 	if err != nil {
 		t.Fatal(err)
@@ -30,7 +31,7 @@ func TestSecurityTemplates(t *testing.T) {
 	num_usd := 0
 	if sl.Securities != nil {
 		for _, s := range *sl.Securities {
-			if s.Type != handlers.Currency {
+			if s.Type != models.Currency {
 				t.Fatalf("Requested Currency-only security templates, received a non-Currency template for %s", s.Name)
 			}
 
@@ -46,7 +47,7 @@ func TestSecurityTemplates(t *testing.T) {
 }
 
 func TestSecurityTemplateLimit(t *testing.T) {
-	var sl handlers.SecurityList
+	var sl models.SecurityList
 	response, err := server.Client().Get(server.URL + "/v1/securitytemplates/?search=e&limit=5")
 	if err != nil {
 		t.Fatal(err)

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"log"
@@ -22,7 +23,7 @@ func (od *OFXDownload) Read(json_str string) error {
 	return dec.Decode(od)
 }
 
-func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseWriterWriter {
+func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
 	itl, err := ImportOFX(r)
 
 	if err != nil {
@@ -56,7 +57,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	// Find matching existing securities or create new ones for those
 	// referenced by the OFX import. Also create a map from placeholder import
 	// SecurityIds to the actual SecurityIDs
-	var securitymap = make(map[int64]Security)
+	var securitymap = make(map[int64]models.Security)
 	for _, ofxsecurity := range itl.Securities {
 		// save off since ImportGetCreateSecurity overwrites SecurityId on
 		// ofxsecurity
@@ -77,7 +78,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	// TODO Ensure all transactions have at least one split in the account
 	// we're importing to?
 
-	var transactions []Transaction
+	var transactions []models.Transaction
 	for _, transaction := range itl.Transactions {
 		transaction.UserId = user.UserId
 
@@ -90,7 +91,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 		// and fixup the SecurityId to be a valid one for this user's actual
 		// securities instead of a placeholder from the import
 		for _, split := range transaction.Splits {
-			split.Status = Imported
+			split.Status = models.Imported
 			if split.AccountId != -1 {
 				if split.AccountId != importedAccount.AccountId {
 					log.Print("Imported split's AccountId wasn't -1 but also didn't match the account")
@@ -100,7 +101,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 			} else if split.SecurityId != -1 {
 				if sec, ok := securitymap[split.SecurityId]; ok {
 					// TODO try to auto-match splits to existing accounts based on past transactions that look like this one
-					if split.ImportSplitType == TradingAccount {
+					if split.ImportSplitType == models.TradingAccount {
 						// Find/make trading account if we're that type of split
 						trading_account, err := GetTradingAccount(tx, user.UserId, sec.SecurityId)
 						if err != nil {
@@ -109,8 +110,8 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 						}
 						split.AccountId = trading_account.AccountId
 						split.SecurityId = -1
-					} else if split.ImportSplitType == SubAccount {
-						subaccount := &Account{
+					} else if split.ImportSplitType == models.SubAccount {
+						subaccount := &models.Account{
 							UserId:          user.UserId,
 							Name:            sec.Name,
 							ParentAccountId: account.AccountId,
@@ -137,7 +138,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 			}
 		}
 
-		imbalances, err := transaction.GetImbalances(tx)
+		imbalances, err := GetTransactionImbalances(tx, &transaction)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -154,7 +155,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 				}
 
 				// Add new split to fixup imbalance
-				split := new(Split)
+				split := new(models.Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
 				security, err := GetSecurity(tx, imbalanced_security, user.UserId)
@@ -185,7 +186,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 				split.SecurityId = -1
 			}
 
-			exists, err := split.AlreadyImported(tx)
+			exists, err := SplitAlreadyImported(tx, split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -210,7 +211,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *User, accountid int64) ResponseW
 	return SuccessWriter{}
 }
 
-func OFXImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 	var ofxdownload OFXDownload
 	if err := ReadJSON(r, &ofxdownload); err != nil {
 		return NewError(3 /*Invalid Request*/)
@@ -250,7 +251,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *User, accountid i
 		return NewError(999 /*Internal Error*/)
 	}
 
-	if account.Type == Investment {
+	if account.Type == models.Investment {
 		// Investment account
 		statementRequest := ofxgo.InvStatementRequest{
 			TrnUID: *transactionuid,
@@ -305,7 +306,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *User, accountid i
 	return ofxImportHelper(context.Tx, response.Body, user, accountid)
 }
 
-func OFXFileImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func OFXFileImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 	multipartReader, err := r.MultipartReader()
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
@@ -329,7 +330,7 @@ func OFXFileImportHandler(context *Context, r *http.Request, user *User, account
 /*
  * Assumes the User is a valid, signed-in user, but accountid has not yet been validated
  */
-func AccountImportHandler(context *Context, r *http.Request, user *User, accountid int64) ResponseWriterWriter {
+func AccountImportHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {
 
 	importType := context.NextLevel()
 	switch importType {

@@ -26,7 +26,7 @@ class Security(object):
         self.type = _type
         self.precision = precision
     def unicode(self):
-        s = """\tSecurity{
+        s = """\t{
 \t\tName: \"%s\",
 \t\tDescription: \"%s\",
 \t\tSymbol: \"%s\",
@@ -72,7 +72,7 @@ def process_ccyntry(currency_list, node):
             else:
                 precision = int(n.firstChild.nodeValue)
     if nameSet and numberSet:
-        currency_list.add(Security(name, description, number, "Currency", precision))
+        currency_list.add(Security(name, description, number, "models.Currency", precision))
 
 def get_currency_list():
     currency_list = SecurityList("ISO 4217, from http://www.currency-iso.org/en/home/tables/table-a1.html")
@@ -97,7 +97,7 @@ def get_cusip_list(filename):
             cusip = row[0]
             name = row[1]
             description = ",".join(row[2:])
-            cusip_list.add(Security(name, description, cusip, "Stock", 5))
+            cusip_list.add(Security(name, description, cusip, "models.Stock", 5))
     return cusip_list
 
 def main():
@@ -105,7 +105,10 @@ def main():
     cusip_list = get_cusip_list('cusip_list.csv')
 
     print("package handlers\n")
-    print("var SecurityTemplates = []Security{")
+    print("import (")
+    print("\t\"github.com/aclindsa/moneygo/internal/models\"")
+    print(")\n")
+    print("var SecurityTemplates = []models.Security{")
     print(currency_list.unicode())
     print(cusip_list.unicode())
     print("}")

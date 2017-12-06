@@ -1,37 +1,15 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io"
+	"github.com/aclindsa/moneygo/internal/models"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 )
 
-type Session struct {
-	SessionId     int64
-	SessionSecret string `json:"-"`
-	UserId        int64
-	Created       time.Time
-	Expires       time.Time
-}
-
-func (s *Session) Write(w http.ResponseWriter) error {
-	enc := json.NewEncoder(w)
-	return enc.Encode(s)
-}
-
-func (s *Session) Read(json_str string) error {
-	dec := json.NewDecoder(strings.NewReader(json_str))
-	return dec.Decode(s)
-}
-
-func GetSession(tx *Tx, r *http.Request) (*Session, error) {
-	var s Session
+func GetSession(tx *Tx, r *http.Request) (*models.Session, error) {
+	var s models.Session
 
 	cookie, err := r.Cookie("moneygo-session")
 	if err != nil {
@@ -62,16 +40,8 @@ func DeleteSessionIfExists(tx *Tx, r *http.Request) error {
 	return nil
 }
 
-func NewSessionCookie() (string, error) {
-	bits := make([]byte, 128)
-	if _, err := io.ReadFull(rand.Reader, bits); err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(bits), nil
-}
-
 type NewSessionWriter struct {
-	session *Session
+	session *models.Session
 	cookie  *http.Cookie
 }
 
@@ -81,14 +51,12 @@ func (n *NewSessionWriter) Write(w http.ResponseWriter) error {
 }
 
 func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error) {
-	s := Session{}
-
-	session_secret, err := NewSessionCookie()
+	s, err := models.NewSession(userid)
 	if err != nil {
 		return nil, err
 	}
 
-	existing, err := tx.SelectInt("SELECT count(*) from sessions where SessionSecret=?", session_secret)
+	existing, err := tx.SelectInt("SELECT count(*) from sessions where SessionSecret=?", s.SessionSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -96,31 +64,17 @@ func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error
 		return nil, fmt.Errorf("%d session(s) exist with the generated session_secret", existing)
 	}
 
-	cookie := http.Cookie{
-		Name:     "moneygo-session",
-		Value:    session_secret,
-		Path:     "/",
-		Domain:   r.URL.Host,
-		Expires:  time.Now().AddDate(0, 1, 0), // a month from now
-		Secure:   true,
-		HttpOnly: true,
-	}
-
-	s.SessionSecret = session_secret
-	s.UserId = userid
-	s.Created = time.Now()
-	s.Expires = cookie.Expires
-
-	err = tx.Insert(&s)
+	err = tx.Insert(s)
 	if err != nil {
 		return nil, err
 	}
-	return &NewSessionWriter{&s, &cookie}, nil
+
+	return &NewSessionWriter{s, s.Cookie(r.URL.Host)}, nil
 }
 
 func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 	if r.Method == "POST" || r.Method == "PUT" {
-		var user User
+		var user models.User
 		if err := ReadJSON(r, &user); err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}

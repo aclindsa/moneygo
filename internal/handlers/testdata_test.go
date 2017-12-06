@@ -3,7 +3,7 @@ package handlers_test
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strings"
 	"testing"
@@ -36,12 +36,12 @@ type TestData struct {
 	initialized  bool
 	users        []User
 	clients      []*http.Client
-	securities   []handlers.Security
-	prices       []handlers.Price
-	accounts     []handlers.Account // accounts must appear after their parents in this slice
-	transactions []handlers.Transaction
-	reports      []handlers.Report
-	tabulations  []handlers.Tabulation
+	securities   []models.Security
+	prices       []models.Price
+	accounts     []models.Account // accounts must appear after their parents in this slice
+	transactions []models.Transaction
+	reports      []models.Report
+	tabulations  []models.Tabulation
 }
 
 type TestDataFunc func(*testing.T, *TestData)
@@ -112,7 +112,7 @@ func (t *TestData) Initialize() (*TestData, error) {
 	}
 
 	for i, transaction := range t.transactions {
-		transaction.Splits = []*handlers.Split{}
+		transaction.Splits = []*models.Split{}
 		for _, s := range t.transactions[i].Splits {
 			// Make a copy of the split since Splits is a slice of pointers so
 			// copying the transaction doesn't
@@ -170,14 +170,14 @@ var data = []TestData{
 				Email:           "bbob+moneygo@my-domain.com",
 			},
 		},
-		securities: []handlers.Security{
+		securities: []models.Security{
 			{
 				UserId:      0,
 				Name:        "USD",
 				Description: "US Dollar",
 				Symbol:      "$",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "840",
 			},
 			{
@@ -186,7 +186,7 @@ var data = []TestData{
 				Description: "SPDR S&P 500 ETF Trust",
 				Symbol:      "SPY",
 				Precision:   5,
-				Type:        handlers.Stock,
+				Type:        models.Stock,
 				AlternateId: "78462F103",
 			},
 			{
@@ -195,7 +195,7 @@ var data = []TestData{
 				Description: "Euro",
 				Symbol:      "€",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "978",
 			},
 			{
@@ -204,11 +204,11 @@ var data = []TestData{
 				Description: "Euro",
 				Symbol:      "€",
 				Precision:   2,
-				Type:        handlers.Currency,
+				Type:        models.Currency,
 				AlternateId: "978",
 			},
 		},
-		prices: []handlers.Price{
+		prices: []models.Price{
 			{
 				SecurityId: 1,
 				CurrencyId: 0,
@@ -245,78 +245,78 @@ var data = []TestData{
 				RemoteId:   "USDEUR819298714",
 			},
 		},
-		accounts: []handlers.Account{
+		accounts: []models.Account{
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Asset,
+				Type:            models.Asset,
 				Name:            "Assets",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 0,
-				Type:            handlers.Bank,
+				Type:            models.Bank,
 				Name:            "Credit Union Checking",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Expenses",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Groceries",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: 2,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Cable",
 			},
 			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
-				Type:            handlers.Asset,
+				Type:            models.Asset,
 				Name:            "Assets",
 			},
 			{
 				UserId:          1,
 				SecurityId:      2,
 				ParentAccountId: -1,
-				Type:            handlers.Expense,
+				Type:            models.Expense,
 				Name:            "Expenses",
 			},
 			{
 				UserId:          0,
 				SecurityId:      0,
 				ParentAccountId: -1,
-				Type:            handlers.Liability,
+				Type:            models.Liability,
 				Name:            "Credit Card",
 			},
 		},
-		transactions: []handlers.Transaction{
+		transactions: []models.Transaction{
 			{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 15, 1, 16, 59, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-5.6",
 					},
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
 						Amount:     "5.6",
@@ -327,15 +327,15 @@ var data = []TestData{
 				UserId:      0,
 				Description: "weekly groceries",
 				Date:        time.Date(2017, time.October, 31, 19, 10, 14, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-81.59",
 					},
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  3,
 						SecurityId: -1,
 						Amount:     "81.59",
@@ -346,15 +346,15 @@ var data = []TestData{
 				UserId:      0,
 				Description: "Cable",
 				Date:        time.Date(2017, time.September, 2, 0, 00, 00, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  1,
 						SecurityId: -1,
 						Amount:     "-39.99",
 					},
 					{
-						Status:     handlers.Entered,
+						Status:     models.Entered,
 						AccountId:  4,
 						SecurityId: -1,
 						Amount:     "39.99",
@@ -365,15 +365,15 @@ var data = []TestData{
 				UserId:      1,
 				Description: "Gas",
 				Date:        time.Date(2017, time.November, 1, 13, 19, 50, 0, time.UTC),
-				Splits: []*handlers.Split{
+				Splits: []*models.Split{
 					{
-						Status:     handlers.Reconciled,
+						Status:     models.Reconciled,
 						AccountId:  5,
 						SecurityId: -1,
 						Amount:     "-24.56",
 					},
 					{
-						Status:     handlers.Entered,
+						Status:     models.Entered,
 						AccountId:  6,
 						SecurityId: -1,
 						Amount:     "24.56",
@@ -381,7 +381,7 @@ var data = []TestData{
 				},
 			},
 		},
-		reports: []handlers.Report{
+		reports: []models.Report{
 			{
 				UserId: 0,
 				Name:   "This Year's Monthly Expenses",
@@ -439,39 +439,39 @@ function generate()
 end`,
 			},
 		},
-		tabulations: []handlers.Tabulation{
+		tabulations: []models.Tabulation{
 			{
 				ReportId: 0,
 				Title:    "2017 Monthly Expenses",
 				Subtitle: "This is my subtitle",
 				Units:    "USD",
 				Labels:   []string{"2017-01-01", "2017-02-01", "2017-03-01", "2017-04-01", "2017-05-01", "2017-06-01", "2017-07-01", "2017-08-01", "2017-09-01", "2017-10-01", "2017-11-01", "2017-12-01"},
-				Series: map[string]*handlers.Series{
+				Series: map[string]*models.Series{
 					"Assets": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{
+						Series: map[string]*models.Series{
 							"Credit Union Checking": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 						},
 					},
 					"Expenses": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{
+						Series: map[string]*models.Series{
 							"Groceries": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 87.19, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 							"Cable": {
 								Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 39.99, 0, 0, 0},
-								Series: map[string]*handlers.Series{},
+								Series: map[string]*models.Series{},
 							},
 						},
 					},
 					"Credit Card": {
 						Values: []float64{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-						Series: map[string]*handlers.Series{},
+						Series: map[string]*models.Series{},
 					},
 				},
 			},

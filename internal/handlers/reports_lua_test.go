@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"fmt"
-	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"testing"
 )
@@ -25,7 +25,7 @@ function generate()
     t:title(tostring(test()))
 	return t
 end`, lt.Lua)
-		r := handlers.Report{
+		r := models.Report{
 			Name: lt.Name,
 			Lua:  lua,
 		}

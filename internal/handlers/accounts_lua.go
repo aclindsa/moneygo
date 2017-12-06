@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
 	"math/big"
 	"strings"
@@ -10,8 +11,8 @@ import (
 
 const luaAccountTypeName = "account"
 
-func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
-	var account_map map[int64]*Account
+func luaContextGetAccounts(L *lua.LState) (map[int64]*models.Account, error) {
+	var account_map map[int64]*models.Account
 
 	ctx := L.Context()
 
@@ -20,9 +21,9 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
 		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
 
-	account_map, ok = ctx.Value(accountsContextKey).(map[int64]*Account)
+	account_map, ok = ctx.Value(accountsContextKey).(map[int64]*models.Account)
 	if !ok {
-		user, ok := ctx.Value(userContextKey).(*User)
+		user, ok := ctx.Value(userContextKey).(*models.User)
 		if !ok {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
@@ -32,7 +33,7 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*Account, error) {
 			return nil, err
 		}
 
-		account_map = make(map[int64]*Account)
+		account_map = make(map[int64]*models.Account)
 		for i := range *accounts {
 			account_map[(*accounts)[i].AccountId] = &(*accounts)[i]
 		}
@@ -68,7 +69,7 @@ func luaRegisterAccounts(L *lua.LState) {
 	L.SetField(mt, "__eq", L.NewFunction(luaAccount__eq))
 	L.SetField(mt, "__metatable", lua.LString("protected"))
 
-	for _, accttype := range AccountTypes {
+	for _, accttype := range models.AccountTypes {
 		L.SetField(mt, accttype.String(), lua.LNumber(float64(accttype)))
 	}
 
@@ -78,7 +79,7 @@ func luaRegisterAccounts(L *lua.LState) {
 	L.SetGlobal("get_accounts", getAccountsFn)
 }
 
-func AccountToLua(L *lua.LState, account *Account) *lua.LUserData {
+func AccountToLua(L *lua.LState, account *models.Account) *lua.LUserData {
 	ud := L.NewUserData()
 	ud.Value = account
 	L.SetMetatable(ud, L.GetTypeMetatable(luaAccountTypeName))
@@ -86,9 +87,9 @@ func AccountToLua(L *lua.LState, account *Account) *lua.LUserData {
 }
 
 // Checks whether the first lua argument is a *LUserData with *Account and returns this *Account.
-func luaCheckAccount(L *lua.LState, n int) *Account {
+func luaCheckAccount(L *lua.LState, n int) *models.Account {
 	ud := L.CheckUserData(n)
-	if account, ok := ud.Value.(*Account); ok {
+	if account, ok := ud.Value.(*models.Account); ok {
 		return account
 	}
 	L.ArgError(n, "account expected")
@@ -153,7 +154,7 @@ func luaAccountBalance(L *lua.LState) int {
 	if !ok {
 		panic("Couldn't find tx in lua's Context")
 	}
-	user, ok := ctx.Value(userContextKey).(*User)
+	user, ok := ctx.Value(userContextKey).(*models.User)
 	if !ok {
 		panic("Couldn't find User in lua's Context")
 	}

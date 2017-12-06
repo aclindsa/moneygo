@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
-	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -13,6 +13,9 @@ import (
 	"strings"
 )
 
+// luaMaxLengthBuffer is intended to be enough bytes such that a given string
+// no longer than models.LuaMaxLength is sure to fit within a database
+// implementation's string type specified by the same.
 const luaMaxLengthBuffer int = 4096
 
 func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
@@ -33,15 +36,15 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	}
 
 	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
-	dbmap.AddTableWithName(handlers.User{}, "users").SetKeys(true, "UserId")
-	dbmap.AddTableWithName(handlers.Session{}, "sessions").SetKeys(true, "SessionId")
-	dbmap.AddTableWithName(handlers.Account{}, "accounts").SetKeys(true, "AccountId")
-	dbmap.AddTableWithName(handlers.Security{}, "securities").SetKeys(true, "SecurityId")
-	dbmap.AddTableWithName(handlers.Transaction{}, "transactions").SetKeys(true, "TransactionId")
-	dbmap.AddTableWithName(handlers.Split{}, "splits").SetKeys(true, "SplitId")
-	dbmap.AddTableWithName(handlers.Price{}, "prices").SetKeys(true, "PriceId")
-	rtable := dbmap.AddTableWithName(handlers.Report{}, "reports").SetKeys(true, "ReportId")
-	rtable.ColMap("Lua").SetMaxSize(handlers.LuaMaxLength + luaMaxLengthBuffer)
+	dbmap.AddTableWithName(models.User{}, "users").SetKeys(true, "UserId")
+	dbmap.AddTableWithName(models.Session{}, "sessions").SetKeys(true, "SessionId")
+	dbmap.AddTableWithName(models.Account{}, "accounts").SetKeys(true, "AccountId")
+	dbmap.AddTableWithName(models.Security{}, "securities").SetKeys(true, "SecurityId")
+	dbmap.AddTableWithName(models.Transaction{}, "transactions").SetKeys(true, "TransactionId")
+	dbmap.AddTableWithName(models.Split{}, "splits").SetKeys(true, "SplitId")
+	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
+	rtable := dbmap.AddTableWithName(models.Report{}, "reports").SetKeys(true, "ReportId")
+	rtable.ColMap("Lua").SetMaxSize(models.LuaMaxLength + luaMaxLengthBuffer)
 
 	err := dbmap.CreateTablesIfNotExists()
 	if err != nil {

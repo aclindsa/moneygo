@@ -6,6 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"io"
 	"log"
 	"math"
@@ -22,7 +23,7 @@ type GnucashXMLCommodity struct {
 	XCode       string `xml:"http://www.gnucash.org/XML/cmdty xcode"`
 }
 
-type GnucashCommodity struct{ Security }
+type GnucashCommodity struct{ models.Security }
 
 func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var gxc GnucashXMLCommodity
@@ -35,12 +36,12 @@ func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 	gc.Description = gxc.Description
 	gc.AlternateId = gxc.XCode
 
-	gc.Security.Type = Stock // assumed default
+	gc.Security.Type = models.Stock // assumed default
 	if gxc.Type == "ISO4217" {
-		gc.Security.Type = Currency
+		gc.Security.Type = models.Currency
 		// Get the number from our templates for the AlternateId because
 		// Gnucash uses 'id' (our Name) to supply the string ISO4217 code
-		template := FindSecurityTemplate(gxc.Name, Currency)
+		template := FindSecurityTemplate(gxc.Name, models.Currency)
 		if template == nil {
 			return errors.New("Unable to find security template for Gnucash ISO4217 commodity")
 		}
@@ -125,10 +126,10 @@ type GnucashXMLImport struct {
 }
 
 type GnucashImport struct {
-	Securities   []Security
-	Accounts     []Account
-	Transactions []Transaction
-	Prices       []Price
+	Securities   []models.Security
+	Accounts     []models.Account
+	Transactions []models.Transaction
+	Prices       []models.Price
 }
 
 func ImportGnucash(r io.Reader) (*GnucashImport, error) {
@@ -143,7 +144,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	}
 
 	// Fixup securities, making a map of them as we go
-	securityMap := make(map[string]Security)
+	securityMap := make(map[string]models.Security)
 	for i := range gncxml.Commodities {
 		s := gncxml.Commodities[i].Security
 		s.SecurityId = int64(i + 1)
@@ -160,7 +161,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	// Create prices, setting security and currency IDs from securityMap
 	for i := range gncxml.PriceDB.Prices {
 		price := gncxml.PriceDB.Prices[i]
-		var p Price
+		var p models.Price
 		security, ok := securityMap[price.Commodity.Name]
 		if !ok {
 			return nil, fmt.Errorf("Unable to find commodity '%s' for price '%s'", price.Commodity.Name, price.Id)
@@ -169,7 +170,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		if !ok {
 			return nil, fmt.Errorf("Unable to find currency '%s' for price '%s'", price.Currency.Name, price.Id)
 		}
-		if currency.Type != Currency {
+		if currency.Type != models.Currency {
 			return nil, fmt.Errorf("Currency for imported price isn't actually a currency\n")
 		}
 		p.PriceId = int64(i + 1)
@@ -205,7 +206,7 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	//Translate to our account format, figuring out parent relationships
 	for guid := range accountMap {
 		ga := accountMap[guid]
-		var a Account
+		var a models.Account
 
 		a.AccountId = ga.accountid
 		if ga.ParentAccountId == rootAccount.AccountId {
@@ -228,29 +229,29 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		//TODO find account types
 		switch ga.Type {
 		default:
-			a.Type = Bank
+			a.Type = models.Bank
 		case "ASSET":
-			a.Type = Asset
+			a.Type = models.Asset
 		case "BANK":
-			a.Type = Bank
+			a.Type = models.Bank
 		case "CASH":
-			a.Type = Cash
+			a.Type = models.Cash
 		case "CREDIT", "LIABILITY":
-			a.Type = Liability
+			a.Type = models.Liability
 		case "EQUITY":
-			a.Type = Equity
+			a.Type = models.Equity
 		case "EXPENSE":
-			a.Type = Expense
+			a.Type = models.Expense
 		case "INCOME":
-			a.Type = Income
+			a.Type = models.Income
 		case "PAYABLE":
-			a.Type = Payable
+			a.Type = models.Payable
 		case "RECEIVABLE":
-			a.Type = Receivable
+			a.Type = models.Receivable
 		case "MUTUAL", "STOCK":
-			a.Type = Investment
+			a.Type = models.Investment
 		case "TRADING":
-			a.Type = Trading
+			a.Type = models.Trading
 		}
 
 		gncimport.Accounts = append(gncimport.Accounts, a)
@@ -260,20 +261,20 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 	for i := range gncxml.Transactions {
 		gt := gncxml.Transactions[i]
 
-		t := new(Transaction)
+		t := new(models.Transaction)
 		t.Description = gt.Description
 		t.Date = gt.DatePosted.Date.Time
 		for j := range gt.Splits {
 			gs := gt.Splits[j]
-			s := new(Split)
+			s := new(models.Split)
 
 			switch gs.Status {
 			default: // 'n', or not present
-				s.Status = Imported
+				s.Status = models.Imported
 			case "c":
-				s.Status = Cleared
+				s.Status = models.Cleared
 			case "y":
-				s.Status = Reconciled
+				s.Status = models.Reconciled
 			}
 
 			account, ok := accountMap[gs.AccountId]
@@ -436,7 +437,7 @@ func GnucashImportHandler(r *http.Request, context *Context) ResponseWriterWrite
 			}
 			split.AccountId = acctId
 
-			exists, err := split.AlreadyImported(context.Tx)
+			exists, err := SplitAlreadyImported(context.Tx, split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)

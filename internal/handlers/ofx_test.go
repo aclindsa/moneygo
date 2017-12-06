@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"fmt"
-	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/models"
 	"net/http"
 	"strconv"
 	"testing"
@@ -63,7 +63,7 @@ func TestImportOFXCreditCard(t *testing.T) {
 	})
 }
 
-func findSecurity(client *http.Client, symbol string, tipe handlers.SecurityType) (*handlers.Security, error) {
+func findSecurity(client *http.Client, symbol string, tipe models.SecurityType) (*models.Security, error) {
 	securities, err := getSecurities(client)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func findSecurity(client *http.Client, symbol string, tipe handlers.SecurityType
 	return nil, fmt.Errorf("Unable to find security: \"%s\"", symbol)
 }
 
-func findAccount(client *http.Client, name string, tipe handlers.AccountType, securityid int64) (*handlers.Account, error) {
+func findAccount(client *http.Client, name string, tipe models.AccountType, securityid int64) (*models.Account, error) {
 	accounts, err := getAccounts(client)
 	if err != nil {
 		return nil, err
@@ -104,11 +104,11 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 			t.Fatalf("Error removing default security: %s\n", err)
 		}
 
-		account := &handlers.Account{
+		account := &models.Account{
 			SecurityId:      d.securities[0].SecurityId,
 			UserId:          d.users[0].UserId,
 			ParentAccountId: -1,
-			Type:            handlers.Investment,
+			Type:            models.Investment,
 			Name:            "401k",
 		}
 
@@ -125,18 +125,18 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 
 		// Make sure the security was created and that the trading account has
 		// the right value
-		security, err := findSecurity(d.clients[0], "VANGUARD TARGET 2045", handlers.Stock)
+		security, err := findSecurity(d.clients[0], "VANGUARD TARGET 2045", models.Stock)
 		if err != nil {
 			t.Fatalf("Error finding VANGUARD TARGET 2045 security: %s\n", err)
 		}
-		tradingaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", handlers.Trading, security.SecurityId)
+		tradingaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", models.Trading, security.SecurityId)
 		if err != nil {
 			t.Fatalf("Error finding VANGUARD TARGET 2045 trading account: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], tradingaccount, "-3.35400")
 
 		// Ensure actual holding account was created and in the correct place
-		investmentaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", handlers.Investment, security.SecurityId)
+		investmentaccount, err := findAccount(d.clients[0], "VANGUARD TARGET 2045", models.Investment, security.SecurityId)
 		if err != nil {
 			t.Fatalf("Error finding VANGUARD TARGET 2045 investment account: %s\n", err)
 		}
@@ -163,11 +163,11 @@ func TestImportOFXBrokerage(t *testing.T) {
 		}
 
 		// Create the brokerage account
-		account := &handlers.Account{
+		account := &models.Account{
 			SecurityId:      d.securities[0].SecurityId,
 			UserId:          d.users[0].UserId,
 			ParentAccountId: -1,
-			Type:            handlers.Investment,
+			Type:            models.Investment,
 			Name:            "Personal Brokerage",
 		}
 
@@ -184,7 +184,7 @@ func TestImportOFXBrokerage(t *testing.T) {
 
 		// Make sure the USD trading account was created and has  the right
 		// value
-		usdtrading, err := findAccount(d.clients[0], "USD", handlers.Trading, d.users[0].DefaultCurrency)
+		usdtrading, err := findAccount(d.clients[0], "USD", models.Trading, d.users[0].DefaultCurrency)
 		if err != nil {
 			t.Fatalf("Error finding USD trading account: %s\n", err)
 		}
@@ -204,19 +204,19 @@ func TestImportOFXBrokerage(t *testing.T) {
 		}
 
 		for _, check := range checks {
-			security, err := findSecurity(d.clients[0], check.Ticker, handlers.Stock)
+			security, err := findSecurity(d.clients[0], check.Ticker, models.Stock)
 			if err != nil {
 				t.Fatalf("Error finding security: %s\n", err)
 			}
 
-			account, err := findAccount(d.clients[0], check.Name, handlers.Investment, security.SecurityId)
+			account, err := findAccount(d.clients[0], check.Name, models.Investment, security.SecurityId)
 			if err != nil {
 				t.Fatalf("Error finding trading account: %s\n", err)
 			}
 
 			accountBalanceHelper(t, d.clients[0], account, check.Balance)
 
-			tradingaccount, err := findAccount(d.clients[0], check.Name, handlers.Trading, security.SecurityId)
+			tradingaccount, err := findAccount(d.clients[0], check.Name, models.Trading, security.SecurityId)
 			if err != nil {
 				t.Fatalf("Error finding trading account: %s\n", err)
 			}

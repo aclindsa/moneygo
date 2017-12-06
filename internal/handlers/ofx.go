@@ -3,26 +3,27 @@ package handlers
 import (
 	"errors"
 	"fmt"
+	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"math/big"
 )
 
 type OFXImport struct {
-	Securities   []Security
-	Accounts     []Account
-	Transactions []Transaction
+	Securities   []models.Security
+	Accounts     []models.Account
+	Transactions []models.Transaction
 	//	Balances     map[int64]string // map AccountIDs to ending balances
 }
 
-func (i *OFXImport) GetSecurity(ofxsecurityid int64) (*Security, error) {
+func (i *OFXImport) GetSecurity(ofxsecurityid int64) (*models.Security, error) {
 	if ofxsecurityid < 0 || ofxsecurityid > int64(len(i.Securities)) {
 		return nil, errors.New("OFXImport.GetSecurity: SecurityID out of range")
 	}
 	return &i.Securities[ofxsecurityid], nil
 }
 
-func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType SecurityType) (*Security, error) {
+func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType models.SecurityType) (*models.Security, error) {
 	for _, security := range i.Securities {
 		if alternateid == security.AlternateId && securityType == security.Type {
 			return &security, nil
@@ -32,26 +33,26 @@ func (i *OFXImport) GetSecurityAlternateId(alternateid string, securityType Secu
 	return nil, errors.New("OFXImport.FindSecurity: Unable to find security")
 }
 
-func (i *OFXImport) GetAddCurrency(isoname string) (*Security, error) {
+func (i *OFXImport) GetAddCurrency(isoname string) (*models.Security, error) {
 	for _, security := range i.Securities {
-		if isoname == security.Name && Currency == security.Type {
+		if isoname == security.Name && models.Currency == security.Type {
 			return &security, nil
 		}
 	}
 
-	template := FindSecurityTemplate(isoname, Currency)
+	template := FindSecurityTemplate(isoname, models.Currency)
 	if template == nil {
 		return nil, fmt.Errorf("Failed to find Security for \"%s\"", isoname)
 	}
-	var security Security = *template
+	var security models.Security = *template
 	security.SecurityId = int64(len(i.Securities) + 1)
 	i.Securities = append(i.Securities, security)
 
 	return &security, nil
 }
 
-func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) error {
-	var t Transaction
+func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *models.Account) error {
+	var t models.Transaction
 
 	t.Date = tran.DtPosted.UTC()
 
@@ -69,7 +70,7 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 		}
 	}
 
-	var s1, s2 Split
+	var s1, s2 models.Split
 	if len(tran.ExtdName) > 0 {
 		s1.Memo = tran.ExtdName.String()
 	}
@@ -93,15 +94,15 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *Account) er
 	s1.RemoteId = "ofx:" + tran.FiTID.String()
 	// TODO CorrectFiTID/CorrectAction?
 
-	s1.ImportSplitType = ImportAccount
-	s2.ImportSplitType = ExternalAccount
+	s1.ImportSplitType = models.ImportAccount
+	s2.ImportSplitType = models.ExternalAccount
 
 	security := i.Securities[account.SecurityId-1]
 	s1.Amount = amt.FloatString(security.Precision)
 	s2.Amount = amt.Neg(amt).FloatString(security.Precision)
 
-	s1.Status = Imported
-	s2.Status = Imported
+	s1.Status = models.Imported
+	s2.Status = models.Imported
 
 	s1.AccountId = account.AccountId
 	s2.AccountId = -1
@@ -121,12 +122,12 @@ func (i *OFXImport) importOFXBank(stmt *ofxgo.StatementResponse) error {
 		return err
 	}
 
-	account := Account{
+	account := models.Account{
 		AccountId:         int64(len(i.Accounts) + 1),
 		ExternalAccountId: stmt.BankAcctFrom.AcctID.String(),
 		SecurityId:        security.SecurityId,
 		ParentAccountId:   -1,
-		Type:              Bank,
+		Type:              models.Bank,
 	}
 
 	if stmt.BankTranList != nil {
@@ -148,12 +149,12 @@ func (i *OFXImport) importOFXCC(stmt *ofxgo.CCStatementResponse) error {
 		return err
 	}
 
-	account := Account{
+	account := models.Account{
 		AccountId:         int64(len(i.Accounts) + 1),
 		ExternalAccountId: stmt.CCAcctFrom.AcctID.String(),
 		SecurityId:        security.SecurityId,
 		ParentAccountId:   -1,
-		Type:              Liability,
+		Type:              models.Liability,
 	}
 	i.Accounts = append(i.Accounts, account)
 
@@ -186,13 +187,13 @@ func (i *OFXImport) importSecurities(seclist *ofxgo.SecurityList) error {
 		} else {
 			return errors.New("Can't import unrecognized type satisfying ofxgo.Security interface")
 		}
-		s := Security{
+		s := models.Security{
 			SecurityId:  int64(len(i.Securities) + 1),
 			Name:        string(si.SecName),
 			Description: string(si.Memo),
 			Symbol:      string(si.Ticker),
 			Precision:   5, // TODO How to actually determine this?
-			Type:        Stock,
+			Type:        models.Stock,
 			AlternateId: string(si.SecID.UniqueID),
 		}
 		if len(s.Description) == 0 {
@@ -207,17 +208,17 @@ func (i *OFXImport) importSecurities(seclist *ofxgo.SecurityList) error {
 	return nil
 }
 
-func (i *OFXImport) GetInvTran(invtran *ofxgo.InvTran) Transaction {
-	var t Transaction
+func (i *OFXImport) GetInvTran(invtran *ofxgo.InvTran) models.Transaction {
+	var t models.Transaction
 	t.Description = string(invtran.Memo)
 	t.Date = invtran.DtTrade.UTC()
 	return t
 }
 
-func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&buy.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(buy.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(buy.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -253,10 +254,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 	}
 
 	if num := commission.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Commission,
+			Status:          models.Imported,
+			ImportSplitType: models.Commission,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -265,10 +266,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Taxes,
+			Status:          models.Imported,
+			ImportSplitType: models.Taxes,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -277,10 +278,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Fees,
+			Status:          models.Imported,
+			ImportSplitType: models.Fees,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -289,10 +290,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Load,
+			Status:          models.Imported,
+			ImportSplitType: models.Load,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -300,20 +301,20 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 			Amount:          load.FloatString(curdef.Precision),
 		})
 	}
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 		Memo:            memo,
 		Amount:          total.FloatString(curdef.Precision),
 	})
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -323,10 +324,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 
 	var units big.Rat
 	units.Abs(&buy.Units.Rat)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: SubAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.SubAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -334,10 +335,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 		Amount:          units.FloatString(security.Precision),
 	})
 	units.Neg(&units)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
@@ -348,10 +349,10 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *Security, account *
 	return &t, nil
 }
 
-func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&income.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(income.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(income.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -369,10 +370,10 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, accoun
 		total.Mul(&total, &income.Currency.CurRate.Rat)
 	}
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + income.InvTran.FiTID.String(),
@@ -380,10 +381,10 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, accoun
 		Amount:          total.FloatString(curdef.Precision),
 	})
 	total.Neg(&total)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: IncomeAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.IncomeAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + income.InvTran.FiTID.String(),
@@ -394,10 +395,10 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *Security, accoun
 	return &t, nil
 }
 
-func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&expense.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(expense.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(expense.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -414,10 +415,10 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Securit
 		total.Mul(&total, &expense.Currency.CurRate.Rat)
 	}
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
@@ -425,10 +426,10 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Securit
 		Amount:          total.FloatString(curdef.Precision),
 	})
 	total.Neg(&total)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ExpenseAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ExpenseAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
@@ -439,7 +440,7 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *Securit
 	return &t, nil
 }
 
-func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&marginint.InvTran)
 
 	memo := string(marginint.InvTran.Memo)
@@ -453,10 +454,10 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 		total.Mul(&total, &marginint.Currency.CurRate.Rat)
 	}
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
@@ -464,10 +465,10 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 		Amount:          total.FloatString(curdef.Precision),
 	})
 	total.Neg(&total)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: IncomeAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.IncomeAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
@@ -478,10 +479,10 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 	return &t, nil
 }
 
-func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&reinvest.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(reinvest.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(reinvest.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -517,10 +518,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	}
 
 	if num := commission.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Commission,
+			Status:          models.Imported,
+			ImportSplitType: models.Commission,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -529,10 +530,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Taxes,
+			Status:          models.Imported,
+			ImportSplitType: models.Taxes,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -541,10 +542,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Fees,
+			Status:          models.Imported,
+			ImportSplitType: models.Fees,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -553,10 +554,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Load,
+			Status:          models.Imported,
+			ImportSplitType: models.Load,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -564,10 +565,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 			Amount:          load.FloatString(curdef.Precision),
 		})
 	}
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -575,10 +576,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		Amount:          total.FloatString(curdef.Precision),
 	})
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: IncomeAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.IncomeAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -586,20 +587,20 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		Amount:          total.FloatString(curdef.Precision),
 	})
 	total.Neg(&total)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
 		Amount:          total.FloatString(curdef.Precision),
 	})
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -609,10 +610,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 
 	var units big.Rat
 	units.Abs(&reinvest.Units.Rat)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: SubAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.SubAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -620,10 +621,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 		Amount:          units.FloatString(security.Precision),
 	})
 	units.Neg(&units)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
@@ -634,10 +635,10 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *Security, 
 	return &t, nil
 }
 
-func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&retofcap.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(retofcap.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(retofcap.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -654,10 +655,10 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, 
 		total.Mul(&total, &retofcap.Currency.CurRate.Rat)
 	}
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
@@ -665,10 +666,10 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, 
 		Amount:          total.FloatString(curdef.Precision),
 	})
 	total.Neg(&total)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: IncomeAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.IncomeAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
@@ -679,10 +680,10 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *Security, 
 	return &t, nil
 }
 
-func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&sell.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(sell.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(sell.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -721,10 +722,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	}
 
 	if num := commission.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Commission,
+			Status:          models.Imported,
+			ImportSplitType: models.Commission,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -733,10 +734,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Taxes,
+			Status:          models.Imported,
+			ImportSplitType: models.Taxes,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -745,10 +746,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Fees,
+			Status:          models.Imported,
+			ImportSplitType: models.Fees,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -757,10 +758,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
-		t.Splits = append(t.Splits, &Split{
+		t.Splits = append(t.Splits, &models.Split{
 			// TODO ReversalFiTID?
-			Status:          Imported,
-			ImportSplitType: Load,
+			Status:          models.Imported,
+			ImportSplitType: models.Load,
 			AccountId:       -1,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -768,20 +769,20 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 			Amount:          load.FloatString(curdef.Precision),
 		})
 	}
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ImportAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ImportAccount,
 		AccountId:       account.AccountId,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 		Memo:            memo,
 		Amount:          total.FloatString(curdef.Precision),
 	})
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -791,10 +792,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 
 	var units big.Rat
 	units.Abs(&sell.Units.Rat)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: TradingAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.TradingAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -802,10 +803,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 		Amount:          units.FloatString(security.Precision),
 	})
 	units.Neg(&units)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: SubAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.SubAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
@@ -816,10 +817,10 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *Security, accoun
 	return &t, nil
 }
 
-func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) (*Transaction, error) {
+func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *models.Account) (*models.Transaction, error) {
 	t := i.GetInvTran(&transfer.InvTran)
 
-	security, err := i.GetSecurityAlternateId(string(transfer.SecID.UniqueID), Stock)
+	security, err := i.GetSecurityAlternateId(string(transfer.SecID.UniqueID), models.Stock)
 	if err != nil {
 		return nil, err
 	}
@@ -833,10 +834,10 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) 
 		units.Neg(&transfer.Units.Rat)
 	}
 
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: SubAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.SubAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + transfer.InvTran.FiTID.String(),
@@ -844,10 +845,10 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) 
 		Amount:          units.FloatString(security.Precision),
 	})
 	units.Neg(&units)
-	t.Splits = append(t.Splits, &Split{
+	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
-		Status:          Imported,
-		ImportSplitType: ExternalAccount,
+		Status:          models.Imported,
+		ImportSplitType: models.ExternalAccount,
 		AccountId:       -1,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + transfer.InvTran.FiTID.String(),
@@ -858,12 +859,12 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *Account) 
 	return &t, nil
 }
 
-func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *Account, curdef *Security) error {
+func (i *OFXImport) AddInvTransaction(invtran *ofxgo.InvTransaction, account *models.Account, curdef *models.Security) error {
 	if curdef.SecurityId < 1 || curdef.SecurityId > int64(len(i.Securities)) {
 		return errors.New("Internal error: security index not found in OFX import\n")
 	}
 
-	var t *Transaction
+	var t *models.Transaction
 	var err error
 	if tran, ok := (*invtran).(ofxgo.BuyDebt); ok {
 		t, err = i.GetInvBuyTran(&tran.InvBuy, curdef, account)
@@ -925,12 +926,12 @@ func (i *OFXImport) importOFXInv(stmt *ofxgo.InvStatementResponse) error {
 		return err
 	}
 
-	account := Account{
+	account := models.Account{
 		AccountId:         int64(len(i.Accounts) + 1),
 		ExternalAccountId: stmt.InvAcctFrom.AcctID.String(),
 		SecurityId:        security.SecurityId,
 		ParentAccountId:   -1,
-		Type:              Investment,
+		Type:              models.Investment,
 	}
 	i.Accounts = append(i.Accounts, account)
 
