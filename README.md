@@ -63,15 +63,21 @@ cusip_list.csv file and re-run the `go generate ...` command.
 
 ## Running
 
-Assuming you're in the same directory you ran the above installation commands
-from, running MoneyGo is then as easy as:
+MoneyGo requires HTTPS or FCGI (no HTTP). Before starting the server, you will
+want to edit the example configuration file
+(src/github.com/aclindsa/moneygo/example_config.ini) to point to your own SSL
+certificate/key OR set 'generate-certs-if-absent = true' in the '[http]' section
+of the config file.
+
+Then, assuming you're in the same directory you ran the above installation
+commands from, running MoneyGo is as easy as:
 
 	$ ./bin/moneygo -config src/github.com/aclindsa/moneygo/example_config.ini
 
-You should then be able to explore MoneyGo by visiting http://localhost:8080 in
+You should then be able to explore MoneyGo by visiting https://localhost:8443 in
 your browser. Editing the configuration file supplied will allow you to modify
-several settings including the port used and whether to serve via FastCGI
-instead of HTTP (the default).
+several settings including the port used, SSL certificate locations, and whether
+to serve via FastCGI instead of HTTPS (the default).
 
 ## Missing Features
 

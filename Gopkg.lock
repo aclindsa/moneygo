@@ -5,7 +5,7 @@
   branch = "master"
   name = "github.com/aclindsa/gorp"
   packages = ["."]
-  revision = "d53dbb52439a458ae75f574d9420f66b6489441d"
+  revision = "4735379e1f46302b58b985d8172a53988aad93b4"
 
 [[projects]]
   name = "github.com/aclindsa/ofxgo"
@@ -27,9 +27,15 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/kabukky/httpscerts"
+  packages = ["."]
+  revision = "617593d7dcb39c9ed617bb62c5e2056244d02184"
+
+[[projects]]
+  branch = "master"
   name = "github.com/lib/pq"
   packages = [".","oid"]
-  revision = "8c6ee72f3e6bcb1542298dd5f76cb74af9742cec"
+  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
 
 [[projects]]
   name = "github.com/mattn/go-sqlite3"
@@ -47,13 +53,13 @@
   branch = "master"
   name = "golang.org/x/net"
   packages = ["context"]
-  revision = "9dfe39835686865bff950a07b394c12a98ddc811"
+  revision = "a8b9294777976932365dabb6640cf1468d95c70f"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = ["currency","internal","internal/format","internal/gen","internal/tag","language","unicode/cldr"]
-  revision = "88f656faf3f37f690df1a32515b479415e1a6769"
+  revision = "57961680700a5336d15015c8c50686ca5ba362a4"
 
 [[projects]]
   name = "gopkg.in/gcfg.v1"
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "de6a009267b8a81e29fc30f4bb7431c32ca42650d6cfd458324324f3f63abbff"
+  inputs-digest = "ad90bfdaa27132d84af5979b27d0960663bd13d57510566071056e1d4bb0d503"
   solver-name = "gps-cdcl"
   solver-version = 1

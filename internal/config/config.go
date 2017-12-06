@@ -55,8 +55,16 @@ type MoneyGo struct {
 	DSN     string `gcfg:"db-dsn"`         // 'Data Source Name' for database connection
 }
 
+type Https struct {
+	CertFile           string `gcfg:"cert-file"`
+	KeyFile            string `gcfg:"key-file"`
+	GenerateCerts      bool   `gcfg:"generate-certs-if-absent"` // Generate certificates if missing
+	GenerateCertsHosts string `gcfg:"generate-certs-hosts"`     // Hostnames to generate certificates for if missing and GenerateCerts==true
+}
+
 type Config struct {
 	MoneyGo MoneyGo
+	Https   Https
 }
 
 func ReadConfig(filename string) (*Config, error) {
@@ -67,6 +75,12 @@ func ReadConfig(filename string) (*Config, error) {
 			Basedir: "src/github.com/aclindsa/moneygo/",
 			DBType:  SQLite,
 			DSN:     "file:moneygo.sqlite?cache=shared&mode=rwc",
+		},
+		Https: Https{
+			CertFile:           "./cert.pem",
+			KeyFile:            "./key.pem",
+			GenerateCerts:      false,
+			GenerateCertsHosts: "localhost",
 		},
 	}
 
