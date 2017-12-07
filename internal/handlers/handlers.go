@@ -1,8 +1,9 @@
 package handlers
 
 import (
-	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 	"path"
@@ -16,7 +17,8 @@ type ResponseWriterWriter interface {
 }
 
 type Context struct {
-	Tx           *Tx
+	Tx           *db.Tx
+	StoreTx      store.Tx
 	User         *models.User
 	remainingURL string // portion of URL path not yet reached in the hierarchy
 }
@@ -46,11 +48,11 @@ func (c *Context) LastLevel() bool {
 type Handler func(*http.Request, *Context) ResponseWriterWriter
 
 type APIHandler struct {
-	DB *gorp.DbMap
+	Store *db.DbStore
 }
 
 func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
-	tx, err := GetTx(ah.DB)
+	tx, err := GetTx(ah.Store.DbMap)
 	if err != nil {
 		log.Print(err)
 		return NewError(999 /*Internal Error*/)
@@ -72,6 +74,33 @@ func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (w
 	}()
 
 	context.Tx = tx
+	context.StoreTx = tx
+	return h(r, context)
+}
+
+func (ah *APIHandler) storeTxWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
+	tx, err := ah.Store.Begin()
+	if err != nil {
+		log.Print(err)
+		return NewError(999 /*Internal Error*/)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			panic(r)
+		}
+		if _, ok := writer.(*Error); ok {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+			if err != nil {
+				log.Print(err)
+				writer = NewError(999 /*Internal Error*/)
+			}
+		}
+	}()
+
+	context.StoreTx = tx
 	return h(r, context)
 }
 

@@ -3,36 +3,37 @@ package handlers
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	"log"
 	"net/http"
 	"time"
 )
 
-func GetSession(tx *Tx, r *http.Request) (*models.Session, error) {
-	var s models.Session
-
+func GetSession(tx store.Tx, r *http.Request) (*models.Session, error) {
 	cookie, err := r.Cookie("moneygo-session")
 	if err != nil {
 		return nil, fmt.Errorf("moneygo-session cookie not set")
 	}
-	s.SessionSecret = cookie.Value
 
-	err = tx.SelectOne(&s, "SELECT * from sessions where SessionSecret=?", s.SessionSecret)
+	s, err := tx.GetSession(cookie.Value)
 	if err != nil {
 		return nil, err
 	}
 
 	if s.Expires.Before(time.Now()) {
-		tx.Delete(&s)
+		err := tx.DeleteSession(s)
+		if err != nil {
+			log.Printf("Unexpected error when attempting to delete expired session: %s", err)
+		}
 		return nil, fmt.Errorf("Session has expired")
 	}
-	return &s, nil
+	return s, nil
 }
 
-func DeleteSessionIfExists(tx *Tx, r *http.Request) error {
+func DeleteSessionIfExists(tx store.Tx, r *http.Request) error {
 	session, err := GetSession(tx, r)
 	if err == nil {
-		_, err := tx.Delete(session)
+		err := tx.DeleteSession(session)
 		if err != nil {
 			return err
 		}
@@ -50,21 +51,26 @@ func (n *NewSessionWriter) Write(w http.ResponseWriter) error {
 	return n.session.Write(w)
 }
 
-func NewSession(tx *Tx, r *http.Request, userid int64) (*NewSessionWriter, error) {
+func NewSession(tx store.Tx, r *http.Request, userid int64) (*NewSessionWriter, error) {
+	err := DeleteSessionIfExists(tx, r)
+	if err != nil {
+		return nil, err
+	}
+
 	s, err := models.NewSession(userid)
 	if err != nil {
 		return nil, err
 	}
 
-	existing, err := tx.SelectInt("SELECT count(*) from sessions where SessionSecret=?", s.SessionSecret)
+	exists, err := tx.SessionExists(s.SessionSecret)
 	if err != nil {
 		return nil, err
 	}
-	if existing > 0 {
-		return nil, fmt.Errorf("%d session(s) exist with the generated session_secret", existing)
+	if exists {
+		return nil, fmt.Errorf("Session already exists with the generated session_secret")
 	}
 
-	err = tx.Insert(s)
+	err = tx.InsertSession(s)
 	if err != nil {
 		return nil, err
 	}
@@ -89,27 +95,21 @@ func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(2 /*Unauthorized Access*/)
 		}
 
-		err = DeleteSessionIfExists(context.Tx, r)
-		if err != nil {
-			log.Print(err)
-			return NewError(999 /*Internal Error*/)
-		}
-
-		sessionwriter, err := NewSession(context.Tx, r, dbuser.UserId)
+		sessionwriter, err := NewSession(context.StoreTx, r, dbuser.UserId)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
 		}
 		return sessionwriter
 	} else if r.Method == "GET" {
-		s, err := GetSession(context.Tx, r)
+		s, err := GetSession(context.StoreTx, r)
 		if err != nil {
 			return NewError(1 /*Not Signed In*/)
 		}
 
 		return s
 	} else if r.Method == "DELETE" {
-		err := DeleteSessionIfExists(context.Tx, r)
+		err := DeleteSessionIfExists(context.StoreTx, r)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)

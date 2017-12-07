@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 	"time"
 )
 
-func CreatePriceIfNotExist(tx *Tx, price *models.Price) error {
+func CreatePriceIfNotExist(tx *db.Tx, price *models.Price) error {
 	if len(price.RemoteId) == 0 {
 		// Always create a new price if we can't match on the RemoteId
 		err := tx.Insert(price)
@@ -35,7 +36,7 @@ func CreatePriceIfNotExist(tx *Tx, price *models.Price) error {
 	return nil
 }
 
-func GetPrice(tx *Tx, priceid, securityid int64) (*models.Price, error) {
+func GetPrice(tx *db.Tx, priceid, securityid int64) (*models.Price, error) {
 	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where PriceId=? AND SecurityId=?", priceid, securityid)
 	if err != nil {
@@ -44,7 +45,7 @@ func GetPrice(tx *Tx, priceid, securityid int64) (*models.Price, error) {
 	return &p, nil
 }
 
-func GetPrices(tx *Tx, securityid int64) (*[]*models.Price, error) {
+func GetPrices(tx *db.Tx, securityid int64) (*[]*models.Price, error) {
 	var prices []*models.Price
 
 	_, err := tx.Select(&prices, "SELECT * from prices where SecurityId=?", securityid)
@@ -55,7 +56,7 @@ func GetPrices(tx *Tx, securityid int64) (*[]*models.Price, error) {
 }
 
 // Return the latest price for security in currency units before date
-func GetLatestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+func GetLatestPrice(tx *db.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
 	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date <= ? ORDER BY Date DESC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
@@ -65,7 +66,7 @@ func GetLatestPrice(tx *Tx, security, currency *models.Security, date *time.Time
 }
 
 // Return the earliest price for security in currency units after date
-func GetEarliestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+func GetEarliestPrice(tx *db.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
 	var p models.Price
 	err := tx.SelectOne(&p, "SELECT * from prices where SecurityId=? AND CurrencyId=? AND Date >= ? ORDER BY Date ASC LIMIT 1", security.SecurityId, currency.SecurityId, date)
 	if err != nil {
@@ -75,7 +76,7 @@ func GetEarliestPrice(tx *Tx, security, currency *models.Security, date *time.Ti
 }
 
 // Return the price for security in currency closest to date
-func GetClosestPrice(tx *Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+func GetClosestPrice(tx *db.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
 	earliest, _ := GetEarliestPrice(tx, security, currency, date)
 	latest, err := GetLatestPrice(tx, security, currency, date)
 

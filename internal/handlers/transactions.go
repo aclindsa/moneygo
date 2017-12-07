@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"math/big"
 	"net/http"
@@ -12,14 +13,14 @@ import (
 	"time"
 )
 
-func SplitAlreadyImported(tx *Tx, s *models.Split) (bool, error) {
+func SplitAlreadyImported(tx *db.Tx, s *models.Split) (bool, error) {
 	count, err := tx.SelectInt("SELECT COUNT(*) from splits where RemoteId=? and AccountId=?", s.RemoteId, s.AccountId)
 	return count == 1, err
 }
 
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func GetTransactionImbalances(tx *Tx, t *models.Transaction) (map[int64]big.Rat, error) {
+func GetTransactionImbalances(tx *db.Tx, t *models.Transaction) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -47,7 +48,7 @@ func GetTransactionImbalances(tx *Tx, t *models.Transaction) (map[int64]big.Rat,
 
 // Returns true if all securities contained in this transaction are balanced,
 // false otherwise
-func TransactionBalanced(tx *Tx, t *models.Transaction) (bool, error) {
+func TransactionBalanced(tx *db.Tx, t *models.Transaction) (bool, error) {
 	var zero big.Rat
 
 	sums, err := GetTransactionImbalances(tx, t)
@@ -63,7 +64,7 @@ func TransactionBalanced(tx *Tx, t *models.Transaction) (bool, error) {
 	return true, nil
 }
 
-func GetTransaction(tx *Tx, transactionid int64, userid int64) (*models.Transaction, error) {
+func GetTransaction(tx *db.Tx, transactionid int64, userid int64) (*models.Transaction, error) {
 	var t models.Transaction
 
 	err := tx.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
@@ -79,7 +80,7 @@ func GetTransaction(tx *Tx, transactionid int64, userid int64) (*models.Transact
 	return &t, nil
 }
 
-func GetTransactions(tx *Tx, userid int64) (*[]models.Transaction, error) {
+func GetTransactions(tx *db.Tx, userid int64) (*[]models.Transaction, error) {
 	var transactions []models.Transaction
 
 	_, err := tx.Select(&transactions, "SELECT * from transactions where UserId=?", userid)
@@ -97,7 +98,7 @@ func GetTransactions(tx *Tx, userid int64) (*[]models.Transaction, error) {
 	return &transactions, nil
 }
 
-func incrementAccountVersions(tx *Tx, user *models.User, accountids []int64) error {
+func incrementAccountVersions(tx *db.Tx, user *models.User, accountids []int64) error {
 	for i := range accountids {
 		account, err := GetAccount(tx, accountids[i], user.UserId)
 		if err != nil {
@@ -121,7 +122,7 @@ func (ame AccountMissingError) Error() string {
 	return "Account missing"
 }
 
-func InsertTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
+func InsertTransaction(tx *db.Tx, t *models.Transaction, user *models.User) error {
 	// Map of any accounts with transaction splits being added
 	a_map := make(map[int64]bool)
 	for i := range t.Splits {
@@ -171,7 +172,7 @@ func InsertTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
 	return nil
 }
 
-func UpdateTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
+func UpdateTransaction(tx *db.Tx, t *models.Transaction, user *models.User) error {
 	var existing_splits []*models.Split
 
 	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
@@ -248,7 +249,7 @@ func UpdateTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
 	return nil
 }
 
-func DeleteTransaction(tx *Tx, t *models.Transaction, user *models.User) error {
+func DeleteTransaction(tx *db.Tx, t *models.Transaction, user *models.User) error {
 	var accountids []int64
 	_, err := tx.Select(&accountids, "SELECT DISTINCT AccountId FROM splits WHERE TransactionId=? AND AccountId != -1", t.TransactionId)
 	if err != nil {
@@ -401,7 +402,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	return NewError(3 /*Invalid Request*/)
 }
 
-func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []models.Transaction) (*big.Rat, error) {
+func TransactionsBalanceDifference(tx *db.Tx, accountid int64, transactions []models.Transaction) (*big.Rat, error) {
 	var pageDifference, tmp big.Rat
 	for i := range transactions {
 		_, err := tx.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
@@ -425,7 +426,7 @@ func TransactionsBalanceDifference(tx *Tx, accountid int64, transactions []model
 	return &pageDifference, nil
 }
 
-func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, error) {
+func GetAccountBalance(tx *db.Tx, user *models.User, accountid int64) (*big.Rat, error) {
 	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
@@ -448,7 +449,7 @@ func GetAccountBalance(tx *Tx, user *models.User, accountid int64) (*big.Rat, er
 }
 
 // Assumes accountid is valid and is owned by the current user
-func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDate(tx *db.Tx, user *models.User, accountid int64, date *time.Time) (*big.Rat, error) {
 	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
@@ -470,7 +471,7 @@ func GetAccountBalanceDate(tx *Tx, user *models.User, accountid int64, date *tim
 	return &balance, nil
 }
 
-func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
+func GetAccountBalanceDateRange(tx *db.Tx, user *models.User, accountid int64, begin, end *time.Time) (*big.Rat, error) {
 	var splits []models.Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
@@ -492,7 +493,7 @@ func GetAccountBalanceDateRange(tx *Tx, user *models.User, accountid int64, begi
 	return &balance, nil
 }
 
-func GetAccountTransactions(tx *Tx, user *models.User, accountid int64, sort string, page uint64, limit uint64) (*models.AccountTransactionsList, error) {
+func GetAccountTransactions(tx *db.Tx, user *models.User, accountid int64, sort string, page uint64, limit uint64) (*models.AccountTransactionsList, error) {
 	var transactions []models.Transaction
 	var atl models.AccountTransactionsList
 

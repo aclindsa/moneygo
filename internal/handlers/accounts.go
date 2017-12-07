@@ -3,11 +3,12 @@ package handlers
 import (
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 )
 
-func GetAccount(tx *Tx, accountid int64, userid int64) (*models.Account, error) {
+func GetAccount(tx *db.Tx, accountid int64, userid int64) (*models.Account, error) {
 	var a models.Account
 
 	err := tx.SelectOne(&a, "SELECT * from accounts where UserId=? AND AccountId=?", userid, accountid)
@@ -17,7 +18,7 @@ func GetAccount(tx *Tx, accountid int64, userid int64) (*models.Account, error) 
 	return &a, nil
 }
 
-func GetAccounts(tx *Tx, userid int64) (*[]models.Account, error) {
+func GetAccounts(tx *db.Tx, userid int64) (*[]models.Account, error) {
 	var accounts []models.Account
 
 	_, err := tx.Select(&accounts, "SELECT * from accounts where UserId=?", userid)
@@ -29,7 +30,7 @@ func GetAccounts(tx *Tx, userid int64) (*[]models.Account, error) {
 
 // Get (and attempt to create if it doesn't exist). Matches on UserId,
 // SecurityId, Type, Name, and ParentAccountId
-func GetCreateAccount(tx *Tx, a models.Account) (*models.Account, error) {
+func GetCreateAccount(tx *db.Tx, a models.Account) (*models.Account, error) {
 	var accounts []models.Account
 	var account models.Account
 
@@ -57,7 +58,7 @@ func GetCreateAccount(tx *Tx, a models.Account) (*models.Account, error) {
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // trading account for the supplied security/currency
-func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*models.Account, error) {
+func GetTradingAccount(tx *db.Tx, userid int64, securityid int64) (*models.Account, error) {
 	var tradingAccount models.Account
 	var account models.Account
 
@@ -99,7 +100,7 @@ func GetTradingAccount(tx *Tx, userid int64, securityid int64) (*models.Account,
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // imbalance account for the supplied security/currency
-func GetImbalanceAccount(tx *Tx, userid int64, securityid int64) (*models.Account, error) {
+func GetImbalanceAccount(tx *db.Tx, userid int64, securityid int64) (*models.Account, error) {
 	var imbalanceAccount models.Account
 	var account models.Account
 	xxxtemplate := FindSecurityTemplate("XXX", models.Currency)
@@ -160,7 +161,7 @@ func (cae CircularAccountsError) Error() string {
 	return "Would result in circular account relationship"
 }
 
-func insertUpdateAccount(tx *Tx, a *models.Account, insert bool) error {
+func insertUpdateAccount(tx *db.Tx, a *models.Account, insert bool) error {
 	found := make(map[int64]bool)
 	if !insert {
 		found[a.AccountId] = true
@@ -216,15 +217,15 @@ func insertUpdateAccount(tx *Tx, a *models.Account, insert bool) error {
 	return nil
 }
 
-func InsertAccount(tx *Tx, a *models.Account) error {
+func InsertAccount(tx *db.Tx, a *models.Account) error {
 	return insertUpdateAccount(tx, a, true)
 }
 
-func UpdateAccount(tx *Tx, a *models.Account) error {
+func UpdateAccount(tx *db.Tx, a *models.Account) error {
 	return insertUpdateAccount(tx, a, false)
 }
 
-func DeleteAccount(tx *Tx, a *models.Account) error {
+func DeleteAccount(tx *db.Tx, a *models.Account) error {
 	if a.ParentAccountId != -1 {
 		// Re-parent splits to this account's parent account if this account isn't a root account
 		_, err := tx.Exec("UPDATE splits SET AccountId=? WHERE AccountId=?", a.ParentAccountId, a.AccountId)

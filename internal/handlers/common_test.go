@@ -2,12 +2,11 @@ package handlers_test
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"github.com/aclindsa/moneygo/internal/config"
-	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"io"
 	"io/ioutil"
 	"log"
@@ -253,24 +252,18 @@ func RunTests(m *testing.M) int {
 		dsn = envDSN
 	}
 
-	dsn = db.GetDSN(dbType, dsn)
-	database, err := sql.Open(dbType.String(), dsn)
+	db, err := db.GetStore(dbType, dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.Close()
+	defer db.Close()
 
-	dbmap, err := db.GetDbMap(database, dbType)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = dbmap.TruncateTables()
+	err = db.DbMap.TruncateTables()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	server = httptest.NewTLSServer(&handlers.APIHandler{DB: dbmap})
+	server = httptest.NewTLSServer(&handlers.APIHandler{Store: db})
 	defer server.Close()
 
 	return m.Run()

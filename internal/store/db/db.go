@@ -6,6 +6,7 @@ import (
 	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -59,4 +60,41 @@ func GetDSN(dbtype config.DbType, dsn string) string {
 		log.Fatalf("The DSN for MySQL MUST contain 'parseTime=True' but does not!")
 	}
 	return dsn
+}
+
+type DbStore struct {
+	DbMap *gorp.DbMap
+}
+
+func (db *DbStore) Begin() (store.Tx, error) {
+	tx, err := db.DbMap.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return &Tx{db.DbMap.Dialect, tx}, nil
+}
+
+func (db *DbStore) Close() error {
+	err := db.DbMap.Db.Close()
+	db.DbMap = nil
+	return err
+}
+
+func GetStore(dbtype config.DbType, dsn string) (store *DbStore, err error) {
+	dsn = GetDSN(dbtype, dsn)
+	database, err := sql.Open(dbtype.String(), dsn)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			database.Close()
+		}
+	}()
+
+	dbmap, err := GetDbMap(database, dbtype)
+	if err != nil {
+		return nil, err
+	}
+	return &DbStore{dbmap}, nil
 }

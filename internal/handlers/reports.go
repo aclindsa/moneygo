@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
@@ -24,7 +25,7 @@ const (
 
 const luaTimeoutSeconds time.Duration = 30 // maximum time a lua request can run for
 
-func GetReport(tx *Tx, reportid int64, userid int64) (*models.Report, error) {
+func GetReport(tx *db.Tx, reportid int64, userid int64) (*models.Report, error) {
 	var r models.Report
 
 	err := tx.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
@@ -34,7 +35,7 @@ func GetReport(tx *Tx, reportid int64, userid int64) (*models.Report, error) {
 	return &r, nil
 }
 
-func GetReports(tx *Tx, userid int64) (*[]models.Report, error) {
+func GetReports(tx *db.Tx, userid int64) (*[]models.Report, error) {
 	var reports []models.Report
 
 	_, err := tx.Select(&reports, "SELECT * from reports where UserId=?", userid)
@@ -44,7 +45,7 @@ func GetReports(tx *Tx, userid int64) (*[]models.Report, error) {
 	return &reports, nil
 }
 
-func InsertReport(tx *Tx, r *models.Report) error {
+func InsertReport(tx *db.Tx, r *models.Report) error {
 	err := tx.Insert(r)
 	if err != nil {
 		return err
@@ -52,7 +53,7 @@ func InsertReport(tx *Tx, r *models.Report) error {
 	return nil
 }
 
-func UpdateReport(tx *Tx, r *models.Report) error {
+func UpdateReport(tx *db.Tx, r *models.Report) error {
 	count, err := tx.Update(r)
 	if err != nil {
 		return err
@@ -63,7 +64,7 @@ func UpdateReport(tx *Tx, r *models.Report) error {
 	return nil
 }
 
-func DeleteReport(tx *Tx, r *models.Report) error {
+func DeleteReport(tx *db.Tx, r *models.Report) error {
 	count, err := tx.Delete(r)
 	if err != nil {
 		return err
@@ -74,7 +75,7 @@ func DeleteReport(tx *Tx, r *models.Report) error {
 	return nil
 }
 
-func runReport(tx *Tx, user *models.User, report *models.Report) (*models.Tabulation, error) {
+func runReport(tx *db.Tx, user *models.User, report *models.Report) (*models.Tabulation, error) {
 	// Create a new LState without opening the default libs for security
 	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
@@ -138,7 +139,7 @@ func runReport(tx *Tx, user *models.User, report *models.Report) (*models.Tabula
 	}
 }
 
-func ReportTabulationHandler(tx *Tx, r *http.Request, user *models.User, reportid int64) ResponseWriterWriter {
+func ReportTabulationHandler(tx *db.Tx, r *http.Request, user *models.User, reportid int64) ResponseWriterWriter {
 	report, err := GetReport(tx, reportid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)

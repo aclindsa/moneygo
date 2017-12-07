@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"github.com/yuin/gopher-lua"
 	"math/big"
 	"strings"
@@ -16,7 +17,7 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*models.Account, error) {
 
 	ctx := L.Context()
 
-	tx, ok := ctx.Value(dbContextKey).(*Tx)
+	tx, ok := ctx.Value(dbContextKey).(*db.Tx)
 	if !ok {
 		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
@@ -150,7 +151,7 @@ func luaAccountBalance(L *lua.LState) int {
 	a := luaCheckAccount(L, 1)
 
 	ctx := L.Context()
-	tx, ok := ctx.Value(dbContextKey).(*Tx)
+	tx, ok := ctx.Value(dbContextKey).(*db.Tx)
 	if !ok {
 		panic("Couldn't find tx in lua's Context")
 	}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 	"net/url"
@@ -50,7 +51,7 @@ func FindCurrencyTemplate(iso4217 int64) *models.Security {
 	return nil
 }
 
-func GetSecurity(tx *Tx, securityid int64, userid int64) (*models.Security, error) {
+func GetSecurity(tx *db.Tx, securityid int64, userid int64) (*models.Security, error) {
 	var s models.Security
 
 	err := tx.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
@@ -60,7 +61,7 @@ func GetSecurity(tx *Tx, securityid int64, userid int64) (*models.Security, erro
 	return &s, nil
 }
 
-func GetSecurities(tx *Tx, userid int64) (*[]*models.Security, error) {
+func GetSecurities(tx *db.Tx, userid int64) (*[]*models.Security, error) {
 	var securities []*models.Security
 
 	_, err := tx.Select(&securities, "SELECT * from securities where UserId=?", userid)
@@ -70,7 +71,7 @@ func GetSecurities(tx *Tx, userid int64) (*[]*models.Security, error) {
 	return &securities, nil
 }
 
-func InsertSecurity(tx *Tx, s *models.Security) error {
+func InsertSecurity(tx *db.Tx, s *models.Security) error {
 	err := tx.Insert(s)
 	if err != nil {
 		return err
@@ -78,7 +79,7 @@ func InsertSecurity(tx *Tx, s *models.Security) error {
 	return nil
 }
 
-func UpdateSecurity(tx *Tx, s *models.Security) (err error) {
+func UpdateSecurity(tx *db.Tx, s *models.Security) (err error) {
 	user, err := GetUser(tx, s.UserId)
 	if err != nil {
 		return
@@ -105,7 +106,7 @@ func (e SecurityInUseError) Error() string {
 	return e.message
 }
 
-func DeleteSecurity(tx *Tx, s *models.Security) error {
+func DeleteSecurity(tx *db.Tx, s *models.Security) error {
 	// First, ensure no accounts are using this security
 	accounts, err := tx.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
 
@@ -138,7 +139,7 @@ func DeleteSecurity(tx *Tx, s *models.Security) error {
 	return nil
 }
 
-func ImportGetCreateSecurity(tx *Tx, userid int64, security *models.Security) (*models.Security, error) {
+func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security) (*models.Security, error) {
 	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId

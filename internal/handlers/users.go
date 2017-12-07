@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 )
@@ -14,7 +15,7 @@ func (ueu UserExistsError) Error() string {
 	return "User exists"
 }
 
-func GetUser(tx *Tx, userid int64) (*models.User, error) {
+func GetUser(tx *db.Tx, userid int64) (*models.User, error) {
 	var u models.User
 
 	err := tx.SelectOne(&u, "SELECT * from users where UserId=?", userid)
@@ -24,7 +25,7 @@ func GetUser(tx *Tx, userid int64) (*models.User, error) {
 	return &u, nil
 }
 
-func GetUserByUsername(tx *Tx, username string) (*models.User, error) {
+func GetUserByUsername(tx *db.Tx, username string) (*models.User, error) {
 	var u models.User
 
 	err := tx.SelectOne(&u, "SELECT * from users where Username=?", username)
@@ -34,7 +35,7 @@ func GetUserByUsername(tx *Tx, username string) (*models.User, error) {
 	return &u, nil
 }
 
-func InsertUser(tx *Tx, u *models.User) error {
+func InsertUser(tx *db.Tx, u *models.User) error {
 	security_template := FindCurrencyTemplate(u.DefaultCurrency)
 	if security_template == nil {
 		return errors.New("Invalid ISO4217 Default Currency")
@@ -75,7 +76,7 @@ func InsertUser(tx *Tx, u *models.User) error {
 	return nil
 }
 
-func GetUserFromSession(tx *Tx, r *http.Request) (*models.User, error) {
+func GetUserFromSession(tx *db.Tx, r *http.Request) (*models.User, error) {
 	s, err := GetSession(tx, r)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,7 @@ func GetUserFromSession(tx *Tx, r *http.Request) (*models.User, error) {
 	return GetUser(tx, s.UserId)
 }
 
-func UpdateUser(tx *Tx, u *models.User) error {
+func UpdateUser(tx *db.Tx, u *models.User) error {
 	security, err := GetSecurity(tx, u.DefaultCurrency, u.UserId)
 	if err != nil {
 		return err
@@ -103,7 +104,7 @@ func UpdateUser(tx *Tx, u *models.User) error {
 	return nil
 }
 
-func DeleteUser(tx *Tx, u *models.User) error {
+func DeleteUser(tx *db.Tx, u *models.User) error {
 	count, err := tx.Delete(u)
 	if err != nil {
 		return err
