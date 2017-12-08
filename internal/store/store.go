@@ -2,14 +2,8 @@ package store
 
 import (
 	"github.com/aclindsa/moneygo/internal/models"
+	"time"
 )
-
-type SessionStore interface {
-	SessionExists(secret string) (bool, error)
-	InsertSession(session *models.Session) error
-	GetSession(secret string) (*models.Session, error)
-	DeleteSession(session *models.Session) error
-}
 
 type UserStore interface {
 	UsernameExists(username string) (bool, error)
@@ -18,6 +12,13 @@ type UserStore interface {
 	GetUserByUsername(username string) (*models.User, error)
 	UpdateUser(user *models.User) error
 	DeleteUser(user *models.User) error
+}
+
+type SessionStore interface {
+	SessionExists(secret string) (bool, error)
+	InsertSession(session *models.Session) error
+	GetSession(secret string) (*models.Session, error)
+	DeleteSession(session *models.Session) error
 }
 
 type SecurityInUseError struct {
@@ -35,6 +36,17 @@ type SecurityStore interface {
 	FindMatchingSecurities(security *models.Security) (*[]*models.Security, error)
 	UpdateSecurity(security *models.Security) error
 	DeleteSecurity(security *models.Security) error
+}
+
+type PriceStore interface {
+	PriceExists(price *models.Price) (bool, error)
+	InsertPrice(price *models.Price) error
+	GetPrice(priceid, securityid int64) (*models.Price, error)
+	GetPrices(securityid int64) (*[]*models.Price, error)
+	GetLatestPrice(security, currency *models.Security, date *time.Time) (*models.Price, error)
+	GetEarliestPrice(security, currency *models.Security, date *time.Time) (*models.Price, error)
+	UpdatePrice(price *models.Price) error
+	DeletePrice(price *models.Price) error
 }
 
 type ParentAccountMissingError struct{}
@@ -64,14 +76,23 @@ type AccountStore interface {
 	DeleteAccount(account *models.Account) error
 }
 
+type TransactionStore interface {
+}
+
+type ReportStore interface {
+}
+
 type Tx interface {
 	Commit() error
 	Rollback() error
 
-	SessionStore
 	UserStore
+	SessionStore
 	SecurityStore
+	PriceStore
 	AccountStore
+	TransactionStore
+	ReportStore
 }
 
 type Store interface {
