@@ -5,6 +5,7 @@ package handlers
 import (
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
@@ -77,7 +78,7 @@ func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security)
 		return security, nil
 	}
 
-	securities, err := tx.FindMatchingSecurities(userid, security)
+	securities, err := tx.FindMatchingSecurities(security)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +216,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 
 			err = context.Tx.DeleteSecurity(security)
-			if _, ok := err.(db.SecurityInUseError); ok {
+			if _, ok := err.(store.SecurityInUseError); ok {
 				return NewError(7 /*In Use Error*/)
 			} else if err != nil {
 				log.Print(err)

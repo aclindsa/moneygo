@@ -29,14 +29,14 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*models.Account, error) {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
 
-		accounts, err := GetAccounts(tx, user.UserId)
+		accounts, err := tx.GetAccounts(user.UserId)
 		if err != nil {
 			return nil, err
 		}
 
 		account_map = make(map[int64]*models.Account)
 		for i := range *accounts {
-			account_map[(*accounts)[i].AccountId] = &(*accounts)[i]
+			account_map[(*accounts)[i].AccountId] = (*accounts)[i]
 		}
 
 		ctx = context.WithValue(ctx, accountsContextKey, account_map)

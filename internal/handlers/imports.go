@@ -39,7 +39,7 @@ func ofxImportHelper(tx *db.Tx, r io.Reader, user *models.User, accountid int64)
 	}
 
 	// Return Account with this Id
-	account, err := GetAccount(tx, accountid, user.UserId)
+	account, err := tx.GetAccount(accountid, user.UserId)
 	if err != nil {
 		log.Print(err)
 		return NewError(3 /*Invalid Request*/)
@@ -218,7 +218,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *models.User, acco
 		return NewError(3 /*Invalid Request*/)
 	}
 
-	account, err := GetAccount(context.Tx, accountid, user.UserId)
+	account, err := context.Tx.GetAccount(accountid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}

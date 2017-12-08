@@ -83,7 +83,7 @@ func findAccount(client *http.Client, name string, tipe models.AccountType, secu
 	}
 	for _, account := range *accounts.Accounts {
 		if account.Name == name && account.Type == tipe && account.SecurityId == securityid {
-			return &account, nil
+			return account, nil
 		}
 	}
 	return nil, fmt.Errorf("Unable to find account: \"%s\"", name)

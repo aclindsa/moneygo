@@ -3,15 +3,8 @@ package db
 import (
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 )
-
-type SecurityInUseError struct {
-	message string
-}
-
-func (e SecurityInUseError) Error() string {
-	return e.message
-}
 
 func (tx *Tx) GetSecurity(securityid int64, userid int64) (*models.Security, error) {
 	var s models.Security
@@ -33,10 +26,10 @@ func (tx *Tx) GetSecurities(userid int64) (*[]*models.Security, error) {
 	return &securities, nil
 }
 
-func (tx *Tx) FindMatchingSecurities(userid int64, security *models.Security) (*[]*models.Security, error) {
+func (tx *Tx) FindMatchingSecurities(security *models.Security) (*[]*models.Security, error) {
 	var securities []*models.Security
 
-	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Preciseness=?", userid, security.Type, security.AlternateId, security.Precision)
+	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Preciseness=?", security.UserId, security.Type, security.AlternateId, security.Precision)
 	if err != nil {
 		return nil, err
 	}
@@ -67,14 +60,14 @@ func (tx *Tx) DeleteSecurity(s *models.Security) error {
 	accounts, err := tx.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
 
 	if accounts != 0 {
-		return SecurityInUseError{"One or more accounts still use this security"}
+		return store.SecurityInUseError{"One or more accounts still use this security"}
 	}
 
 	user, err := tx.GetUser(s.UserId)
 	if err != nil {
 		return err
 	} else if user.DefaultCurrency == s.SecurityId {
-		return SecurityInUseError{"Cannot delete security which is user's default currency"}
+		return store.SecurityInUseError{"Cannot delete security which is user's default currency"}
 	}
 
 	// Remove all prices involving this security (either of this security, or

@@ -32,7 +32,7 @@ func GetTransactionImbalances(tx *db.Tx, t *models.Transaction) (map[int64]big.R
 		if t.Splits[i].AccountId != -1 {
 			var err error
 			var account *models.Account
-			account, err = GetAccount(tx, t.Splits[i].AccountId, t.UserId)
+			account, err = tx.GetAccount(t.Splits[i].AccountId, t.UserId)
 			if err != nil {
 				return nil, err
 			}
@@ -100,7 +100,7 @@ func GetTransactions(tx *db.Tx, userid int64) (*[]models.Transaction, error) {
 
 func incrementAccountVersions(tx *db.Tx, user *models.User, accountids []int64) error {
 	for i := range accountids {
-		account, err := GetAccount(tx, accountids[i], user.UserId)
+		account, err := tx.GetAccount(accountids[i], user.UserId)
 		if err != nil {
 			return err
 		}
@@ -297,7 +297,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 
 		for i := range transaction.Splits {
 			transaction.Splits[i].SplitId = -1
-			_, err := GetAccount(context.Tx, transaction.Splits[i].AccountId, user.UserId)
+			_, err := context.Tx.GetAccount(transaction.Splits[i].AccountId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -371,7 +371,7 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 			}
 
 			for i := range transaction.Splits {
-				_, err := GetAccount(context.Tx, transaction.Splits[i].AccountId, user.UserId)
+				_, err := context.Tx.GetAccount(transaction.Splits[i].AccountId, user.UserId)
 				if err != nil {
 					return NewError(3 /*Invalid Request*/)
 				}
@@ -518,7 +518,7 @@ func GetAccountTransactions(tx *db.Tx, user *models.User, accountid int64, sort 
 		sqloffset = fmt.Sprintf(" OFFSET %d", page*limit)
 	}
 
-	account, err := GetAccount(tx, accountid, user.UserId)
+	account, err := tx.GetAccount(accountid, user.UserId)
 	if err != nil {
 		return nil, err
 	}
