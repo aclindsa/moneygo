@@ -542,7 +542,7 @@ func GetAccountTransactions(tx *db.Tx, user *models.User, accountid int64, sort 
 	}
 	atl.TotalTransactions = count
 
-	security, err := GetSecurity(tx, atl.Account.SecurityId, user.UserId)
+	security, err := tx.GetSecurity(atl.Account.SecurityId, user.UserId)
 	if err != nil {
 		return nil, err
 	}

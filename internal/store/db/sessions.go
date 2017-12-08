@@ -31,6 +31,12 @@ func (tx *Tx) SessionExists(secret string) (bool, error) {
 }
 
 func (tx *Tx) DeleteSession(session *models.Session) error {
-	_, err := tx.Delete(session)
-	return err
+	count, err := tx.Delete(session)
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return fmt.Errorf("Expected to delete 1 user, was going to delete %d", count)
+	}
+	return nil
 }

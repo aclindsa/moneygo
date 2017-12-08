@@ -159,7 +159,7 @@ func ofxImportHelper(tx *db.Tx, r io.Reader, user *models.User, accountid int64)
 				split := new(models.Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
-				security, err := GetSecurity(tx, imbalanced_security, user.UserId)
+				security, err := tx.GetSecurity(imbalanced_security, user.UserId)
 				if err != nil {
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)

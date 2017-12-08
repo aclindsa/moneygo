@@ -27,7 +27,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*models.Security, error) 
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
 
-		securities, err := GetSecurities(tx, user.UserId)
+		securities, err := tx.GetSecurities(user.UserId)
 		if err != nil {
 			return nil, err
 		}

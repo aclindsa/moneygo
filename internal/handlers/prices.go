@@ -97,7 +97,7 @@ func GetClosestPrice(tx *db.Tx, security, currency *models.Security, date *time.
 }
 
 func PriceHandler(r *http.Request, context *Context, user *models.User, securityid int64) ResponseWriterWriter {
-	security, err := GetSecurity(context.Tx, securityid, user.UserId)
+	security, err := context.Tx.GetSecurity(securityid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}
@@ -112,7 +112,7 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 		if price.SecurityId != security.SecurityId {
 			return NewError(3 /*Invalid Request*/)
 		}
-		_, err = GetSecurity(context.Tx, price.CurrencyId, user.UserId)
+		_, err = context.Tx.GetSecurity(price.CurrencyId, user.UserId)
 		if err != nil {
 			return NewError(3 /*Invalid Request*/)
 		}
@@ -161,11 +161,11 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			_, err = GetSecurity(context.Tx, price.SecurityId, user.UserId)
+			_, err = context.Tx.GetSecurity(price.SecurityId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
-			_, err = GetSecurity(context.Tx, price.CurrencyId, user.UserId)
+			_, err = context.Tx.GetSecurity(price.CurrencyId, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}

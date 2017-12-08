@@ -85,12 +85,15 @@ func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		dbuser, err := GetUserByUsername(context.Tx, user.Username)
+		// Hash password before checking username to help mitigate timing
+		// attacks
+		user.HashPassword()
+
+		dbuser, err := context.StoreTx.GetUserByUsername(user.Username)
 		if err != nil {
 			return NewError(2 /*Unauthorized Access*/)
 		}
 
-		user.HashPassword()
 		if user.PasswordHash != dbuser.PasswordHash {
 			return NewError(2 /*Unauthorized Access*/)
 		}

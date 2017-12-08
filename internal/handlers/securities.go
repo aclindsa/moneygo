@@ -4,7 +4,6 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
@@ -51,89 +50,17 @@ func FindCurrencyTemplate(iso4217 int64) *models.Security {
 	return nil
 }
 
-func GetSecurity(tx *db.Tx, securityid int64, userid int64) (*models.Security, error) {
-	var s models.Security
-
-	err := tx.SelectOne(&s, "SELECT * from securities where UserId=? AND SecurityId=?", userid, securityid)
-	if err != nil {
-		return nil, err
-	}
-	return &s, nil
-}
-
-func GetSecurities(tx *db.Tx, userid int64) (*[]*models.Security, error) {
-	var securities []*models.Security
-
-	_, err := tx.Select(&securities, "SELECT * from securities where UserId=?", userid)
-	if err != nil {
-		return nil, err
-	}
-	return &securities, nil
-}
-
-func InsertSecurity(tx *db.Tx, s *models.Security) error {
-	err := tx.Insert(s)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func UpdateSecurity(tx *db.Tx, s *models.Security) (err error) {
-	user, err := GetUser(tx, s.UserId)
+	user, err := tx.GetUser(s.UserId)
 	if err != nil {
 		return
 	} else if user.DefaultCurrency == s.SecurityId && s.Type != models.Currency {
 		return errors.New("Cannot change security which is user's default currency to be non-currency")
 	}
 
-	count, err := tx.Update(s)
+	err = tx.UpdateSecurity(s)
 	if err != nil {
 		return
-	}
-	if count > 1 {
-		return fmt.Errorf("Updated %d securities (expected 1)", count)
-	}
-
-	return nil
-}
-
-type SecurityInUseError struct {
-	message string
-}
-
-func (e SecurityInUseError) Error() string {
-	return e.message
-}
-
-func DeleteSecurity(tx *db.Tx, s *models.Security) error {
-	// First, ensure no accounts are using this security
-	accounts, err := tx.SelectInt("SELECT count(*) from accounts where UserId=? and SecurityId=?", s.UserId, s.SecurityId)
-
-	if accounts != 0 {
-		return SecurityInUseError{"One or more accounts still use this security"}
-	}
-
-	user, err := GetUser(tx, s.UserId)
-	if err != nil {
-		return err
-	} else if user.DefaultCurrency == s.SecurityId {
-		return SecurityInUseError{"Cannot delete security which is user's default currency"}
-	}
-
-	// Remove all prices involving this security (either of this security, or
-	// using it as a currency)
-	_, err = tx.Exec("DELETE FROM prices WHERE SecurityId=? OR CurrencyId=?", s.SecurityId, s.SecurityId)
-	if err != nil {
-		return err
-	}
-
-	count, err := tx.Delete(s)
-	if err != nil {
-		return err
-	}
-	if count != 1 {
-		return errors.New("Deleted more than one security")
 	}
 
 	return nil
@@ -143,16 +70,14 @@ func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security)
 	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId
-		err := InsertSecurity(tx, security)
+		err := tx.InsertSecurity(security)
 		if err != nil {
 			return nil, err
 		}
 		return security, nil
 	}
 
-	var securities []*models.Security
-
-	_, err := tx.Select(&securities, "SELECT * from securities where UserId=? AND Type=? AND AlternateId=? AND Preciseness=?", userid, security.Type, security.AlternateId, security.Precision)
+	securities, err := tx.FindMatchingSecurities(userid, security)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +85,7 @@ func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security)
 	// First try to find a case insensitive match on the name or symbol
 	upperName := strings.ToUpper(security.Name)
 	upperSymbol := strings.ToUpper(security.Symbol)
-	for _, s := range securities {
+	for _, s := range *securities {
 		if (len(s.Name) > 0 && strings.ToUpper(s.Name) == upperName) ||
 			(len(s.Symbol) > 0 && strings.ToUpper(s.Symbol) == upperSymbol) {
 			return s, nil
@@ -169,7 +94,7 @@ func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security)
 	//		if strings.Contains(strings.ToUpper(security.Name), upperSearch) ||
 
 	// Try to find a partial string match on the name or symbol
-	for _, s := range securities {
+	for _, s := range *securities {
 		sUpperName := strings.ToUpper(s.Name)
 		sUpperSymbol := strings.ToUpper(s.Symbol)
 		if (len(upperName) > 0 && len(s.Name) > 0 && (strings.Contains(upperName, sUpperName) || strings.Contains(sUpperName, upperName))) ||
@@ -179,12 +104,12 @@ func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security)
 	}
 
 	// Give up and return the first security in the list
-	if len(securities) > 0 {
-		return securities[0], nil
+	if len(*securities) > 0 {
+		return (*securities)[0], nil
 	}
 
 	// If there wasn't even one security in the list, make a new one
-	err = InsertSecurity(tx, security)
+	err = tx.InsertSecurity(security)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +142,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		security.SecurityId = -1
 		security.UserId = user.UserId
 
-		err = InsertSecurity(context.Tx, &security)
+		err = context.Tx.InsertSecurity(&security)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -229,7 +154,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			//Return all securities
 			var sl models.SecurityList
 
-			securities, err := GetSecurities(context.Tx, user.UserId)
+			securities, err := context.Tx.GetSecurities(user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -250,7 +175,7 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 				return PriceHandler(r, context, user, securityid)
 			}
 
-			security, err := GetSecurity(context.Tx, securityid, user.UserId)
+			security, err := context.Tx.GetSecurity(securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -284,13 +209,13 @@ func SecurityHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 			return &security
 		} else if r.Method == "DELETE" {
-			security, err := GetSecurity(context.Tx, securityid, user.UserId)
+			security, err := context.Tx.GetSecurity(securityid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteSecurity(context.Tx, security)
-			if _, ok := err.(SecurityInUseError); ok {
+			err = context.Tx.DeleteSecurity(security)
+			if _, ok := err.(db.SecurityInUseError); ok {
 				return NewError(7 /*In Use Error*/)
 			} else if err != nil {
 				log.Print(err)

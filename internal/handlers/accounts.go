@@ -62,7 +62,7 @@ func GetTradingAccount(tx *db.Tx, userid int64, securityid int64) (*models.Accou
 	var tradingAccount models.Account
 	var account models.Account
 
-	user, err := GetUser(tx, userid)
+	user, err := tx.GetUser(userid)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func GetTradingAccount(tx *db.Tx, userid int64, securityid int64) (*models.Accou
 		return nil, err
 	}
 
-	security, err := GetSecurity(tx, securityid, userid)
+	security, err := tx.GetSecurity(securityid, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func GetImbalanceAccount(tx *db.Tx, userid int64, securityid int64) (*models.Acc
 		return nil, err
 	}
 
-	security, err := GetSecurity(tx, securityid, userid)
+	security, err := tx.GetSecurity(securityid, userid)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +280,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		account.UserId = user.UserId
 		account.AccountVersion = 0
 
-		security, err := GetSecurity(context.Tx, account.SecurityId, user.UserId)
+		security, err := context.Tx.GetSecurity(account.SecurityId, user.UserId)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -341,7 +341,7 @@ func AccountHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			}
 			account.UserId = user.UserId
 
-			security, err := GetSecurity(context.Tx, account.SecurityId, user.UserId)
+			security, err := context.Tx.GetSecurity(account.SecurityId, user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
