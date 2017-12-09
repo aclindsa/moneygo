@@ -76,7 +76,23 @@ type AccountStore interface {
 	DeleteAccount(account *models.Account) error
 }
 
+type AccountMissingError struct{}
+
+func (ame AccountMissingError) Error() string {
+	return "Account missing"
+}
+
 type TransactionStore interface {
+	SplitExists(s *models.Split) (bool, error)
+	InsertTransaction(t *models.Transaction, user *models.User) error
+	GetTransaction(transactionid int64, userid int64) (*models.Transaction, error)
+	GetTransactions(userid int64) (*[]*models.Transaction, error)
+	UpdateTransaction(t *models.Transaction, user *models.User) error
+	DeleteTransaction(t *models.Transaction, user *models.User) error
+	GetAccountSplits(user *models.User, accountid int64) (*[]*models.Split, error)
+	GetAccountSplitsDate(user *models.User, accountid int64, date *time.Time) (*[]*models.Split, error)
+	GetAccountSplitsDateRange(user *models.User, accountid int64, begin, end *time.Time) (*[]*models.Split, error)
+	GetAccountTransactions(user *models.User, accountid int64, sort string, page uint64, limit uint64) (*models.AccountTransactionsList, error)
 }
 
 type ReportStore interface {

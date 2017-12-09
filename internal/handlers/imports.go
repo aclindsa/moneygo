@@ -187,7 +187,7 @@ func ofxImportHelper(tx *db.Tx, r io.Reader, user *models.User, accountid int64)
 				split.SecurityId = -1
 			}
 
-			exists, err := SplitAlreadyImported(tx, split)
+			exists, err := tx.SplitExists(split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -202,7 +202,7 @@ func ofxImportHelper(tx *db.Tx, r io.Reader, user *models.User, accountid int64)
 	}
 
 	for _, transaction := range transactions {
-		err := InsertTransaction(tx, &transaction, user)
+		err := tx.InsertTransaction(&transaction, user)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
