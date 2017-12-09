@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
-	"github.com/aclindsa/moneygo/internal/store/db"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
 )
 
@@ -15,7 +15,7 @@ func luaContextGetSecurities(L *lua.LState) (map[int64]*models.Security, error) 
 
 	ctx := L.Context()
 
-	tx, ok := ctx.Value(dbContextKey).(*db.Tx)
+	tx, ok := ctx.Value(dbContextKey).(store.Tx)
 	if !ok {
 		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
@@ -159,7 +159,7 @@ func luaClosestPrice(L *lua.LState) int {
 	date := luaCheckTime(L, 3)
 
 	ctx := L.Context()
-	tx, ok := ctx.Value(dbContextKey).(*db.Tx)
+	tx, ok := ctx.Value(dbContextKey).(store.Tx)
 	if !ok {
 		panic("Couldn't find tx in lua's Context")
 	}

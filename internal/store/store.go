@@ -96,6 +96,11 @@ type TransactionStore interface {
 }
 
 type ReportStore interface {
+	InsertReport(report *models.Report) error
+	GetReport(reportid int64, userid int64) (*models.Report, error)
+	GetReports(userid int64) (*[]*models.Report, error)
+	UpdateReport(report *models.Report) error
+	DeleteReport(report *models.Report) error
 }
 
 type Tx interface {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aclindsa/moneygo/internal/models"
-	"github.com/aclindsa/moneygo/internal/store/db"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
 	"log"
 	"net/http"
@@ -25,57 +25,7 @@ const (
 
 const luaTimeoutSeconds time.Duration = 30 // maximum time a lua request can run for
 
-func GetReport(tx *db.Tx, reportid int64, userid int64) (*models.Report, error) {
-	var r models.Report
-
-	err := tx.SelectOne(&r, "SELECT * from reports where UserId=? AND ReportId=?", userid, reportid)
-	if err != nil {
-		return nil, err
-	}
-	return &r, nil
-}
-
-func GetReports(tx *db.Tx, userid int64) (*[]models.Report, error) {
-	var reports []models.Report
-
-	_, err := tx.Select(&reports, "SELECT * from reports where UserId=?", userid)
-	if err != nil {
-		return nil, err
-	}
-	return &reports, nil
-}
-
-func InsertReport(tx *db.Tx, r *models.Report) error {
-	err := tx.Insert(r)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func UpdateReport(tx *db.Tx, r *models.Report) error {
-	count, err := tx.Update(r)
-	if err != nil {
-		return err
-	}
-	if count != 1 {
-		return errors.New("Updated more than one report")
-	}
-	return nil
-}
-
-func DeleteReport(tx *db.Tx, r *models.Report) error {
-	count, err := tx.Delete(r)
-	if err != nil {
-		return err
-	}
-	if count != 1 {
-		return errors.New("Deleted more than one report")
-	}
-	return nil
-}
-
-func runReport(tx *db.Tx, user *models.User, report *models.Report) (*models.Tabulation, error) {
+func runReport(tx store.Tx, user *models.User, report *models.Report) (*models.Tabulation, error) {
 	// Create a new LState without opening the default libs for security
 	L := lua.NewState(lua.Options{SkipOpenLibs: true})
 	defer L.Close()
@@ -139,8 +89,8 @@ func runReport(tx *db.Tx, user *models.User, report *models.Report) (*models.Tab
 	}
 }
 
-func ReportTabulationHandler(tx *db.Tx, r *http.Request, user *models.User, reportid int64) ResponseWriterWriter {
-	report, err := GetReport(tx, reportid, user.UserId)
+func ReportTabulationHandler(tx store.Tx, r *http.Request, user *models.User, reportid int64) ResponseWriterWriter {
+	report, err := tx.GetReport(reportid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}
@@ -175,7 +125,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = InsertReport(context.Tx, &report)
+		err = context.Tx.InsertReport(&report)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -186,7 +136,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		if context.LastLevel() {
 			//Return all Reports
 			var rl models.ReportList
-			reports, err := GetReports(context.Tx, user.UserId)
+			reports, err := context.Tx.GetReports(user.UserId)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -204,7 +154,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return ReportTabulationHandler(context.Tx, r, user, reportid)
 		} else {
 			// Return Report with this Id
-			report, err := GetReport(context.Tx, reportid, user.UserId)
+			report, err := context.Tx.GetReport(reportid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
@@ -228,7 +178,7 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = UpdateReport(context.Tx, &report)
+			err = context.Tx.UpdateReport(&report)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)
@@ -236,12 +186,12 @@ func ReportHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 			return &report
 		} else if r.Method == "DELETE" {
-			report, err := GetReport(context.Tx, reportid, user.UserId)
+			report, err := context.Tx.GetReport(reportid, user.UserId)
 			if err != nil {
 				return NewError(3 /*Invalid Request*/)
 			}
 
-			err = DeleteReport(context.Tx, report)
+			err = context.Tx.DeleteReport(report)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

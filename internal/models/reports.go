@@ -28,7 +28,7 @@ func (r *Report) Read(json_str string) error {
 }
 
 type ReportList struct {
-	Reports *[]Report `json:"reports"`
+	Reports *[]*Report `json:"reports"`
 }
 
 func (rl *ReportList) Write(w http.ResponseWriter) error {

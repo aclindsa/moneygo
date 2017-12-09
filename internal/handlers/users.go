@@ -140,7 +140,7 @@ func UserHandler(r *http.Request, context *Context) ResponseWriterWriter {
 
 			return user
 		} else if r.Method == "DELETE" {
-			err := context.StoreTx.DeleteUser(user)
+			err := context.Tx.DeleteUser(user)
 			if err != nil {
 				log.Print(err)
 				return NewError(999 /*Internal Error*/)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
-	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 	"net/url"
@@ -51,7 +50,7 @@ func FindCurrencyTemplate(iso4217 int64) *models.Security {
 	return nil
 }
 
-func UpdateSecurity(tx *db.Tx, s *models.Security) (err error) {
+func UpdateSecurity(tx store.Tx, s *models.Security) (err error) {
 	user, err := tx.GetUser(s.UserId)
 	if err != nil {
 		return
@@ -67,7 +66,7 @@ func UpdateSecurity(tx *db.Tx, s *models.Security) (err error) {
 	return nil
 }
 
-func ImportGetCreateSecurity(tx *db.Tx, userid int64, security *models.Security) (*models.Security, error) {
+func ImportGetCreateSecurity(tx store.Tx, userid int64, security *models.Security) (*models.Security, error) {
 	security.UserId = userid
 	if len(security.AlternateId) == 0 {
 		// Always create a new local security if we can't match on the AlternateId

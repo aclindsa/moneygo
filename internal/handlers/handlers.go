@@ -17,8 +17,7 @@ type ResponseWriterWriter interface {
 }
 
 type Context struct {
-	Tx           *db.Tx
-	StoreTx      store.Tx
+	Tx           store.Tx
 	User         *models.User
 	remainingURL string // portion of URL path not yet reached in the hierarchy
 }
@@ -52,33 +51,6 @@ type APIHandler struct {
 }
 
 func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
-	tx, err := GetTx(ah.Store.DbMap)
-	if err != nil {
-		log.Print(err)
-		return NewError(999 /*Internal Error*/)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			panic(r)
-		}
-		if _, ok := writer.(*Error); ok {
-			tx.Rollback()
-		} else {
-			err = tx.Commit()
-			if err != nil {
-				log.Print(err)
-				writer = NewError(999 /*Internal Error*/)
-			}
-		}
-	}()
-
-	context.Tx = tx
-	context.StoreTx = tx
-	return h(r, context)
-}
-
-func (ah *APIHandler) storeTxWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
 	tx, err := ah.Store.Begin()
 	if err != nil {
 		log.Print(err)
@@ -100,7 +72,7 @@ func (ah *APIHandler) storeTxWrapper(h Handler, r *http.Request, context *Contex
 		}
 	}()
 
-	context.StoreTx = tx
+	context.Tx = tx
 	return h(r, context)
 }
 

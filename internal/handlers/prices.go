@@ -2,16 +2,16 @@ package handlers
 
 import (
 	"github.com/aclindsa/moneygo/internal/models"
-	"github.com/aclindsa/moneygo/internal/store/db"
+	"github.com/aclindsa/moneygo/internal/store"
 	"log"
 	"net/http"
 	"time"
 )
 
-func CreatePriceIfNotExist(tx *db.Tx, price *models.Price) error {
+func CreatePriceIfNotExist(tx store.Tx, price *models.Price) error {
 	if len(price.RemoteId) == 0 {
 		// Always create a new price if we can't match on the RemoteId
-		err := tx.Insert(price)
+		err := tx.InsertPrice(price)
 		if err != nil {
 			return err
 		}
@@ -34,7 +34,7 @@ func CreatePriceIfNotExist(tx *db.Tx, price *models.Price) error {
 }
 
 // Return the price for security in currency closest to date
-func GetClosestPrice(tx *db.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+func GetClosestPrice(tx store.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
 	earliest, _ := tx.GetEarliestPrice(security, currency, date)
 	latest, err := tx.GetLatestPrice(security, currency, date)
 
@@ -75,7 +75,7 @@ func PriceHandler(r *http.Request, context *Context, user *models.User, security
 			return NewError(3 /*Invalid Request*/)
 		}
 
-		err = context.Tx.Insert(&price)
+		err = context.Tx.InsertPrice(&price)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)

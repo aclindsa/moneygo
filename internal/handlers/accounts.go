@@ -4,14 +4,13 @@ import (
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
-	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 )
 
 // Get (and attempt to create if it doesn't exist). Matches on UserId,
 // SecurityId, Type, Name, and ParentAccountId
-func GetCreateAccount(tx *db.Tx, a models.Account) (*models.Account, error) {
+func GetCreateAccount(tx store.Tx, a models.Account) (*models.Account, error) {
 	var account models.Account
 
 	accounts, err := tx.FindMatchingAccounts(&a)
@@ -27,7 +26,7 @@ func GetCreateAccount(tx *db.Tx, a models.Account) (*models.Account, error) {
 		account.Name = a.Name
 		account.ParentAccountId = a.ParentAccountId
 
-		err = tx.Insert(&account)
+		err = tx.InsertAccount(&account)
 		if err != nil {
 			return nil, err
 		}
@@ -37,7 +36,7 @@ func GetCreateAccount(tx *db.Tx, a models.Account) (*models.Account, error) {
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // trading account for the supplied security/currency
-func GetTradingAccount(tx *db.Tx, userid int64, securityid int64) (*models.Account, error) {
+func GetTradingAccount(tx store.Tx, userid int64, securityid int64) (*models.Account, error) {
 	var tradingAccount models.Account
 	var account models.Account
 
@@ -79,7 +78,7 @@ func GetTradingAccount(tx *db.Tx, userid int64, securityid int64) (*models.Accou
 
 // Get (and attempt to create if it doesn't exist) the security/currency
 // imbalance account for the supplied security/currency
-func GetImbalanceAccount(tx *db.Tx, userid int64, securityid int64) (*models.Account, error) {
+func GetImbalanceAccount(tx store.Tx, userid int64, securityid int64) (*models.Account, error) {
 	var imbalanceAccount models.Account
 	var account models.Account
 	xxxtemplate := FindSecurityTemplate("XXX", models.Currency)

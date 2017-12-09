@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/aclindsa/moneygo/internal/models"
-	"github.com/aclindsa/moneygo/internal/store/db"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"log"
@@ -24,7 +24,7 @@ func (od *OFXDownload) Read(json_str string) error {
 	return dec.Decode(od)
 }
 
-func ofxImportHelper(tx *db.Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
+func ofxImportHelper(tx store.Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
 	itl, err := ImportOFX(r)
 
 	if err != nil {

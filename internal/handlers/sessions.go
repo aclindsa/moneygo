@@ -89,7 +89,7 @@ func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 		// attacks
 		user.HashPassword()
 
-		dbuser, err := context.StoreTx.GetUserByUsername(user.Username)
+		dbuser, err := context.Tx.GetUserByUsername(user.Username)
 		if err != nil {
 			return NewError(2 /*Unauthorized Access*/)
 		}
@@ -98,21 +98,21 @@ func SessionHandler(r *http.Request, context *Context) ResponseWriterWriter {
 			return NewError(2 /*Unauthorized Access*/)
 		}
 
-		sessionwriter, err := NewSession(context.StoreTx, r, dbuser.UserId)
+		sessionwriter, err := NewSession(context.Tx, r, dbuser.UserId)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
 		}
 		return sessionwriter
 	} else if r.Method == "GET" {
-		s, err := GetSession(context.StoreTx, r)
+		s, err := GetSession(context.Tx, r)
 		if err != nil {
 			return NewError(1 /*Not Signed In*/)
 		}
 
 		return s
 	} else if r.Method == "DELETE" {
-		err := DeleteSessionIfExists(context.StoreTx, r)
+		err := DeleteSessionIfExists(context.Tx, r)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)

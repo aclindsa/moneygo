@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
-	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"math/big"
 	"net/http"
@@ -14,7 +13,7 @@ import (
 
 // Return a map of security ID's to big.Rat's containing the amount that
 // security is imbalanced by
-func GetTransactionImbalances(tx *db.Tx, t *models.Transaction) (map[int64]big.Rat, error) {
+func GetTransactionImbalances(tx store.Tx, t *models.Transaction) (map[int64]big.Rat, error) {
 	sums := make(map[int64]big.Rat)
 
 	if !t.Valid() {
@@ -42,7 +41,7 @@ func GetTransactionImbalances(tx *db.Tx, t *models.Transaction) (map[int64]big.R
 
 // Returns true if all securities contained in this transaction are balanced,
 // false otherwise
-func TransactionBalanced(tx *db.Tx, t *models.Transaction) (bool, error) {
+func TransactionBalanced(tx store.Tx, t *models.Transaction) (bool, error) {
 	var zero big.Rat
 
 	sums, err := GetTransactionImbalances(tx, t)
