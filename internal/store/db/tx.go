@@ -41,7 +41,20 @@ func (tx *Tx) Insert(list ...interface{}) error {
 }
 
 func (tx *Tx) Update(list ...interface{}) (int64, error) {
-	return tx.Tx.Update(list...)
+	count, err := tx.Tx.Update(list...)
+	if count == 0 {
+		switch tx.Dialect.(type) {
+		case gorp.MySQLDialect:
+			// Always return 1 for 0 if we're using MySQL because it returns
+			// count=0 if the row data was unchanged, even if the row existed
+
+			// TODO Find another way to fix this without risking ignoring
+			// errors
+
+			count = 1
+		}
+	}
+	return count, err
 }
 
 func (tx *Tx) Delete(list ...interface{}) (int64, error) {
