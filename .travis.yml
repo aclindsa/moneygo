@@ -20,12 +20,11 @@ env:
     - MONEYGO_TEST_DB=mysql
     - MONEYGO_TEST_DB=postgres
 
-# OSX builds take too long, so don't wait for all of them
+# OSX builds take too long, so don't wait for them
 matrix:
   fast_finish: true
   allow_failures:
     - os: osx
-      go: master
 
 before_install:
   # Fetch/build coverage reporting tools
