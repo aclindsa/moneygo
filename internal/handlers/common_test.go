@@ -258,10 +258,7 @@ func RunTests(m *testing.M) int {
 	}
 	defer db.Close()
 
-	err = db.DbMap.TruncateTables()
-	if err != nil {
-		log.Fatal(err)
-	}
+	db.Empty() // clear the DB tables
 
 	server = httptest.NewTLSServer(&handlers.APIHandler{Store: db})
 	defer server.Close()

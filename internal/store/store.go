@@ -117,6 +117,7 @@ type Tx interface {
 }
 
 type Store interface {
+	Empty() error
 	Begin() (Tx, error)
 	Close() error
 }
