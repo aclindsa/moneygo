@@ -276,7 +276,7 @@ func TestGetTransactions(t *testing.T) {
 			found := false
 			for _, tran := range *tl.Transactions {
 				if tran.TransactionId == curr.TransactionId {
-					ensureTransactionsMatch(t, &curr, &tran, nil, true, true)
+					ensureTransactionsMatch(t, &curr, tran, nil, true, true)
 					if _, ok := foundIds[tran.TransactionId]; ok {
 						continue
 					}
@@ -410,7 +410,7 @@ func helperTestAccountTransactions(t *testing.T, d *TestData, account *models.Ac
 		}
 		if atl.Transactions != nil {
 			for _, tran := range *atl.Transactions {
-				transactions = append(transactions, tran)
+				transactions = append(transactions, *tran)
 			}
 			lastFetchCount = int64(len(*atl.Transactions))
 		} else {

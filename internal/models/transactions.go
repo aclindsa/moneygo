@@ -82,12 +82,12 @@ type Transaction struct {
 }
 
 type TransactionList struct {
-	Transactions *[]Transaction `json:"transactions"`
+	Transactions *[]*Transaction `json:"transactions"`
 }
 
 type AccountTransactionsList struct {
 	Account           *Account
-	Transactions      *[]Transaction
+	Transactions      *[]*Transaction
 	TotalTransactions int64
 	BeginningBalance  string
 	EndingBalance     string

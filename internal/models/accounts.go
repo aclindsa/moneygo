@@ -94,7 +94,7 @@ type Account struct {
 }
 
 type AccountList struct {
-	Accounts *[]Account `json:"accounts"`
+	Accounts *[]*Account `json:"accounts"`
 }
 
 func (a *Account) Write(w http.ResponseWriter) error {

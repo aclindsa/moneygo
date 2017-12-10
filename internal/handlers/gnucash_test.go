@@ -38,13 +38,13 @@ func TestImportGnucash(t *testing.T) {
 		}
 		for i, account := range *accounts.Accounts {
 			if account.Name == "Income" && account.Type == models.Income && account.ParentAccountId == -1 {
-				income = &(*accounts.Accounts)[i]
+				income = (*accounts.Accounts)[i]
 			} else if account.Name == "Equity" && account.Type == models.Equity && account.ParentAccountId == -1 {
-				equity = &(*accounts.Accounts)[i]
+				equity = (*accounts.Accounts)[i]
 			} else if account.Name == "Liabilities" && account.Type == models.Liability && account.ParentAccountId == -1 {
-				liabilities = &(*accounts.Accounts)[i]
+				liabilities = (*accounts.Accounts)[i]
 			} else if account.Name == "Expenses" && account.Type == models.Expense && account.ParentAccountId == -1 {
-				expenses = &(*accounts.Accounts)[i]
+				expenses = (*accounts.Accounts)[i]
 			}
 		}
 		if income == nil {
@@ -61,15 +61,15 @@ func TestImportGnucash(t *testing.T) {
 		}
 		for i, account := range *accounts.Accounts {
 			if account.Name == "Salary" && account.Type == models.Income && account.ParentAccountId == income.AccountId {
-				salary = &(*accounts.Accounts)[i]
+				salary = (*accounts.Accounts)[i]
 			} else if account.Name == "Opening Balances" && account.Type == models.Equity && account.ParentAccountId == equity.AccountId {
-				openingbalances = &(*accounts.Accounts)[i]
+				openingbalances = (*accounts.Accounts)[i]
 			} else if account.Name == "Credit Card" && account.Type == models.Liability && account.ParentAccountId == liabilities.AccountId {
-				creditcard = &(*accounts.Accounts)[i]
+				creditcard = (*accounts.Accounts)[i]
 			} else if account.Name == "Groceries" && account.Type == models.Expense && account.ParentAccountId == expenses.AccountId {
-				groceries = &(*accounts.Accounts)[i]
+				groceries = (*accounts.Accounts)[i]
 			} else if account.Name == "Cable" && account.Type == models.Expense && account.ParentAccountId == expenses.AccountId {
-				cable = &(*accounts.Accounts)[i]
+				cable = (*accounts.Accounts)[i]
 			}
 		}
 		if salary == nil {

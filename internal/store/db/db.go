@@ -6,6 +6,7 @@ import (
 	"github.com/aclindsa/gorp"
 	"github.com/aclindsa/moneygo/internal/config"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -18,7 +19,7 @@ import (
 // implementation's string type specified by the same.
 const luaMaxLengthBuffer int = 4096
 
-func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
+func getDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	var dialect gorp.Dialect
 	if dbtype == config.SQLite {
 		dialect = gorp.SqliteDialect{}
@@ -38,11 +39,11 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap := &gorp.DbMap{Db: db, Dialect: dialect}
 	dbmap.AddTableWithName(models.User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(models.Session{}, "sessions").SetKeys(true, "SessionId")
-	dbmap.AddTableWithName(models.Account{}, "accounts").SetKeys(true, "AccountId")
 	dbmap.AddTableWithName(models.Security{}, "securities").SetKeys(true, "SecurityId")
+	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
+	dbmap.AddTableWithName(models.Account{}, "accounts").SetKeys(true, "AccountId")
 	dbmap.AddTableWithName(models.Transaction{}, "transactions").SetKeys(true, "TransactionId")
 	dbmap.AddTableWithName(models.Split{}, "splits").SetKeys(true, "SplitId")
-	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
 	rtable := dbmap.AddTableWithName(models.Report{}, "reports").SetKeys(true, "ReportId")
 	rtable.ColMap("Lua").SetMaxSize(models.LuaMaxLength + luaMaxLengthBuffer)
 
@@ -54,9 +55,50 @@ func GetDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	return dbmap, nil
 }
 
-func GetDSN(dbtype config.DbType, dsn string) string {
+func getDSN(dbtype config.DbType, dsn string) string {
 	if dbtype == config.MySQL && !strings.Contains(dsn, "parseTime=true") {
 		log.Fatalf("The DSN for MySQL MUST contain 'parseTime=True' but does not!")
 	}
 	return dsn
+}
+
+type DbStore struct {
+	dbMap *gorp.DbMap
+}
+
+func (db *DbStore) Empty() error {
+	return db.dbMap.TruncateTables()
+}
+
+func (db *DbStore) Begin() (store.Tx, error) {
+	tx, err := db.dbMap.Begin()
+	if err != nil {
+		return nil, err
+	}
+	return &Tx{db.dbMap.Dialect, tx}, nil
+}
+
+func (db *DbStore) Close() error {
+	err := db.dbMap.Db.Close()
+	db.dbMap = nil
+	return err
+}
+
+func GetStore(dbtype config.DbType, dsn string) (store *DbStore, err error) {
+	dsn = getDSN(dbtype, dsn)
+	database, err := sql.Open(dbtype.String(), dsn)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			database.Close()
+		}
+	}()
+
+	dbmap, err := getDbMap(database, dbtype)
+	if err != nil {
+		return nil, err
+	}
+	return &DbStore{dbmap}, nil
 }

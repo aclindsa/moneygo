@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/aclindsa/ofxgo"
 	"io"
 	"log"
@@ -23,7 +24,7 @@ func (od *OFXDownload) Read(json_str string) error {
 	return dec.Decode(od)
 }
 
-func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
+func ofxImportHelper(tx store.Tx, r io.Reader, user *models.User, accountid int64) ResponseWriterWriter {
 	itl, err := ImportOFX(r)
 
 	if err != nil {
@@ -38,7 +39,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 	}
 
 	// Return Account with this Id
-	account, err := GetAccount(tx, accountid, user.UserId)
+	account, err := tx.GetAccount(accountid, user.UserId)
 	if err != nil {
 		log.Print(err)
 		return NewError(3 /*Invalid Request*/)
@@ -158,7 +159,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 				split := new(models.Split)
 				r := new(big.Rat)
 				r.Neg(&imbalance)
-				security, err := GetSecurity(tx, imbalanced_security, user.UserId)
+				security, err := tx.GetSecurity(imbalanced_security, user.UserId)
 				if err != nil {
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)
@@ -186,7 +187,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 				split.SecurityId = -1
 			}
 
-			exists, err := SplitAlreadyImported(tx, split)
+			exists, err := tx.SplitExists(split)
 			if err != nil {
 				log.Print("Error checking if split was already imported:", err)
 				return NewError(999 /*Internal Error*/)
@@ -201,7 +202,7 @@ func ofxImportHelper(tx *Tx, r io.Reader, user *models.User, accountid int64) Re
 	}
 
 	for _, transaction := range transactions {
-		err := InsertTransaction(tx, &transaction, user)
+		err := tx.InsertTransaction(&transaction, user)
 		if err != nil {
 			log.Print(err)
 			return NewError(999 /*Internal Error*/)
@@ -217,7 +218,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *models.User, acco
 		return NewError(3 /*Invalid Request*/)
 	}
 
-	account, err := GetAccount(context.Tx, accountid, user.UserId)
+	account, err := context.Tx.GetAccount(accountid, user.UserId)
 	if err != nil {
 		return NewError(3 /*Invalid Request*/)
 	}

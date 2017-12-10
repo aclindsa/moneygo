@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"github.com/aclindsa/moneygo/internal/models"
+	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
-	"math/big"
 	"strings"
 )
 
@@ -16,7 +16,7 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*models.Account, error) {
 
 	ctx := L.Context()
 
-	tx, ok := ctx.Value(dbContextKey).(*Tx)
+	tx, ok := ctx.Value(dbContextKey).(store.Tx)
 	if !ok {
 		return nil, errors.New("Couldn't find tx in lua's Context")
 	}
@@ -28,14 +28,14 @@ func luaContextGetAccounts(L *lua.LState) (map[int64]*models.Account, error) {
 			return nil, errors.New("Couldn't find User in lua's Context")
 		}
 
-		accounts, err := GetAccounts(tx, user.UserId)
+		accounts, err := tx.GetAccounts(user.UserId)
 		if err != nil {
 			return nil, err
 		}
 
 		account_map = make(map[int64]*models.Account)
 		for i := range *accounts {
-			account_map[(*accounts)[i].AccountId] = &(*accounts)[i]
+			account_map[(*accounts)[i].AccountId] = (*accounts)[i]
 		}
 
 		ctx = context.WithValue(ctx, accountsContextKey, account_map)
@@ -150,7 +150,7 @@ func luaAccountBalance(L *lua.LState) int {
 	a := luaCheckAccount(L, 1)
 
 	ctx := L.Context()
-	tx, ok := ctx.Value(dbContextKey).(*Tx)
+	tx, ok := ctx.Value(dbContextKey).(store.Tx)
 	if !ok {
 		panic("Couldn't find tx in lua's Context")
 	}
@@ -167,24 +167,29 @@ func luaAccountBalance(L *lua.LState) int {
 		panic("SecurityId not in lua security_map")
 	}
 	date := luaWeakCheckTime(L, 2)
-	var b Balance
-	var rat *big.Rat
+	var splits *[]*models.Split
 	if date != nil {
 		end := luaWeakCheckTime(L, 3)
 		if end != nil {
-			rat, err = GetAccountBalanceDateRange(tx, user, a.AccountId, date, end)
+			splits, err = tx.GetAccountSplitsDateRange(user, a.AccountId, date, end)
 		} else {
-			rat, err = GetAccountBalanceDate(tx, user, a.AccountId, date)
+			splits, err = tx.GetAccountSplitsDate(user, a.AccountId, date)
 		}
 	} else {
-		rat, err = GetAccountBalance(tx, user, a.AccountId)
+		splits, err = tx.GetAccountSplits(user, a.AccountId)
 	}
 	if err != nil {
-		panic("Failed to GetAccountBalance:" + err.Error())
+		panic("Failed to fetch splits for account:" + err.Error())
 	}
-	b.Amount = rat
-	b.Security = security
-	L.Push(BalanceToLua(L, &b))
+	rat, err := BalanceFromSplits(splits)
+	if err != nil {
+		panic("Failed to calculate balance for account:" + err.Error())
+	}
+	b := &Balance{
+		Amount:   rat,
+		Security: security,
+	}
+	L.Push(BalanceToLua(L, b))
 
 	return 1
 }

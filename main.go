@@ -3,11 +3,10 @@ package main
 //go:generate make
 
 import (
-	"database/sql"
 	"flag"
 	"github.com/aclindsa/moneygo/internal/config"
-	"github.com/aclindsa/moneygo/internal/db"
 	"github.com/aclindsa/moneygo/internal/handlers"
+	"github.com/aclindsa/moneygo/internal/store/db"
 	"github.com/kabukky/httpscerts"
 	"log"
 	"net"
@@ -67,21 +66,15 @@ func staticHandler(w http.ResponseWriter, r *http.Request, basedir string) {
 }
 
 func main() {
-	dsn := db.GetDSN(cfg.MoneyGo.DBType, cfg.MoneyGo.DSN)
-	database, err := sql.Open(cfg.MoneyGo.DBType.String(), dsn)
+	db, err := db.GetStore(cfg.MoneyGo.DBType, cfg.MoneyGo.DSN)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer database.Close()
-
-	dbmap, err := db.GetDbMap(database, cfg.MoneyGo.DBType)
-	if err != nil {
-		log.Fatal(err)
-	}
+	defer db.Close()
 
 	// Get ServeMux for API and add our own handlers for files
 	servemux := http.NewServeMux()
-	servemux.Handle("/v1/", &handlers.APIHandler{DB: dbmap})
+	servemux.Handle("/v1/", &handlers.APIHandler{Store: db})
 	servemux.HandleFunc("/", FileHandlerFunc(rootHandler, cfg.MoneyGo.Basedir))
 	servemux.HandleFunc("/static/", FileHandlerFunc(staticHandler, cfg.MoneyGo.Basedir))
 
