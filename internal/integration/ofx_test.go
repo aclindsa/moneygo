@@ -1,4 +1,4 @@
-package handlers_test
+package integration_test
 
 import (
 	"fmt"
@@ -28,12 +28,12 @@ func TestImportOFXChecking(t *testing.T) {
 		}
 
 		// Import and ensure it didn't return a nasty error code
-		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "handlers_testdata/checking_20171126.ofx"); err != nil {
+		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "testdata/checking_20171126.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], &d.accounts[1], "2493.19")
 
-		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "handlers_testdata/checking_20171129.ofx"); err != nil {
+		if err = importOFX(d.clients[0], d.accounts[1].AccountId, "testdata/checking_20171129.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], &d.accounts[1], "5336.27")
@@ -56,7 +56,7 @@ func TestImportOFXCreditCard(t *testing.T) {
 		}
 
 		// Import and ensure it didn't return a nasty error code
-		if err = importOFX(d.clients[0], d.accounts[7].AccountId, "handlers_testdata/creditcard.ofx"); err != nil {
+		if err = importOFX(d.clients[0], d.accounts[7].AccountId, "testdata/creditcard.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], &d.accounts[7], "-4.49")
@@ -118,7 +118,7 @@ func TestImportOFX401kMutualFunds(t *testing.T) {
 		}
 
 		// Import and ensure it didn't return a nasty error code
-		if err = importOFX(d.clients[0], account.AccountId, "handlers_testdata/401k_mutualfunds.ofx"); err != nil {
+		if err = importOFX(d.clients[0], account.AccountId, "testdata/401k_mutualfunds.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], account, "-192.10")
@@ -177,7 +177,7 @@ func TestImportOFXBrokerage(t *testing.T) {
 		}
 
 		// Import and ensure it didn't return a nasty error code
-		if err = importOFX(d.clients[0], account.AccountId, "handlers_testdata/brokerage.ofx"); err != nil {
+		if err = importOFX(d.clients[0], account.AccountId, "testdata/brokerage.ofx"); err != nil {
 			t.Fatalf("Error importing OFX: %s\n", err)
 		}
 		accountBalanceHelper(t, d.clients[0], account, "387.48")

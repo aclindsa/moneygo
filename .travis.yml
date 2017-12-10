@@ -59,7 +59,7 @@ script:
   - touch $GOPATH/src/github.com/aclindsa/moneygo/internal/handlers/cusip_list.csv
   # Build and test MoneyGo
   - go generate -v github.com/aclindsa/moneygo/internal/handlers
-  - go test -v -covermode=count -coverpkg github.com/aclindsa/moneygo/internal/config,github.com/aclindsa/moneygo/internal/handlers,github.com/aclindsa/moneygo/internal/models,github.com/aclindsa/moneygo/internal/store,github.com/aclindsa/moneygo/internal/store/db -coverprofile=coverage.out github.com/aclindsa/moneygo/internal/handlers
+  - go test -v -covermode=count -coverpkg github.com/aclindsa/moneygo/internal/config,github.com/aclindsa/moneygo/internal/handlers,github.com/aclindsa/moneygo/internal/models,github.com/aclindsa/moneygo/internal/store,github.com/aclindsa/moneygo/internal/store/db -coverprofile=coverage.out github.com/aclindsa/moneygo/internal/integration
 
 # Report the test coverage
 after_script:

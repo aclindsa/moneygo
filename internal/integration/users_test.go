@@ -1,4 +1,4 @@
-package handlers_test
+package integration_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/handlers"

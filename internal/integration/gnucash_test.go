@@ -1,4 +1,4 @@
-package handlers_test
+package integration_test
 
 import (
 	"github.com/aclindsa/moneygo/internal/models"
@@ -26,7 +26,7 @@ func TestImportGnucash(t *testing.T) {
 		}
 
 		// Import and ensure it didn't return a nasty error code
-		if err = importGnucash(d.clients[0], "handlers_testdata/example.gnucash"); err != nil {
+		if err = importGnucash(d.clients[0], "testdata/example.gnucash"); err != nil {
 			t.Fatalf("Error importing from Gnucash: %s\n", err)
 		}
 
