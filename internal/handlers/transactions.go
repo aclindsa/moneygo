@@ -182,20 +182,6 @@ func TransactionHandler(r *http.Request, context *Context) ResponseWriterWriter 
 	return NewError(3 /*Invalid Request*/)
 }
 
-func BalanceFromSplits(splits *[]*models.Split) (*big.Rat, error) {
-	var balance, tmp big.Rat
-	for _, s := range *splits {
-		rat_amount, err := models.GetBigAmount(s.Amount)
-		if err != nil {
-			return nil, err
-		}
-		tmp.Add(&balance, rat_amount)
-		balance.Set(&tmp)
-	}
-
-	return &balance, nil
-}
-
 // Return only those transactions which have at least one split pertaining to
 // an account
 func AccountTransactionsHandler(context *Context, r *http.Request, user *models.User, accountid int64) ResponseWriterWriter {

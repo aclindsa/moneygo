@@ -1,4 +1,4 @@
-package handlers
+package reports
 
 import (
 	"github.com/aclindsa/moneygo/internal/models"

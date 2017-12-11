@@ -5,7 +5,6 @@ import (
 	"github.com/aclindsa/moneygo/internal/store"
 	"log"
 	"net/http"
-	"time"
 )
 
 func CreatePriceIfNotExist(tx store.Tx, price *models.Price) error {
@@ -31,27 +30,6 @@ func CreatePriceIfNotExist(tx store.Tx, price *models.Price) error {
 		return err
 	}
 	return nil
-}
-
-// Return the price for security in currency closest to date
-func GetClosestPrice(tx store.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
-	earliest, _ := tx.GetEarliestPrice(security, currency, date)
-	latest, err := tx.GetLatestPrice(security, currency, date)
-
-	// Return early if either earliest or latest are invalid
-	if earliest == nil {
-		return latest, err
-	} else if err != nil {
-		return earliest, nil
-	}
-
-	howlate := earliest.Date.Sub(*date)
-	howearly := date.Sub(latest.Date)
-	if howearly < howlate {
-		return latest, nil
-	} else {
-		return earliest, nil
-	}
 }
 
 func PriceHandler(r *http.Request, context *Context, user *models.User, securityid int64) ResponseWriterWriter {

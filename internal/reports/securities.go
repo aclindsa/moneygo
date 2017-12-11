@@ -1,4 +1,4 @@
-package handlers
+package reports
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
+	"time"
 )
 
 const luaSecurityTypeName = "security"
@@ -153,6 +154,27 @@ func luaSecurity__index(L *lua.LState) int {
 	return 1
 }
 
+// Return the price for security in currency closest to date
+func getClosestPrice(tx store.Tx, security, currency *models.Security, date *time.Time) (*models.Price, error) {
+	earliest, _ := tx.GetEarliestPrice(security, currency, date)
+	latest, err := tx.GetLatestPrice(security, currency, date)
+
+	// Return early if either earliest or latest are invalid
+	if earliest == nil {
+		return latest, err
+	} else if err != nil {
+		return earliest, nil
+	}
+
+	howlate := earliest.Date.Sub(*date)
+	howearly := date.Sub(latest.Date)
+	if howearly < howlate {
+		return latest, nil
+	} else {
+		return earliest, nil
+	}
+}
+
 func luaClosestPrice(L *lua.LState) int {
 	s := luaCheckSecurity(L, 1)
 	c := luaCheckSecurity(L, 2)
@@ -164,7 +186,7 @@ func luaClosestPrice(L *lua.LState) int {
 		panic("Couldn't find tx in lua's Context")
 	}
 
-	p, err := GetClosestPrice(tx, s, c, date)
+	p, err := getClosestPrice(tx, s, c, date)
 	if err != nil {
 		L.Push(lua.LNil)
 	} else {

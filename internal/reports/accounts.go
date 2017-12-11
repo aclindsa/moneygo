@@ -1,4 +1,4 @@
-package handlers
+package reports
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
+	"math/big"
 	"strings"
 )
 
@@ -146,6 +147,20 @@ func luaAccount__index(L *lua.LState) int {
 	return 1
 }
 
+func balanceFromSplits(splits *[]*models.Split) (*big.Rat, error) {
+	var balance, tmp big.Rat
+	for _, s := range *splits {
+		rat_amount, err := models.GetBigAmount(s.Amount)
+		if err != nil {
+			return nil, err
+		}
+		tmp.Add(&balance, rat_amount)
+		balance.Set(&tmp)
+	}
+
+	return &balance, nil
+}
+
 func luaAccountBalance(L *lua.LState) int {
 	a := luaCheckAccount(L, 1)
 
@@ -181,7 +196,7 @@ func luaAccountBalance(L *lua.LState) int {
 	if err != nil {
 		panic("Failed to fetch splits for account:" + err.Error())
 	}
-	rat, err := BalanceFromSplits(splits)
+	rat, err := balanceFromSplits(splits)
 	if err != nil {
 		panic("Failed to calculate balance for account:" + err.Error())
 	}

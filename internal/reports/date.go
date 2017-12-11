@@ -1,4 +1,4 @@
-package handlers
+package reports
 
 import (
 	"github.com/yuin/gopher-lua"
