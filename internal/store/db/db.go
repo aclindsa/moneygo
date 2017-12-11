@@ -84,7 +84,7 @@ func (db *DbStore) Close() error {
 	return err
 }
 
-func GetStore(dbtype config.DbType, dsn string) (store *DbStore, err error) {
+func GetStore(dbtype config.DbType, dsn string) (store store.Store, err error) {
 	dsn = getDSN(dbtype, dsn)
 	database, err := sql.Open(dbtype.String(), dsn)
 	if err != nil {

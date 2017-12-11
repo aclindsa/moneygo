@@ -3,7 +3,6 @@ package handlers
 import (
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
-	"github.com/aclindsa/moneygo/internal/store/db"
 	"log"
 	"net/http"
 	"path"
@@ -47,7 +46,7 @@ func (c *Context) LastLevel() bool {
 type Handler func(*http.Request, *Context) ResponseWriterWriter
 
 type APIHandler struct {
-	Store *db.DbStore
+	Store store.Store
 }
 
 func (ah *APIHandler) txWrapper(h Handler, r *http.Request, context *Context) (writer ResponseWriterWriter) {
