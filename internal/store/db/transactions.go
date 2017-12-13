@@ -305,53 +305,41 @@ func (tx *Tx) DeleteTransaction(t *models.Transaction, user *models.User) error 
 	return nil
 }
 
-func (tx *Tx) GetAccountSplits(user *models.User, accountid int64) (*[]*models.Split, error) {
-	var modelsplits []*models.Split
-	var splits []*Split
-
-	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
-	_, err := tx.Select(&splits, sql, accountid, user.UserId)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, s := range splits {
-		modelsplits = append(modelsplits, s.Split())
-	}
-	return &modelsplits, nil
-}
-
 // Assumes accountid is valid and is owned by the current user
-func (tx *Tx) GetAccountSplitsDate(user *models.User, accountid int64, date *time.Time) (*[]*models.Split, error) {
-	var modelsplits []*models.Split
-	var splits []*Split
+func (tx *Tx) getAccountBalance(xtrasql string, args ...interface{}) (*models.Amount, error) {
+	var balance models.Amount
 
-	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
-	_, err := tx.Select(&splits, sql, accountid, user.UserId, date)
+	sql := "FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?" + xtrasql
+	count, err := tx.SelectInt("SELECT splits.SplitId "+sql+" LIMIT 1", args...)
 	if err != nil {
 		return nil, err
 	}
+	if count > 0 {
+		type bal struct {
+			Whole, Fractional int64
+		}
+		var b bal
+		err := tx.SelectOne(&b, "SELECT sum(splits.WholeAmount) AS Whole, sum(splits.FractionalAmount) AS Fractional "+sql, args...)
+		if err != nil {
+			return nil, err
+		}
 
-	for _, s := range splits {
-		modelsplits = append(modelsplits, s.Split())
+		balance.FromParts(b.Whole, b.Fractional, MaxPrecision)
 	}
-	return &modelsplits, nil
+
+	return &balance, nil
 }
 
-func (tx *Tx) GetAccountSplitsDateRange(user *models.User, accountid int64, begin, end *time.Time) (*[]*models.Split, error) {
-	var modelsplits []*models.Split
-	var splits []*Split
+func (tx *Tx) GetAccountBalance(user *models.User, accountid int64) (*models.Amount, error) {
+	return tx.getAccountBalance("", accountid, user.UserId)
+}
 
-	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
-	_, err := tx.Select(&splits, sql, accountid, user.UserId, begin, end)
-	if err != nil {
-		return nil, err
-	}
+func (tx *Tx) GetAccountBalanceDate(user *models.User, accountid int64, date *time.Time) (*models.Amount, error) {
+	return tx.getAccountBalance(" AND transactions.date < ?", accountid, user.UserId, date)
+}
 
-	for _, s := range splits {
-		modelsplits = append(modelsplits, s.Split())
-	}
-	return &modelsplits, nil
+func (tx *Tx) GetAccountBalanceDateRange(user *models.User, accountid int64, begin, end *time.Time) (*models.Amount, error) {
+	return tx.getAccountBalance(" AND transactions.date >= ? AND transactions.Date < ?", accountid, user.UserId, begin, end)
 }
 
 func (tx *Tx) transactionsBalanceDifference(accountid int64, transactions []*models.Transaction) (*big.Rat, error) {

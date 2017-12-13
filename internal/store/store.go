@@ -89,9 +89,9 @@ type TransactionStore interface {
 	GetTransactions(userid int64) (*[]*models.Transaction, error)
 	UpdateTransaction(t *models.Transaction, user *models.User) error
 	DeleteTransaction(t *models.Transaction, user *models.User) error
-	GetAccountSplits(user *models.User, accountid int64) (*[]*models.Split, error)
-	GetAccountSplitsDate(user *models.User, accountid int64, date *time.Time) (*[]*models.Split, error)
-	GetAccountSplitsDateRange(user *models.User, accountid int64, begin, end *time.Time) (*[]*models.Split, error)
+	GetAccountBalance(user *models.User, accountid int64) (*models.Amount, error)
+	GetAccountBalanceDate(user *models.User, accountid int64, date *time.Time) (*models.Amount, error)
+	GetAccountBalanceDateRange(user *models.User, accountid int64, begin, end *time.Time) (*models.Amount, error)
 	GetAccountTransactions(user *models.User, accountid int64, sort string, page uint64, limit uint64) (*models.AccountTransactionsList, error)
 }
 
