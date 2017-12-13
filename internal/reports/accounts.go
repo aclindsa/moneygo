@@ -6,7 +6,6 @@ import (
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/aclindsa/moneygo/internal/store"
 	"github.com/yuin/gopher-lua"
-	"math/big"
 	"strings"
 )
 
@@ -147,20 +146,6 @@ func luaAccount__index(L *lua.LState) int {
 	return 1
 }
 
-func balanceFromSplits(splits *[]*models.Split) (*big.Rat, error) {
-	var balance, tmp big.Rat
-	for _, s := range *splits {
-		rat_amount, err := models.GetBigAmount(s.Amount)
-		if err != nil {
-			return nil, err
-		}
-		tmp.Add(&balance, rat_amount)
-		balance.Set(&tmp)
-	}
-
-	return &balance, nil
-}
-
 func luaAccountBalance(L *lua.LState) int {
 	a := luaCheckAccount(L, 1)
 
@@ -182,28 +167,25 @@ func luaAccountBalance(L *lua.LState) int {
 		panic("SecurityId not in lua security_map")
 	}
 	date := luaWeakCheckTime(L, 2)
-	var splits *[]*models.Split
+	var balance *models.Amount
 	if date != nil {
 		end := luaWeakCheckTime(L, 3)
 		if end != nil {
-			splits, err = tx.GetAccountSplitsDateRange(user, a.AccountId, date, end)
+			balance, err = tx.GetAccountBalanceDateRange(user, a.AccountId, date, end)
 		} else {
-			splits, err = tx.GetAccountSplitsDate(user, a.AccountId, date)
+			balance, err = tx.GetAccountBalanceDate(user, a.AccountId, date)
 		}
 	} else {
-		splits, err = tx.GetAccountSplits(user, a.AccountId)
+		balance, err = tx.GetAccountBalance(user, a.AccountId)
 	}
 	if err != nil {
-		panic("Failed to fetch splits for account:" + err.Error())
-	}
-	rat, err := balanceFromSplits(splits)
-	if err != nil {
-		panic("Failed to calculate balance for account:" + err.Error())
+		panic("Failed to fetch balance for account:" + err.Error())
 	}
 	b := &Balance{
-		Amount:   rat,
+		Amount:   *balance,
 		Security: security,
 	}
+
 	L.Push(BalanceToLua(L, b))
 
 	return 1

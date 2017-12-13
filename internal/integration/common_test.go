@@ -202,6 +202,19 @@ func uploadFile(client *http.Client, filename, urlsuffix string) error {
 	return nil
 }
 
+func NewAmount(amt string) models.Amount {
+	var a models.Amount
+	if _, ok := a.SetString(amt); !ok {
+		panic("Unable to call Amount.SetString()")
+	}
+	return a
+}
+
+func amountsMatch(a models.Amount, amt string) bool {
+	cmp := NewAmount(amt)
+	return a.Cmp(&cmp.Rat) == 0
+}
+
 func accountBalanceHelper(t *testing.T, client *http.Client, account *models.Account, balance string) {
 	t.Helper()
 	transactions, err := getAccountTransactions(client, account.AccountId, 0, 0, "")
@@ -209,7 +222,7 @@ func accountBalanceHelper(t *testing.T, client *http.Client, account *models.Acc
 		t.Fatalf("Couldn't fetch account transactions for '%s': %s\n", account.Name, err)
 	}
 
-	if transactions.EndingBalance != balance {
+	if !amountsMatch(transactions.EndingBalance, balance) {
 		t.Errorf("Expected ending balance for '%s' to be '%s', but found %s\n", account.Name, balance, transactions.EndingBalance)
 	}
 }

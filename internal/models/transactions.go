@@ -2,8 +2,6 @@ package models
 
 import (
 	"encoding/json"
-	"errors"
-	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -49,28 +47,11 @@ type Split struct {
 	RemoteId string // unique ID from server, for detecting duplicates
 	Number   string // Check or reference number
 	Memo     string
-	Amount   string // String representation of decimal, suitable for passing to big.Rat.SetString()
-}
-
-func GetBigAmount(amt string) (*big.Rat, error) {
-	var r big.Rat
-	_, success := r.SetString(amt)
-	if !success {
-		return nil, errors.New("Couldn't convert string amount to big.Rat via SetString()")
-	}
-	return &r, nil
-}
-
-func (s *Split) GetAmount() (*big.Rat, error) {
-	return GetBigAmount(s.Amount)
+	Amount   Amount
 }
 
 func (s *Split) Valid() bool {
-	if (s.AccountId == -1) == (s.SecurityId == -1) {
-		return false
-	}
-	_, err := s.GetAmount()
-	return err == nil
+	return (s.AccountId == -1) != (s.SecurityId == -1)
 }
 
 type Transaction struct {
@@ -89,8 +70,8 @@ type AccountTransactionsList struct {
 	Account           *Account
 	Transactions      *[]*Transaction
 	TotalTransactions int64
-	BeginningBalance  string
-	EndingBalance     string
+	BeginningBalance  Amount
+	EndingBalance     Amount
 }
 
 func (t *Transaction) Write(w http.ResponseWriter) error {

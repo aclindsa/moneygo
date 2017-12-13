@@ -164,7 +164,11 @@ func ofxImportHelper(tx store.Tx, r io.Reader, user *models.User, accountid int6
 					log.Print(err)
 					return NewError(999 /*Internal Error*/)
 				}
-				split.Amount = r.FloatString(security.Precision)
+				split.Amount.Rat = *r
+				if split.Amount.Precision() > security.Precision {
+					log.Printf("Precision on created imbalance-correction split (%d) greater than the underlying security (%s) allows (%d)", split.Amount.Precision(), security, security.Precision)
+					return NewError(999 /*Internal Error*/)
+				}
 				split.SecurityId = -1
 				split.AccountId = imbalanced_account.AccountId
 				transaction.Splits = append(transaction.Splits, split)

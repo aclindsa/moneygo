@@ -120,7 +120,7 @@ func ensureTransactionsMatch(t *testing.T, expected, tran *models.Transaction, a
 				origsplit.RemoteId == origsplit.RemoteId &&
 				origsplit.Number == s.Number &&
 				origsplit.Memo == s.Memo &&
-				origsplit.Amount == s.Amount &&
+				origsplit.Amount.Cmp(&s.Amount.Rat) == 0 &&
 				(!matchsplitids || origsplit.SplitId == s.SplitId) {
 
 				if _, ok := foundIds[s.SplitId]; ok {
@@ -187,13 +187,13 @@ func TestCreateTransaction(t *testing.T) {
 					Status:     models.Reconciled,
 					AccountId:  d.accounts[1].AccountId,
 					SecurityId: -1,
-					Amount:     "-39.98",
+					Amount:     NewAmount("-39.98"),
 				},
 				{
 					Status:     models.Entered,
 					AccountId:  d.accounts[4].AccountId,
 					SecurityId: -1,
-					Amount:     "39.99",
+					Amount:     NewAmount("39.99"),
 				},
 			},
 		}
@@ -333,7 +333,7 @@ func TestUpdateTransaction(t *testing.T) {
 			tran.UserId = curr.UserId
 
 			// Make sure we can't create an unbalanced transaction
-			tran.Splits[len(tran.Splits)-1].Amount = "42"
+			tran.Splits[len(tran.Splits)-1].Amount = NewAmount("42")
 			_, err = updateTransaction(d.clients[orig.UserId], tran)
 			if err == nil {
 				t.Fatalf("Expected error updating imbalanced transaction")
