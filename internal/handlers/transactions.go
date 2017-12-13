@@ -31,9 +31,8 @@ func GetTransactionImbalances(tx store.Tx, t *models.Transaction) (map[int64]big
 			}
 			securityid = account.SecurityId
 		}
-		amount, _ := t.Splits[i].GetAmount()
 		sum := sums[securityid]
-		(&sum).Add(&sum, amount)
+		(&sum).Add(&sum, &t.Splits[i].Amount.Rat)
 		sums[securityid] = sum
 	}
 	return sums, nil

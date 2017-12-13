@@ -40,10 +40,10 @@ func getDbMap(db *sql.DB, dbtype config.DbType) (*gorp.DbMap, error) {
 	dbmap.AddTableWithName(models.User{}, "users").SetKeys(true, "UserId")
 	dbmap.AddTableWithName(models.Session{}, "sessions").SetKeys(true, "SessionId")
 	dbmap.AddTableWithName(models.Security{}, "securities").SetKeys(true, "SecurityId")
-	dbmap.AddTableWithName(models.Price{}, "prices").SetKeys(true, "PriceId")
+	dbmap.AddTableWithName(Price{}, "prices").SetKeys(true, "PriceId")
 	dbmap.AddTableWithName(models.Account{}, "accounts").SetKeys(true, "AccountId")
 	dbmap.AddTableWithName(models.Transaction{}, "transactions").SetKeys(true, "TransactionId")
-	dbmap.AddTableWithName(models.Split{}, "splits").SetKeys(true, "SplitId")
+	dbmap.AddTableWithName(Split{}, "splits").SetKeys(true, "SplitId")
 	rtable := dbmap.AddTableWithName(models.Report{}, "reports").SetKeys(true, "ReportId")
 	rtable.ColMap("Lua").SetMaxSize(models.LuaMaxLength + luaMaxLengthBuffer)
 

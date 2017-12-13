@@ -68,7 +68,7 @@ func TestCreatePrice(t *testing.T) {
 			if !p.Date.Equal(orig.Date) {
 				t.Errorf("Date doesn't match")
 			}
-			if p.Value != orig.Value {
+			if p.Value.Cmp(&orig.Value.Rat) != 0 {
 				t.Errorf("Value doesn't match")
 			}
 			if p.RemoteId != orig.RemoteId {
@@ -98,7 +98,7 @@ func TestGetPrice(t *testing.T) {
 			if !p.Date.Equal(orig.Date) {
 				t.Errorf("Date doesn't match")
 			}
-			if p.Value != orig.Value {
+			if p.Value.Cmp(&orig.Value.Rat) != 0 {
 				t.Errorf("Value doesn't match")
 			}
 			if p.RemoteId != orig.RemoteId {
@@ -132,7 +132,7 @@ func TestGetPrices(t *testing.T) {
 
 				found := false
 				for _, p := range *pl.Prices {
-					if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date.Equal(orig.Date) && p.Value == orig.Value && p.RemoteId == orig.RemoteId {
+					if p.SecurityId == d.securities[orig.SecurityId].SecurityId && p.CurrencyId == d.securities[orig.CurrencyId].SecurityId && p.Date.Equal(orig.Date) && p.Value.Cmp(&orig.Value.Rat) == 0 && p.RemoteId == orig.RemoteId {
 						if _, ok := foundIds[p.PriceId]; ok {
 							continue
 						}
@@ -146,7 +146,11 @@ func TestGetPrices(t *testing.T) {
 				}
 			}
 
-			if numprices != len(*pl.Prices) {
+			if pl.Prices == nil {
+				if numprices != 0 {
+					t.Fatalf("Expected %d prices, received 0", numprices)
+				}
+			} else if numprices != len(*pl.Prices) {
 				t.Fatalf("Expected %d prices, received %d", numprices, len(*pl.Prices))
 			}
 		}
@@ -162,7 +166,7 @@ func TestUpdatePrice(t *testing.T) {
 			tmp := curr.SecurityId
 			curr.SecurityId = curr.CurrencyId
 			curr.CurrencyId = tmp
-			curr.Value = "5.55"
+			curr.Value = NewAmount("5.55")
 			curr.Date = time.Date(2019, time.June, 5, 12, 5, 6, 7, time.UTC)
 			curr.RemoteId = "something"
 
@@ -181,7 +185,7 @@ func TestUpdatePrice(t *testing.T) {
 			if !p.Date.Equal(curr.Date) {
 				t.Errorf("Date doesn't match")
 			}
-			if p.Value != curr.Value {
+			if p.Value.Cmp(&curr.Value.Rat) != 0 {
 				t.Errorf("Value doesn't match")
 			}
 			if p.RemoteId != curr.RemoteId {

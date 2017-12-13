@@ -97,9 +97,12 @@ func (i *OFXImport) AddTransaction(tran *ofxgo.Transaction, account *models.Acco
 	s1.ImportSplitType = models.ImportAccount
 	s2.ImportSplitType = models.ExternalAccount
 
+	s1.Amount.Rat = *amt
+	s2.Amount.Rat = *amt.Neg(amt)
 	security := i.Securities[account.SecurityId-1]
-	s1.Amount = amt.FloatString(security.Precision)
-	s2.Amount = amt.Neg(amt).FloatString(security.Precision)
+	if s1.Amount.Precision() > security.Precision {
+		return errors.New("Imported transaction amount is too precise for security")
+	}
 
 	s1.Status = models.Imported
 	s2.Status = models.Imported
@@ -262,7 +265,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 			Memo:            memo + "(commission)",
-			Amount:          commission.FloatString(curdef.Precision),
+			Amount:          models.Amount{commission},
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -274,7 +277,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 			Memo:            memo + "(taxes)",
-			Amount:          taxes.FloatString(curdef.Precision),
+			Amount:          models.Amount{taxes},
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -286,7 +289,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 			Memo:            memo + "(fees)",
-			Amount:          fees.FloatString(curdef.Precision),
+			Amount:          models.Amount{fees},
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -298,7 +301,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 			Memo:            memo + "(load)",
-			Amount:          load.FloatString(curdef.Precision),
+			Amount:          models.Amount{load},
 		})
 	}
 	t.Splits = append(t.Splits, &models.Split{
@@ -309,7 +312,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
@@ -319,7 +322,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          tradingTotal.FloatString(curdef.Precision),
+		Amount:          models.Amount{tradingTotal},
 	})
 
 	var units big.Rat
@@ -332,7 +335,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 	units.Neg(&units)
 	t.Splits = append(t.Splits, &models.Split{
@@ -343,7 +346,7 @@ func (i *OFXImport) GetInvBuyTran(buy *ofxgo.InvBuy, curdef *models.Security, ac
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + buy.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 
 	return &t, nil
@@ -378,7 +381,7 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *models.Security,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + income.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	total.Neg(&total)
 	t.Splits = append(t.Splits, &models.Split{
@@ -389,7 +392,7 @@ func (i *OFXImport) GetIncomeTran(income *ofxgo.Income, curdef *models.Security,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + income.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 
 	return &t, nil
@@ -423,7 +426,7 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *models.
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	total.Neg(&total)
 	t.Splits = append(t.Splits, &models.Split{
@@ -434,7 +437,7 @@ func (i *OFXImport) GetInvExpenseTran(expense *ofxgo.InvExpense, curdef *models.
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + expense.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 
 	return &t, nil
@@ -462,7 +465,7 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	total.Neg(&total)
 	t.Splits = append(t.Splits, &models.Split{
@@ -473,7 +476,7 @@ func (i *OFXImport) GetMarginInterestTran(marginint *ofxgo.MarginInterest, curde
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + marginint.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 
 	return &t, nil
@@ -526,7 +529,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 			Memo:            memo + "(commission)",
-			Amount:          commission.FloatString(curdef.Precision),
+			Amount:          models.Amount{commission},
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -538,7 +541,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 			Memo:            memo + "(taxes)",
-			Amount:          taxes.FloatString(curdef.Precision),
+			Amount:          models.Amount{taxes},
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -550,7 +553,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 			Memo:            memo + "(fees)",
-			Amount:          fees.FloatString(curdef.Precision),
+			Amount:          models.Amount{fees},
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -562,7 +565,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 			Memo:            memo + "(load)",
-			Amount:          load.FloatString(curdef.Precision),
+			Amount:          models.Amount{load},
 		})
 	}
 	t.Splits = append(t.Splits, &models.Split{
@@ -573,7 +576,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 
 	t.Splits = append(t.Splits, &models.Split{
@@ -584,7 +587,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	total.Neg(&total)
 	t.Splits = append(t.Splits, &models.Split{
@@ -595,7 +598,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
@@ -605,7 +608,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          tradingTotal.FloatString(curdef.Precision),
+		Amount:          models.Amount{tradingTotal},
 	})
 
 	var units big.Rat
@@ -618,7 +621,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 	units.Neg(&units)
 	t.Splits = append(t.Splits, &models.Split{
@@ -629,7 +632,7 @@ func (i *OFXImport) GetReinvestTran(reinvest *ofxgo.Reinvest, curdef *models.Sec
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + reinvest.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 
 	return &t, nil
@@ -663,7 +666,7 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *models.Sec
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	total.Neg(&total)
 	t.Splits = append(t.Splits, &models.Split{
@@ -674,7 +677,7 @@ func (i *OFXImport) GetRetOfCapTran(retofcap *ofxgo.RetOfCap, curdef *models.Sec
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + retofcap.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 
 	return &t, nil
@@ -730,7 +733,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 			Memo:            memo + "(commission)",
-			Amount:          commission.FloatString(curdef.Precision),
+			Amount:          models.Amount{commission},
 		})
 	}
 	if num := taxes.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -742,7 +745,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 			Memo:            memo + "(taxes)",
-			Amount:          taxes.FloatString(curdef.Precision),
+			Amount:          models.Amount{taxes},
 		})
 	}
 	if num := fees.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -754,7 +757,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 			Memo:            memo + "(fees)",
-			Amount:          fees.FloatString(curdef.Precision),
+			Amount:          models.Amount{fees},
 		})
 	}
 	if num := load.Num(); !num.IsInt64() || num.Int64() != 0 {
@@ -766,7 +769,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 			SecurityId:      curdef.SecurityId,
 			RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 			Memo:            memo + "(load)",
-			Amount:          load.FloatString(curdef.Precision),
+			Amount:          models.Amount{load},
 		})
 	}
 	t.Splits = append(t.Splits, &models.Split{
@@ -777,7 +780,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 		SecurityId:      -1,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          total.FloatString(curdef.Precision),
+		Amount:          models.Amount{total},
 	})
 	t.Splits = append(t.Splits, &models.Split{
 		// TODO ReversalFiTID?
@@ -787,7 +790,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 		SecurityId:      curdef.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          tradingTotal.FloatString(curdef.Precision),
+		Amount:          models.Amount{tradingTotal},
 	})
 
 	var units big.Rat
@@ -800,7 +803,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 	units.Neg(&units)
 	t.Splits = append(t.Splits, &models.Split{
@@ -811,7 +814,7 @@ func (i *OFXImport) GetInvSellTran(sell *ofxgo.InvSell, curdef *models.Security,
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + sell.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 
 	return &t, nil
@@ -842,7 +845,7 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *models.Ac
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + transfer.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 	units.Neg(&units)
 	t.Splits = append(t.Splits, &models.Split{
@@ -853,7 +856,7 @@ func (i *OFXImport) GetTransferTran(transfer *ofxgo.Transfer, account *models.Ac
 		SecurityId:      security.SecurityId,
 		RemoteId:        "ofx:" + transfer.InvTran.FiTID.String(),
 		Memo:            memo,
-		Amount:          units.FloatString(security.Precision),
+		Amount:          models.Amount{units},
 	})
 
 	return &t, nil

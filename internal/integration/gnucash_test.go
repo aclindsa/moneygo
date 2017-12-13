@@ -114,11 +114,11 @@ func TestImportGnucash(t *testing.T) {
 		}
 		var p1787, p2894, p3170 bool
 		for _, price := range *prices.Prices {
-			if price.CurrencyId == d.securities[0].SecurityId && price.Value == "17.87" {
+			if price.CurrencyId == d.securities[0].SecurityId && amountsMatch(price.Value, "17.87") {
 				p1787 = true
-			} else if price.CurrencyId == d.securities[0].SecurityId && price.Value == "28.94" {
+			} else if price.CurrencyId == d.securities[0].SecurityId && amountsMatch(price.Value, "28.94") {
 				p2894 = true
-			} else if price.CurrencyId == d.securities[0].SecurityId && price.Value == "31.70" {
+			} else if price.CurrencyId == d.securities[0].SecurityId && amountsMatch(price.Value, "31.70") {
 				p3170 = true
 			}
 		}

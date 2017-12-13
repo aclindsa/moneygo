@@ -12,7 +12,7 @@ type Price struct {
 	SecurityId int64
 	CurrencyId int64
 	Date       time.Time
-	Value      string // String representation of decimal price of Security in Currency units, suitable for passing to big.Rat.SetString()
+	Value      Amount // price of Security in Currency units
 	RemoteId   string // unique ID from source, for detecting duplicates
 }
 

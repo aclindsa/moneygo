@@ -59,9 +59,11 @@ script:
   - touch $GOPATH/src/github.com/aclindsa/moneygo/internal/handlers/cusip_list.csv
   # Build and test MoneyGo
   - go generate -v github.com/aclindsa/moneygo/internal/handlers
-  - go test -v -covermode=count -coverpkg github.com/aclindsa/moneygo/internal/config,github.com/aclindsa/moneygo/internal/handlers,github.com/aclindsa/moneygo/internal/models,github.com/aclindsa/moneygo/internal/store,github.com/aclindsa/moneygo/internal/store/db,github.com/aclindsa/moneygo/internal/reports -coverprofile=integration_coverage.out github.com/aclindsa/moneygo/internal/integration
-  - go test -v -covermode=count -coverpkg github.com/aclindsa/moneygo/internal/config,github.com/aclindsa/moneygo/internal/handlers,github.com/aclindsa/moneygo/internal/models,github.com/aclindsa/moneygo/internal/store,github.com/aclindsa/moneygo/internal/store/db,github.com/aclindsa/moneygo/internal/reports -coverprofile=config_coverage.out github.com/aclindsa/moneygo/internal/config
+  - export COVER_PACKAGES="github.com/aclindsa/moneygo/internal/config,github.com/aclindsa/moneygo/internal/handlers,github.com/aclindsa/moneygo/internal/models,github.com/aclindsa/moneygo/internal/store,github.com/aclindsa/moneygo/internal/store/db,github.com/aclindsa/moneygo/internal/reports"
+  - go test -v -covermode=count -coverpkg $COVER_PACKAGES -coverprofile=integration_coverage.out github.com/aclindsa/moneygo/internal/integration
+  - go test -v -covermode=count -coverpkg $COVER_PACKAGES -coverprofile=config_coverage.out github.com/aclindsa/moneygo/internal/config
+  - go test -v -covermode=count -coverpkg $COVER_PACKAGES -coverprofile=models_coverage.out github.com/aclindsa/moneygo/internal/models
 
 # Report the test coverage
 after_script:
-  - $GOPATH/bin/goveralls -coverprofile=integration_coverage.out,config_coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN
+  - $GOPATH/bin/goveralls -coverprofile=integration_coverage.out,config_coverage.out,models_coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN

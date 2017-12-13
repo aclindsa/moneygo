@@ -6,6 +6,17 @@ import (
 	"github.com/aclindsa/moneygo/internal/store"
 )
 
+// MaxPrexision denotes the maximum valid value for models.Security.Precision.
+// This constant is used when storing amounts in securities into the database,
+// so it must not be changed without appropriately migrating the database.
+const MaxPrecision uint64 = 15
+
+func init() {
+	if MaxPrecision < models.MaxPrecision {
+		panic("db.MaxPrecision must be >= models.MaxPrecision")
+	}
+}
+
 func (tx *Tx) GetSecurity(securityid int64, userid int64) (*models.Security, error) {
 	var s models.Security
 

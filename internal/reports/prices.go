@@ -60,11 +60,7 @@ func luaPrice__index(L *lua.LState) int {
 		}
 		L.Push(SecurityToLua(L, c))
 	case "Value", "value":
-		amt, err := models.GetBigAmount(p.Value)
-		if err != nil {
-			panic(err)
-		}
-		float, _ := amt.Float64()
+		float, _ := p.Value.Float64()
 		L.Push(lua.LNumber(float))
 	default:
 		L.ArgError(2, "unexpected price attribute: "+field)
@@ -86,7 +82,7 @@ func luaPrice__tostring(L *lua.LState) int {
 		panic("Price's currency or security not found for user")
 	}
 
-	L.Push(lua.LString(p.Value + " " + c.Symbol + " (" + s.Symbol + ")"))
+	L.Push(lua.LString(p.Value.String() + " " + c.Symbol + " (" + s.Symbol + ")"))
 
 	return 1
 }

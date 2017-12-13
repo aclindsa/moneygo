@@ -147,18 +147,12 @@ func luaAccount__index(L *lua.LState) int {
 	return 1
 }
 
-func balanceFromSplits(splits *[]*models.Split) (*big.Rat, error) {
-	var balance, tmp big.Rat
+func balanceFromSplits(splits *[]*models.Split) *big.Rat {
+	var balance big.Rat
 	for _, s := range *splits {
-		rat_amount, err := models.GetBigAmount(s.Amount)
-		if err != nil {
-			return nil, err
-		}
-		tmp.Add(&balance, rat_amount)
-		balance.Set(&tmp)
+		balance.Add(&balance, &s.Amount.Rat)
 	}
-
-	return &balance, nil
+	return &balance
 }
 
 func luaAccountBalance(L *lua.LState) int {
@@ -196,14 +190,12 @@ func luaAccountBalance(L *lua.LState) int {
 	if err != nil {
 		panic("Failed to fetch splits for account:" + err.Error())
 	}
-	rat, err := balanceFromSplits(splits)
-	if err != nil {
-		panic("Failed to calculate balance for account:" + err.Error())
-	}
+	rat := balanceFromSplits(splits)
 	b := &Balance{
-		Amount:   rat,
+		Amount:   models.Amount{*rat},
 		Security: security,
 	}
+
 	L.Push(BalanceToLua(L, b))
 
 	return 1

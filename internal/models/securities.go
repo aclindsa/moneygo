@@ -23,6 +23,9 @@ func GetSecurityType(typestring string) SecurityType {
 	}
 }
 
+// MaxPrexision denotes the maximum valid value for Security.Precision
+const MaxPrecision uint64 = 15
+
 type Security struct {
 	SecurityId  int64
 	UserId      int64
@@ -31,7 +34,7 @@ type Security struct {
 	Symbol      string
 	// Number of decimal digits (to the right of the decimal point) this
 	// security is precise to
-	Precision int `db:"Preciseness"`
+	Precision uint64 `db:"Preciseness"`
 	Type      SecurityType
 	// AlternateId is CUSIP for Type=Stock, ISO4217 for Type=Currency
 	AlternateId string

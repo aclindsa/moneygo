@@ -3,12 +3,11 @@ package reports
 import (
 	"github.com/aclindsa/moneygo/internal/models"
 	"github.com/yuin/gopher-lua"
-	"math/big"
 )
 
 type Balance struct {
 	Security *models.Security
-	Amount   *big.Rat
+	Amount   models.Amount
 }
 
 const luaBalanceTypeName = "balance"
@@ -66,10 +65,8 @@ func luaGetBalanceOperands(L *lua.LState, m int, n int) (*Balance, *Balance) {
 	} else if bm != nil {
 		nn := L.CheckNumber(n)
 		var balance Balance
-		var rat big.Rat
 		balance.Security = bm.Security
-		balance.Amount = rat.SetFloat64(float64(nn))
-		if balance.Amount == nil {
+		if balance.Amount.SetFloat64(float64(nn)) == nil {
 			L.ArgError(n, "non-finite float invalid for operand to balance arithemetic")
 			return nil, nil
 		}
@@ -77,10 +74,8 @@ func luaGetBalanceOperands(L *lua.LState, m int, n int) (*Balance, *Balance) {
 	} else if bn != nil {
 		nm := L.CheckNumber(m)
 		var balance Balance
-		var rat big.Rat
 		balance.Security = bn.Security
-		balance.Amount = rat.SetFloat64(float64(nm))
-		if balance.Amount == nil {
+		if balance.Amount.SetFloat64(float64(nm)) == nil {
 			L.ArgError(m, "non-finite float invalid for operand to balance arithemetic")
 			return nil, nil
 		}
@@ -110,7 +105,7 @@ func luaBalance__index(L *lua.LState) int {
 func luaBalance__tostring(L *lua.LState) int {
 	b := luaCheckBalance(L, 1)
 
-	L.Push(lua.LString(b.Security.Symbol + " " + b.Amount.FloatString(b.Security.Precision)))
+	L.Push(lua.LString(b.Security.Symbol + " " + b.Amount.FloatString(int(b.Security.Precision))))
 
 	return 1
 }
@@ -119,7 +114,7 @@ func luaBalance__eq(L *lua.LState) int {
 	a := luaCheckBalance(L, 1)
 	b := luaCheckBalance(L, 2)
 
-	L.Push(lua.LBool(a.Security.SecurityId == b.Security.SecurityId && a.Amount.Cmp(b.Amount) == 0))
+	L.Push(lua.LBool(a.Security.SecurityId == b.Security.SecurityId && a.Amount.Cmp(&b.Amount.Rat) == 0))
 
 	return 1
 }
@@ -131,7 +126,7 @@ func luaBalance__lt(L *lua.LState) int {
 		L.ArgError(2, "Can't compare balances with different securities")
 	}
 
-	L.Push(lua.LBool(a.Amount.Cmp(b.Amount) < 0))
+	L.Push(lua.LBool(a.Amount.Cmp(&b.Amount.Rat) < 0))
 
 	return 1
 }
@@ -143,7 +138,7 @@ func luaBalance__le(L *lua.LState) int {
 		L.ArgError(2, "Can't compare balances with different securities")
 	}
 
-	L.Push(lua.LBool(a.Amount.Cmp(b.Amount) <= 0))
+	L.Push(lua.LBool(a.Amount.Cmp(&b.Amount.Rat) <= 0))
 
 	return 1
 }
@@ -156,9 +151,8 @@ func luaBalance__add(L *lua.LState) int {
 	}
 
 	var balance Balance
-	var rat big.Rat
 	balance.Security = a.Security
-	balance.Amount = rat.Add(a.Amount, b.Amount)
+	balance.Amount.Add(&a.Amount.Rat, &b.Amount.Rat)
 	L.Push(BalanceToLua(L, &balance))
 
 	return 1
@@ -172,9 +166,8 @@ func luaBalance__sub(L *lua.LState) int {
 	}
 
 	var balance Balance
-	var rat big.Rat
 	balance.Security = a.Security
-	balance.Amount = rat.Sub(a.Amount, b.Amount)
+	balance.Amount.Sub(&a.Amount.Rat, &b.Amount.Rat)
 	L.Push(BalanceToLua(L, &balance))
 
 	return 1
@@ -188,9 +181,8 @@ func luaBalance__mul(L *lua.LState) int {
 	}
 
 	var balance Balance
-	var rat big.Rat
 	balance.Security = a.Security
-	balance.Amount = rat.Mul(a.Amount, b.Amount)
+	balance.Amount.Mul(&a.Amount.Rat, &b.Amount.Rat)
 	L.Push(BalanceToLua(L, &balance))
 
 	return 1
@@ -204,9 +196,8 @@ func luaBalance__div(L *lua.LState) int {
 	}
 
 	var balance Balance
-	var rat big.Rat
 	balance.Security = a.Security
-	balance.Amount = rat.Quo(a.Amount, b.Amount)
+	balance.Amount.Quo(&a.Amount.Rat, &b.Amount.Rat)
 	L.Push(BalanceToLua(L, &balance))
 
 	return 1
@@ -216,9 +207,8 @@ func luaBalance__unm(L *lua.LState) int {
 	b := luaCheckBalance(L, 1)
 
 	var balance Balance
-	var rat big.Rat
 	balance.Security = b.Security
-	balance.Amount = rat.Neg(b.Amount)
+	balance.Amount.Neg(&b.Amount.Rat)
 	L.Push(BalanceToLua(L, &balance))
 
 	return 1

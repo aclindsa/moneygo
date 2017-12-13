@@ -9,6 +9,71 @@ import (
 	"time"
 )
 
+// Split is a mirror of models.Split with the Amount broken out into whole and
+// fractional components
+type Split struct {
+	SplitId         int64
+	TransactionId   int64
+	Status          int64
+	ImportSplitType int64
+
+	// One of AccountId and SecurityId must be -1
+	// In normal splits, AccountId will be valid and SecurityId will be -1. The
+	// only case where this is reversed is for transactions that have been
+	// imported and not yet associated with an account.
+	AccountId  int64
+	SecurityId int64
+
+	RemoteId string // unique ID from server, for detecting duplicates
+	Number   string // Check or reference number
+	Memo     string
+
+	// Amount.Whole and Amount.Fractional(MaxPrecision)
+	WholeAmount      int64
+	FractionalAmount int64
+}
+
+func NewSplit(s *models.Split) (*Split, error) {
+	whole, err := s.Amount.Whole()
+	if err != nil {
+		return nil, err
+	}
+	fractional, err := s.Amount.Fractional(MaxPrecision)
+	if err != nil {
+		return nil, err
+	}
+	return &Split{
+		SplitId:          s.SplitId,
+		TransactionId:    s.TransactionId,
+		Status:           s.Status,
+		ImportSplitType:  s.ImportSplitType,
+		AccountId:        s.AccountId,
+		SecurityId:       s.SecurityId,
+		RemoteId:         s.RemoteId,
+		Number:           s.Number,
+		Memo:             s.Memo,
+		WholeAmount:      whole,
+		FractionalAmount: fractional,
+	}, nil
+}
+
+func (s Split) Split() *models.Split {
+	split := &models.Split{
+		SplitId:         s.SplitId,
+		TransactionId:   s.TransactionId,
+		Status:          s.Status,
+		ImportSplitType: s.ImportSplitType,
+		AccountId:       s.AccountId,
+		SecurityId:      s.SecurityId,
+		RemoteId:        s.RemoteId,
+		Number:          s.Number,
+		Memo:            s.Memo,
+	}
+	split.Amount.FromParts(s.WholeAmount, s.FractionalAmount, MaxPrecision)
+
+	return split
+}
+
 func (tx *Tx) incrementAccountVersions(user *models.User, accountids []int64) error {
 	for i := range accountids {
 		account, err := tx.GetAccount(accountids[i], user.UserId)
@@ -68,10 +133,15 @@ func (tx *Tx) InsertTransaction(t *models.Transaction, user *models.User) error 
 	for i := range t.Splits {
 		t.Splits[i].TransactionId = t.TransactionId
 		t.Splits[i].SplitId = -1
-		err = tx.Insert(t.Splits[i])
+		s, err := NewSplit(t.Splits[i])
 		if err != nil {
 			return err
 		}
+		err = tx.Insert(s)
+		if err != nil {
+			return err
+		}
+		*t.Splits[i] = *s.Split()
 	}
 
 	return nil
@@ -84,15 +154,20 @@ func (tx *Tx) SplitExists(s *models.Split) (bool, error) {
 
 func (tx *Tx) GetTransaction(transactionid int64, userid int64) (*models.Transaction, error) {
 	var t models.Transaction
+	var splits []*Split
 
 	err := tx.SelectOne(&t, "SELECT * from transactions where UserId=? AND TransactionId=?", userid, transactionid)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = tx.Select(&t.Splits, "SELECT * from splits where TransactionId=?", transactionid)
+	_, err = tx.Select(&splits, "SELECT * from splits where TransactionId=?", transactionid)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, split := range splits {
+		t.Splits = append(t.Splits, split.Split())
 	}
 
 	return &t, nil
@@ -107,9 +182,13 @@ func (tx *Tx) GetTransactions(userid int64) (*[]*models.Transaction, error) {
 	}
 
 	for i := range transactions {
-		_, err := tx.Select(&transactions[i].Splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
+		var splits []*Split
+		_, err := tx.Select(&splits, "SELECT * from splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			return nil, err
+		}
+		for _, split := range splits {
+			transactions[i].Splits = append(transactions[i].Splits, split.Split())
 		}
 	}
 
@@ -117,7 +196,7 @@ func (tx *Tx) GetTransactions(userid int64) (*[]*models.Transaction, error) {
 }
 
 func (tx *Tx) UpdateTransaction(t *models.Transaction, user *models.User) error {
-	var existing_splits []*models.Split
+	var existing_splits []*Split
 
 	_, err := tx.Select(&existing_splits, "SELECT * from splits where TransactionId=?", t.TransactionId)
 	if err != nil {
@@ -136,25 +215,30 @@ func (tx *Tx) UpdateTransaction(t *models.Transaction, user *models.User) error 
 	// Insert splits, updating any pre-existing ones
 	for i := range t.Splits {
 		t.Splits[i].TransactionId = t.TransactionId
-		_, ok := s_map[t.Splits[i].SplitId]
+		s, err := NewSplit(t.Splits[i])
+		if err != nil {
+			return err
+		}
+		_, ok := s_map[s.SplitId]
 		if ok {
-			count, err := tx.Update(t.Splits[i])
+			count, err := tx.Update(s)
 			if err != nil {
 				return err
 			}
 			if count > 1 {
 				return fmt.Errorf("Updated %d transaction splits while attempting to update only 1", count)
 			}
-			delete(s_map, t.Splits[i].SplitId)
+			delete(s_map, s.SplitId)
 		} else {
-			t.Splits[i].SplitId = -1
-			err := tx.Insert(t.Splits[i])
+			s.SplitId = -1
+			err := tx.Insert(s)
 			if err != nil {
 				return err
 			}
 		}
+		*t.Splits[i] = *s.Split()
 		if t.Splits[i].AccountId != -1 {
-			a_map[t.Splits[i].AccountId] = true
+			a_map[s.AccountId] = true
 		}
 	}
 
@@ -222,57 +306,69 @@ func (tx *Tx) DeleteTransaction(t *models.Transaction, user *models.User) error 
 }
 
 func (tx *Tx) GetAccountSplits(user *models.User, accountid int64) (*[]*models.Split, error) {
-	var splits []*models.Split
+	var modelsplits []*models.Split
+	var splits []*Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId)
 	if err != nil {
 		return nil, err
 	}
-	return &splits, nil
+
+	for _, s := range splits {
+		modelsplits = append(modelsplits, s.Split())
+	}
+	return &modelsplits, nil
 }
 
 // Assumes accountid is valid and is owned by the current user
 func (tx *Tx) GetAccountSplitsDate(user *models.User, accountid int64, date *time.Time) (*[]*models.Split, error) {
-	var splits []*models.Split
+	var modelsplits []*models.Split
+	var splits []*Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date < ?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId, date)
 	if err != nil {
 		return nil, err
 	}
-	return &splits, err
+
+	for _, s := range splits {
+		modelsplits = append(modelsplits, s.Split())
+	}
+	return &modelsplits, nil
 }
 
 func (tx *Tx) GetAccountSplitsDateRange(user *models.User, accountid int64, begin, end *time.Time) (*[]*models.Split, error) {
-	var splits []*models.Split
+	var modelsplits []*models.Split
+	var splits []*Split
 
 	sql := "SELECT DISTINCT splits.* FROM splits INNER JOIN transactions ON transactions.TransactionId = splits.TransactionId WHERE splits.AccountId=? AND transactions.UserId=? AND transactions.Date >= ? AND transactions.Date < ?"
 	_, err := tx.Select(&splits, sql, accountid, user.UserId, begin, end)
 	if err != nil {
 		return nil, err
 	}
-	return &splits, nil
+
+	for _, s := range splits {
+		modelsplits = append(modelsplits, s.Split())
+	}
+	return &modelsplits, nil
 }
 
 func (tx *Tx) transactionsBalanceDifference(accountid int64, transactions []*models.Transaction) (*big.Rat, error) {
-	var pageDifference, tmp big.Rat
+	var pageDifference big.Rat
 	for i := range transactions {
-		_, err := tx.Select(&transactions[i].Splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
+		var splits []*Split
+		_, err := tx.Select(&splits, "SELECT * FROM splits where TransactionId=?", transactions[i].TransactionId)
 		if err != nil {
 			return nil, err
 		}
 
 		// Sum up the amounts from the splits we're returning so we can return
 		// an ending balance
-		for j := range transactions[i].Splits {
+		for j, s := range splits {
+			transactions[i].Splits = append(transactions[i].Splits, s.Split())
 			if transactions[i].Splits[j].AccountId == accountid {
-				rat_amount, err := models.GetBigAmount(transactions[i].Splits[j].Amount)
-				if err != nil {
-					return nil, err
-				}
-				tmp.Add(&pageDifference, rat_amount)
-				pageDifference.Set(&tmp)
+				pageDifference.Add(&pageDifference, &transactions[i].Splits[j].Amount.Rat)
 			}
 		}
 	}
@@ -338,24 +434,31 @@ func (tx *Tx) GetAccountTransactions(user *models.User, accountid int64, sort st
 
 	// Sum all the splits for all transaction splits for this account that
 	// occurred before the page we're returning
-	var amounts []string
-	sql = "SELECT s.Amount FROM splits AS s INNER JOIN (SELECT DISTINCT transactions.Date, transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ") as t ON s.TransactionId = t.TransactionId WHERE s.AccountId=?"
-	_, err = tx.Select(&amounts, sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
+	sql = "FROM splits AS s INNER JOIN (SELECT DISTINCT transactions.Date, transactions.TransactionId FROM transactions INNER JOIN splits ON transactions.TransactionId = splits.TransactionId WHERE transactions.UserId=? AND splits.AccountId=?" + sqlsort + balanceLimitOffset + ") as t ON s.TransactionId = t.TransactionId WHERE s.AccountId=?"
+	count, err = tx.SelectInt("SELECT count(*) "+sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
 	if err != nil {
 		return nil, err
 	}
 
-	var tmp, balance big.Rat
-	for _, amount := range amounts {
-		rat_amount, err := models.GetBigAmount(amount)
+	var balance models.Amount
+
+	// Don't attempt to 'sum()' the splits if none exist, because it is
+	// supposed to return null/nil in this case, which makes gorp angry since
+	// we're using SelectInt()
+	if count > 0 {
+		whole, err := tx.SelectInt("SELECT sum(s.WholeAmount) "+sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
 		if err != nil {
 			return nil, err
 		}
-		tmp.Add(&balance, rat_amount)
-		balance.Set(&tmp)
+		fractional, err := tx.SelectInt("SELECT sum(s.FractionalAmount) "+sql, user.UserId, accountid, balanceLimitOffsetArg, accountid)
+		if err != nil {
+			return nil, err
+		}
+		balance.FromParts(whole, fractional, MaxPrecision)
 	}
-	atl.BeginningBalance = balance.FloatString(security.Precision)
-	atl.EndingBalance = tmp.Add(&balance, pageDifference).FloatString(security.Precision)
+
+	atl.BeginningBalance = balance
+	atl.EndingBalance.Rat.Add(&balance.Rat, pageDifference)
 
 	return &atl, nil
 }

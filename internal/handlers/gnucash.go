@@ -10,7 +10,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"math/big"
 	"net/http"
 	"time"
 )
@@ -49,7 +48,7 @@ func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 		gc.Precision = template.Precision
 	} else {
 		if gxc.Fraction > 0 {
-			gc.Precision = int(math.Ceil(math.Log10(float64(gxc.Fraction))))
+			gc.Precision = uint64(math.Ceil(math.Log10(float64(gxc.Fraction))))
 		} else {
 			gc.Precision = 0
 		}
@@ -178,12 +177,13 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 		p.CurrencyId = currency.SecurityId
 		p.Date = price.Date.Date.Time
 
-		var r big.Rat
-		_, ok = r.SetString(price.Value)
-		if ok {
-			p.Value = r.FloatString(currency.Precision)
-		} else {
+		_, ok = p.Value.SetString(price.Value)
+		if !ok {
 			return nil, fmt.Errorf("Can't set price value: %s", price.Value)
+		}
+		if p.Value.Precision() > currency.Precision {
+			// TODO we're possibly losing data here... but do we care?
+			p.Value.Round(currency.Precision)
 		}
 
 		p.RemoteId = "gnucash:" + price.Id
@@ -293,12 +293,12 @@ func ImportGnucash(r io.Reader) (*GnucashImport, error) {
 			s.Number = gt.Number
 			s.Memo = gs.Memo
 
-			var r big.Rat
-			_, ok = r.SetString(gs.Amount)
-			if ok {
-				s.Amount = r.FloatString(security.Precision)
-			} else {
+			_, ok = s.Amount.SetString(gs.Amount)
+			if !ok {
 				return nil, fmt.Errorf("Can't set split Amount: %s", gs.Amount)
+			}
+			if s.Amount.Precision() > security.Precision {
+				return nil, fmt.Errorf("Imported price's precision (%d) is greater than the security's (%s)\n", s.Amount.Precision(), security)
 			}
 
 			t.Splits = append(t.Splits, s)
@@ -356,6 +356,7 @@ func GnucashImportHandler(r *http.Request, context *Context) ResponseWriterWrite
 	}
 
 	if err != nil {
+		log.Print(err)
 		return NewError(3 /*Invalid Request*/)
 	}
 
