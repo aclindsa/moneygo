@@ -335,11 +335,11 @@ func (tx *Tx) GetAccountBalance(user *models.User, accountid int64) (*models.Amo
 }
 
 func (tx *Tx) GetAccountBalanceDate(user *models.User, accountid int64, date *time.Time) (*models.Amount, error) {
-	return tx.getAccountBalance(" AND transactions.date < ?", accountid, user.UserId, date)
+	return tx.getAccountBalance(" AND transactions.Date < ?", accountid, user.UserId, date)
 }
 
 func (tx *Tx) GetAccountBalanceDateRange(user *models.User, accountid int64, begin, end *time.Time) (*models.Amount, error) {
-	return tx.getAccountBalance(" AND transactions.date >= ? AND transactions.Date < ?", accountid, user.UserId, begin, end)
+	return tx.getAccountBalance(" AND transactions.Date >= ? AND transactions.Date < ?", accountid, user.UserId, begin, end)
 }
 
 func (tx *Tx) transactionsBalanceDifference(accountid int64, transactions []*models.Transaction) (*big.Rat, error) {
