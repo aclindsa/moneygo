@@ -36,7 +36,7 @@ func (gc *GnucashCommodity) UnmarshalXML(d *xml.Decoder, start xml.StartElement)
 	gc.AlternateId = gxc.XCode
 
 	gc.Security.Type = models.Stock // assumed default
-	if gxc.Type == "ISO4217" {
+	if gxc.Type == "ISO4217" || gxc.Type == "CURRENCY" {
 		gc.Security.Type = models.Currency
 		// Get the number from our templates for the AlternateId because
 		// Gnucash uses 'id' (our Name) to supply the string ISO4217 code
