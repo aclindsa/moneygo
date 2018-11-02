@@ -3,39 +3,54 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:476444199a2ed0626eab92a39d6379bb72c67b84758191f7be7d07dd44708fd7"
   name = "github.com/aclindsa/gorp"
   packages = ["."]
+  pruneopts = ""
   revision = "4735379e1f46302b58b985d8172a53988aad93b4"
 
 [[projects]]
+  digest = "1:c688c98fa0817ecefc00de00cb071437676259e62917e3cf246167a4ac7fe5a8"
   name = "github.com/aclindsa/ofxgo"
   packages = ["."]
+  pruneopts = ""
   revision = "d81d75876fe515827c2c9e63b2bb7171acddede1"
   version = "v0.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:7c685fa85b4486ecf622995905408afed6330c493b0f8f81b54c9535343c23c1"
   name = "github.com/aclindsa/xml"
   packages = ["."]
-  revision = "5d4402bb4a207d3f39d33ae127c97557e1df8f05"
+  pruneopts = ""
+  revision = "207ec7fb74201d07016cbd7064cb6331dde91eba"
 
 [[projects]]
+  digest = "1:c07de423ca37dc2765396d6971599ab652a339538084b9b58c9f7fc533b28525"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  revision = "a0583e0143b1624142adab07e0e97fe106d99561"
-  version = "v1.3"
+  pruneopts = ""
+  revision = "d523deb1b23d913de5bdada721a6071e71283618"
+  version = "v1.4.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:048f85adb4eeed8feedaec030983d629e9903950b237345d579f920bdeaabf00"
   name = "github.com/kabukky/httpscerts"
   packages = ["."]
+  pruneopts = ""
   revision = "617593d7dcb39c9ed617bb62c5e2056244d02184"
 
 [[projects]]
   branch = "master"
+  digest = "1:bc36cd980d0069137800b505af4937c6109f4dc7cefe39d7c2efc7c8d51528d6"
   name = "github.com/lib/pq"
-  packages = [".","oid"]
-  revision = "83612a56d3dd153a94a629cd64925371c9adad78"
+  packages = [
+    ".",
+    "oid",
+  ]
+  pruneopts = ""
+  revision = "9eb73efc1fcc404148b56765b0d3f61d9a5ef8ee"
 
 [[projects]]
   digest = "1:c8b59c9235e65231db9f6fe5b05306ccf1108c8fd00cb017f0529fe242e68dd4"
@@ -46,37 +61,74 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:e5e7d7742a5607737fd6a564ca941aecbd4e70c56ff443b11e3ce107608b5299"
   name = "github.com/yuin/gopher-lua"
-  packages = [".","ast","parse","pm"]
-  revision = "609c9cd2697344dec90fe0543c6493e3b8da3435"
+  packages = [
+    ".",
+    "ast",
+    "parse",
+    "pm",
+  ]
+  pruneopts = ""
+  revision = "12c4817b42c5e5b1f9e2690e42bfeaac8727924f"
 
 [[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = ["context"]
-  revision = "dc871a5d77e227f5bbf6545176ef3eeebf87e76e"
-
-[[projects]]
-  branch = "master"
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
   name = "golang.org/x/text"
-  packages = ["currency","internal","internal/format","internal/gen","internal/tag","language","unicode/cldr"]
-  revision = "3b24cac7bc3a458991ab409aa2a339ac9e0d60d6"
+  packages = [
+    "currency",
+    "internal",
+    "internal/format",
+    "internal/gen",
+    "internal/tag",
+    "language",
+    "unicode/cldr",
+  ]
+  pruneopts = ""
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
+  digest = "1:77d3cff3a451d50be4b52db9c7766c0d8570ba47593f0c9dc72173adb208e788"
+  name = "google.golang.org/appengine"
+  packages = ["cloudsql"]
+  pruneopts = ""
+  revision = "4a4468ece617fc8205e99368fa2200e9d1fad421"
+  version = "v1.3.0"
+
+[[projects]]
+  digest = "1:bb864e9881b2c241fc6348ba5ed57e6ccf8a675903f1f5c3d81c1b3d7cc4b8f8"
   name = "gopkg.in/gcfg.v1"
-  packages = [".","scanner","token","types"]
-  revision = "298b7a6a3838f79debfaee8bd3bfb2b8d779e756"
-  version = "v1.2.1"
+  packages = [
+    ".",
+    "scanner",
+    "token",
+    "types",
+  ]
+  pruneopts = ""
+  revision = "61b2c08bc8f6068f7c5ca684372f9a6cb1c45ebe"
+  version = "v1.2.3"
 
 [[projects]]
+  digest = "1:ceec7e96590fb8168f36df4795fefe17051d4b0c2acc7ec4e260d8138c4dafac"
   name = "gopkg.in/warnings.v0"
   packages = ["."]
+  pruneopts = ""
   revision = "ec4a0fea49c7b46c2aeb0b51aac55779c607e52b"
   version = "v0.1.2"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ad90bfdaa27132d84af5979b27d0960663bd13d57510566071056e1d4bb0d503"
+  input-imports = [
+    "github.com/aclindsa/gorp",
+    "github.com/aclindsa/ofxgo",
+    "github.com/go-sql-driver/mysql",
+    "github.com/kabukky/httpscerts",
+    "github.com/lib/pq",
+    "github.com/mattn/go-sqlite3",
+    "github.com/yuin/gopher-lua",
+    "gopkg.in/gcfg.v1",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
