@@ -106,8 +106,8 @@ class TransactionRow extends React.Component {
 				<td ref="description" onClick={this.onClick}>{this.props.transaction.Description}</td>
 				<td ref="account" onClick={this.onClick}>{accountName}</td>
 				<td ref="status" onClick={this.onClick}>{status}</td>
-				<td ref="amount" onClick={this.onClick}>{amount}</td>
-				<td>{balance}</td>
+				<td className="amount-cell" ref="amount" onClick={this.onClick}>{amount}</td>
+				<td className="amount-cell">{balance}</td>
 			</tr>);
 	}
 }
@@ -722,7 +722,6 @@ class AccountRegister extends React.Component {
 		super();
 		this.state = {
 			newTransaction: null,
-			height: 0
 		};
 		this.onEditTransaction = this.handleEditTransaction.bind(this);
 		this.onEditingCancel = this.handleEditingCancel.bind(this);
@@ -732,19 +731,10 @@ class AccountRegister extends React.Component {
 		this.onUpdateTransaction = this.handleUpdateTransaction.bind(this);
 		this.onDeleteTransaction = this.handleDeleteTransaction.bind(this);
 	}
-	resize() {
-		var div = ReactDOM.findDOMNode(this);
-		this.setState({height: div.parentElement.clientHeight - 64});
-	}
 	componentWillReceiveProps(nextProps) {
 		if (!nextProps.transactionPage.upToDate && nextProps.selectedAccount != -1) {
 			nextProps.onFetchTransactionPage(nextProps.accounts[nextProps.selectedAccount], nextProps.transactionPage.pageSize, nextProps.transactionPage.page);
 		}
-	}
-	componentDidMount() {
-		this.resize();
-		var self = this;
-		$(window).resize(function() {self.resize();});
 	}
 	handleEditTransaction(transaction) {
 		this.props.onSelectTransaction(transaction.TransactionId);
@@ -826,9 +816,8 @@ class AccountRegister extends React.Component {
 				));
 			}
 
-			var style = {height: this.state.height + "px"};
 			register = (
-				<div style={style} className="transactions-register">
+				<div className="transactions-register">
 				<Table bordered striped condensed hover>
 					<thead><tr>
 						<th>Date</th>

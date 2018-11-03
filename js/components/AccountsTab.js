@@ -155,23 +155,15 @@ class AccountsTab extends React.Component {
 	constructor() {
 		super();
 		this.state = {
-			creatingNewAccount: false,
 			editingAccount: false,
 			deletingAccount: false
 		};
-		this.onNewAccount = this.handleNewAccount.bind(this);
 		this.onEditAccount = this.handleEditAccount.bind(this);
 		this.onDeleteAccount = this.handleDeleteAccount.bind(this);
-		this.onCreationCancel = this.handleCreationCancel.bind(this);
 		this.onEditingCancel = this.handleEditingCancel.bind(this);
 		this.onDeletionCancel = this.handleDeletionCancel.bind(this);
-		this.onCreateAccount = this.handleCreateAccount.bind(this);
 		this.onUpdateAccount = this.handleUpdateAccount.bind(this);
 		this.onRemoveAccount = this.handleRemoveAccount.bind(this);
-		this.onAccountSelected = this.handleAccountSelected.bind(this);
-	}
-	handleNewAccount() {
-		this.setState({creatingNewAccount: true});
 	}
 	handleEditAccount() {
 		this.setState({editingAccount: true});
@@ -179,19 +171,11 @@ class AccountsTab extends React.Component {
 	handleDeleteAccount() {
 		this.setState({deletingAccount: true});
 	}
-	handleCreationCancel() {
-		this.setState({creatingNewAccount: false});
-	}
 	handleEditingCancel() {
 		this.setState({editingAccount: false});
 	}
 	handleDeletionCancel() {
 		this.setState({deletingAccount: false});
-	}
-	handleCreateAccount(account) {
-		if (this.props.onCreateAccount != null)
-			this.props.onCreateAccount(account);
-		this.setState({creatingNewAccount: false});
 	}
 	handleUpdateAccount(account) {
 		if (this.props.onUpdateAccount != null)
@@ -203,10 +187,6 @@ class AccountsTab extends React.Component {
 			this.props.onDeleteAccount(account);
 		this.setState({deletingAccount: false});
 	}
-	handleAccountSelected(account) {
-		this.props.onSelectAccount(account.AccountId);
-		this.props.onFetchTransactionPage(account, 20, 0);
-	}
 	render() {
 		var disabled = (this.props.selectedAccount == -1) ? true : false;
 
@@ -215,71 +195,53 @@ class AccountsTab extends React.Component {
 			selectedAccount = this.props.accounts[this.props.selectedAccount];
 
 		return (
-			<Grid fluid className="fullheight"><Row className="fullheight">
-				<Col xs={2} className="fullheight account-column">
-					<AddEditAccountModal
-						show={this.state.creatingNewAccount}
-						initialParentAccount={selectedAccount}
-						accounts={this.props.accounts}
-						accountChildren={this.props.accountChildren}
-						onCancel={this.onCreationCancel}
-						onSubmit={this.onCreateAccount}
-						security_list={this.props.security_list}/>
-					<AddEditAccountModal
-						show={this.state.editingAccount}
-						editAccount={selectedAccount}
-						accounts={this.props.accounts}
-						accountChildren={this.props.accountChildren}
-						onCancel={this.onEditingCancel}
-						onSubmit={this.onUpdateAccount}
-						security_list={this.props.security_list}/>
-					<DeleteAccountModal
-						show={this.state.deletingAccount}
-						initialAccount={selectedAccount}
-						accounts={this.props.accounts}
-						accountChildren={this.props.accountChildren}
-						onCancel={this.onDeletionCancel}
-						onSubmit={this.onRemoveAccount}/>
-					<AccountTree
-						accounts={this.props.accounts}
-						accountChildren={this.props.accountChildren}
-						selectedAccount={this.props.selectedAccount}
-						onSelect={this.onAccountSelected}/>
-					<ButtonGroup className="account-buttongroup">
-						<Button onClick={this.onNewAccount} bsStyle="success">
-							<Glyphicon glyph='plus-sign' /></Button>
-						<Button onClick={this.onEditAccount}
-								bsStyle="primary" disabled={disabled}>
-							<Glyphicon glyph='cog' /></Button>
-						<Button onClick={this.onDeleteAccount}
-								bsStyle="danger" disabled={disabled}>
-							<Glyphicon glyph='trash' /></Button>
-					</ButtonGroup>
-				</Col><Col xs={10} className="fullheight transactions-column">
-					<AccountRegister
-						pageSize={20}
-						selectedAccount={this.props.selectedAccount}
-						accounts={this.props.accounts}
-						accountChildren={this.props.accountChildren}
-						securities={this.props.securities}
-						transactions={this.props.transactions}
-						transactionPage={this.props.transactionPage}
-						imports={this.props.imports}
-						onFetchAllAccounts={this.props.onFetchAllAccounts}
-						onFetchAllSecurities={this.props.onFetchAllSecurities}
-						onCreateTransaction={this.props.onCreateTransaction}
-						onUpdateTransaction={this.props.onUpdateTransaction}
-						onDeleteTransaction={this.props.onDeleteTransaction}
-						onSelectTransaction={this.props.onSelectTransaction}
-						onUnselectTransaction={this.props.onUnselectTransaction}
-						onFetchTransactionPage={this.props.onFetchTransactionPage}
-						onOpenImportModal={this.props.onOpenImportModal}
-						onCloseImportModal={this.props.onCloseImportModal}
-						onImportOFX={this.props.onImportOFX}
-						onImportOFXFile={this.props.onImportOFXFile}
-						onImportGnucash={this.props.onImportGnucash} />
-				</Col>
-			</Row></Grid>
+			<div>
+				<AddEditAccountModal
+					show={this.state.editingAccount}
+					editAccount={selectedAccount}
+					accounts={this.props.accounts}
+					accountChildren={this.props.accountChildren}
+					onCancel={this.onEditingCancel}
+					onSubmit={this.onUpdateAccount}
+					security_list={this.props.security_list}/>
+				<DeleteAccountModal
+					show={this.state.deletingAccount}
+					initialAccount={selectedAccount}
+					accounts={this.props.accounts}
+					accountChildren={this.props.accountChildren}
+					onCancel={this.onDeletionCancel}
+					onSubmit={this.onRemoveAccount}/>
+				<ButtonGroup className="account-buttongroup">
+					<Button onClick={this.onEditAccount}
+							bsStyle="primary" disabled={disabled}>
+						<Glyphicon glyph='cog' /> Edit Account</Button>
+					<Button onClick={this.onDeleteAccount}
+							bsStyle="danger" disabled={disabled}>
+						<Glyphicon glyph='trash' /> Delete Account</Button>
+				</ButtonGroup>
+				<AccountRegister
+					pageSize={20}
+					selectedAccount={this.props.selectedAccount}
+					accounts={this.props.accounts}
+					accountChildren={this.props.accountChildren}
+					securities={this.props.securities}
+					transactions={this.props.transactions}
+					transactionPage={this.props.transactionPage}
+					imports={this.props.imports}
+					onFetchAllAccounts={this.props.onFetchAllAccounts}
+					onFetchAllSecurities={this.props.onFetchAllSecurities}
+					onCreateTransaction={this.props.onCreateTransaction}
+					onUpdateTransaction={this.props.onUpdateTransaction}
+					onDeleteTransaction={this.props.onDeleteTransaction}
+					onSelectTransaction={this.props.onSelectTransaction}
+					onUnselectTransaction={this.props.onUnselectTransaction}
+					onFetchTransactionPage={this.props.onFetchTransactionPage}
+					onOpenImportModal={this.props.onOpenImportModal}
+					onCloseImportModal={this.props.onCloseImportModal}
+					onImportOFX={this.props.onImportOFX}
+					onImportOFXFile={this.props.onImportOFXFile}
+					onImportGnucash={this.props.onImportGnucash} />
+			</div>
 		);
 	}
 }

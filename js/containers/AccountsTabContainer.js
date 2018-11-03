@@ -23,7 +23,6 @@ function mapStateToProps(state) {
 function mapDispatchToProps(dispatch) {
 	return {
 		onFetchAllAccounts: function() {dispatch(AccountActions.fetchAll())},
-		onCreateAccount: function(account) {dispatch(AccountActions.create(account))},
 		onUpdateAccount: function(account) {dispatch(AccountActions.update(account))},
 		onDeleteAccount: function(account) {dispatch(AccountActions.remove(account))},
 		onSelectAccount: function(accountId) {dispatch(AccountActions.select(accountId))},

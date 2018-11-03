@@ -76,8 +76,8 @@ class LogoutBar extends React.Component {
 	}
 	handleOnSelect(key) {
 		if (key == 1) {
-			if (this.props.onAccountSettings != null)
-				this.props.onAccountSettings();
+			if (this.props.onSettings != null)
+				this.props.onSettings();
 		} else if (key == 2) {
 			this.props.onLogout();
 		}
@@ -110,7 +110,7 @@ class TopBar extends React.Component {
 		if (!this.props.user.isUser())
 			barContents = <LoginBar onLogin={this.props.onLogin} onCreateNewUser={this.props.onCreateNewUser} />;
 		else
-			barContents = <LogoutBar user={this.props.user} onLogout={this.props.onLogout} onAccountSettings={this.props.onAccountSettings}/>;
+			barContents = <LogoutBar user={this.props.user} onLogout={this.props.onLogout} onSettings={this.props.onSettings}/>;
 		if (this.props.error.isError())
 			errorAlert =
 					<Alert bsStyle="danger" onDismiss={this.props.onClearError}>
