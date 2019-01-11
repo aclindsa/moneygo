@@ -235,7 +235,7 @@ func OFXImportHandler(context *Context, r *http.Request, user *models.User, acco
 		}
 	}
 
-	var client = ofxgo.Client{
+	var client = ofxgo.BasicClient{
 		AppID:       account.OFXAppID,
 		AppVer:      account.OFXAppVer,
 		SpecVersion: ofxver,
