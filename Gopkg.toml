@@ -27,7 +27,7 @@
 
 [[constraint]]
   name = "github.com/aclindsa/ofxgo"
-  version = "0.1.0"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/go-sql-driver/mysql"
