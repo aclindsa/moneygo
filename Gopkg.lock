@@ -10,12 +10,12 @@
   revision = "4735379e1f46302b58b985d8172a53988aad93b4"
 
 [[projects]]
-  digest = "1:c688c98fa0817ecefc00de00cb071437676259e62917e3cf246167a4ac7fe5a8"
+  branch = "master"
+  digest = "1:a4aefb0596f8f241f0b6a633e3a73ef0a969017c3e714b7878609dd724ddf962"
   name = "github.com/aclindsa/ofxgo"
   packages = ["."]
   pruneopts = ""
-  revision = "d81d75876fe515827c2c9e63b2bb7171acddede1"
-  version = "v0.1.0"
+  revision = "0f6ceccd861bb58a107aef5bb9a5cab54c479e5e"
 
 [[projects]]
   branch = "master"
