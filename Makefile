@@ -1,5 +1,7 @@
 JS_SOURCES = $(wildcard js/*.js) $(wildcard js/*/*.js)
 
+export PATH := node_modules/.bin:$(PATH)
+
 all: static/bundle.js static/react-widgets static/codemirror/codemirror.css
 
 node_modules:
